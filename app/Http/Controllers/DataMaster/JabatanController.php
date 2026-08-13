@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Http\Controllers\DataMaster;
+
+use App\Http\Controllers\Controller;
+use App\Models\DataMaster\Jabatan;
+use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+
+class JabatanController extends Controller
+{
+    private string $menu = 'master.jabatan';
+
+    public function index(Request $request): View
+    {
+        $this->authorizeAccess($this->menu, 'index_access');
+
+        $query = Jabatan::query()->orderBy('nama');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('nama', 'like', "%{$s}%")
+                  ->orWhere('kode', 'like', "%{$s}%")
+                  ->orWhere('singkatan', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $items = $query->paginate(15)->withQueryString();
+
+        return view('master.jabatan.index', compact('items'));
+    }
+
+    public function create(): View
+    {
+        $this->authorizeAccess($this->menu, 'create_access');
+
+        return view('master.jabatan.create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'create_access');
+
+        $request->validate([
+            'kode'      => ['required', 'string', 'max:20', 'unique:a03_jabatan,kode'],
+            'nama'      => ['required', 'string', 'max:100'],
+            'singkatan' => ['nullable', 'string', 'max:20'],
+            'status'    => ['required', 'in:1,0'],
+        ], $this->messages());
+
+        Jabatan::create([
+            'kode'      => strtoupper($request->kode),
+            'nama'      => $request->nama,
+            'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
+            'status'    => $request->status,
+        ]);
+
+        return redirect()->route('master.jabatan.index')
+            ->with('success', 'Jabatan berhasil ditambahkan.');
+    }
+
+    public function edit(Jabatan $jabatan): View
+    {
+        $this->authorizeAccess($this->menu, 'update_access');
+
+        return view('master.jabatan.edit', compact('jabatan'));
+    }
+
+    public function update(Request $request, Jabatan $jabatan): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'update_access');
+
+        $request->validate([
+            'kode'      => ['required', 'string', 'max:20', 'unique:a03_jabatan,kode,' . $jabatan->id],
+            'nama'      => ['required', 'string', 'max:100'],
+            'singkatan' => ['nullable', 'string', 'max:20'],
+            'status'    => ['required', 'in:1,0'],
+        ], $this->messages());
+
+        $jabatan->update([
+            'kode'      => strtoupper($request->kode),
+            'nama'      => $request->nama,
+            'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
+            'status'    => $request->status,
+        ]);
+
+        return redirect()->route('master.jabatan.index')
+            ->with('success', 'Data jabatan berhasil diperbarui.');
+    }
+
+    public function destroy(Jabatan $jabatan): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'delete_access');
+
+        $jabatan->delete();
+
+        return redirect()->route('master.jabatan.index')
+            ->with('success', 'Jabatan berhasil dihapus.');
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────
+
+    private function authorizeAccess(string $menu, string $tipe): void
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if ($user->isAdmin()) return;
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+    }
+
+    private function messages(): array
+    {
+        return [
+            'kode.required'   => 'Kode jabatan wajib diisi.',
+            'kode.unique'     => 'Kode jabatan sudah terdaftar.',
+            'nama.required'   => 'Nama jabatan wajib diisi.',
+            'status.required' => 'Status wajib dipilih.',
+        ];
+    }
+}

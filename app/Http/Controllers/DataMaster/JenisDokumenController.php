@@ -1,0 +1,149 @@
+<?php
+
+namespace App\Http\Controllers\DataMaster;
+
+use App\Http\Controllers\Controller;
+use App\Models\DataMaster\JenisDokumen;
+use App\Models\DataMaster\Departemen;
+use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+
+class JenisDokumenController extends Controller
+{
+    private string $menu = 'master.jenis-dokumen';
+
+    public function index(Request $request): View
+    {
+        $this->authorizeAccess($this->menu, 'index_access');
+
+        $query = JenisDokumen::with('departemen')->orderBy('kode_dokumen');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('kode_dokumen',     'like', "%{$s}%")
+                  ->orWhere('kategori_dokumen','like', "%{$s}%")
+                  ->orWhere('jenis_dokumen',   'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('departemen')) {
+            $query->where('departemen_pemilik', $request->departemen);
+        }
+
+        if ($request->filled('kategori')) {
+            $query->where('kategori_dokumen', $request->kategori);
+        }
+
+        $items      = $query->paginate(15)->withQueryString();
+        $departemens = Departemen::aktif()->orderBy('nama')->get();
+        $kategoris  = JenisDokumen::select('kategori_dokumen')
+                                   ->distinct()
+                                   ->orderBy('kategori_dokumen')
+                                   ->pluck('kategori_dokumen');
+
+        return view('master.jenis-dokumen.index', compact('items', 'departemens', 'kategoris'));
+    }
+
+    public function create(): View
+    {
+        $this->authorizeAccess($this->menu, 'create_access');
+
+        $departemens = Departemen::aktif()->orderBy('nama')->get();
+
+        return view('master.jenis-dokumen.create', compact('departemens'));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'create_access');
+
+        $request->validate([
+            'kode_dokumen'      => ['required', 'string', 'max:20', 'unique:a06_jenis_dokumen,kode_dokumen'],
+            'kategori_dokumen'  => ['required', 'string', 'max:100'],
+            'jenis_dokumen'     => ['required', 'string', 'max:150'],
+            'departemen_pemilik'=> ['required', 'exists:a02_departemen,id'],
+        ], $this->messages());
+
+        JenisDokumen::create([
+            'kode_dokumen'      => strtoupper($request->kode_dokumen),
+            'kategori_dokumen'  => $request->kategori_dokumen,
+            'jenis_dokumen'     => $request->jenis_dokumen,
+            'departemen_pemilik'=> $request->departemen_pemilik,
+        ]);
+
+        return redirect()->route('master.jenis-dokumen.index')
+            ->with('success', 'Jenis dokumen berhasil ditambahkan.');
+    }
+
+    public function edit(JenisDokumen $jenisDokumen): View
+    {
+        $this->authorizeAccess($this->menu, 'update_access');
+
+        $departemens = Departemen::aktif()->orderBy('nama')->get();
+
+        return view('master.jenis-dokumen.edit', compact('jenisDokumen', 'departemens'));
+    }
+
+    public function update(Request $request, JenisDokumen $jenisDokumen): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'update_access');
+
+        $request->validate([
+            'kode_dokumen'      => ['required', 'string', 'max:20', 'unique:a06_jenis_dokumen,kode_dokumen,' . $jenisDokumen->id],
+            'kategori_dokumen'  => ['required', 'string', 'max:100'],
+            'jenis_dokumen'     => ['required', 'string', 'max:150'],
+            'departemen_pemilik'=> ['required', 'exists:a02_departemen,id'],
+        ], $this->messages());
+
+        $jenisDokumen->update([
+            'kode_dokumen'      => strtoupper($request->kode_dokumen),
+            'kategori_dokumen'  => $request->kategori_dokumen,
+            'jenis_dokumen'     => $request->jenis_dokumen,
+            'departemen_pemilik'=> $request->departemen_pemilik,
+        ]);
+
+        return redirect()->route('master.jenis-dokumen.index')
+            ->with('success', 'Jenis dokumen berhasil diperbarui.');
+    }
+
+    public function destroy(JenisDokumen $jenisDokumen): RedirectResponse
+    {
+        $this->authorizeAccess($this->menu, 'delete_access');
+
+        // Uncomment di Phase 2 ketika tabel pengajuan sudah ada
+        // if ($jenisDokumen->pengajuans()->exists()) {
+        //     return back()->with('error', 'Jenis dokumen tidak dapat dihapus karena sudah digunakan.');
+        // }
+
+        $jenisDokumen->delete();
+
+        return redirect()->route('master.jenis-dokumen.index')
+            ->with('success', 'Jenis dokumen berhasil dihapus.');
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────
+
+    private function authorizeAccess(string $menu, string $tipe): void
+    {
+        $user = auth()->user();
+
+        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if ($user->isAdmin()) return;
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+    }
+
+    private function messages(): array
+    {
+        return [
+            'kode_dokumen.required'       => 'Kode dokumen wajib diisi.',
+            'kode_dokumen.unique'         => 'Kode dokumen sudah terdaftar.',
+            'kode_dokumen.max'            => 'Kode dokumen maksimal 20 karakter.',
+            'kategori_dokumen.required'   => 'Kategori dokumen wajib diisi.',
+            'jenis_dokumen.required'      => 'Jenis dokumen wajib diisi.',
+            'departemen_pemilik.required' => 'Departemen pemilik wajib dipilih.',
+            'departemen_pemilik.exists'   => 'Departemen tidak ditemukan.',
+        ];
+    }
+}
