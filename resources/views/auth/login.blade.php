@@ -50,7 +50,7 @@
         .panel-left-bg {
             position: absolute;
             inset: 0;
-            background-image: url('{{ asset('public/images/bg-login.png') }}');
+            background-image: url('{{ asset('/images/bg-login.png') }}');
             background-size: cover;
             background-position: center top;
             z-index: 0;
