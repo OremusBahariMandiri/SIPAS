@@ -87,7 +87,9 @@ class TteService
                     $bgY + $bgSize,
                     $white
                 );
-                
+
+                //test
+
                 imagecopyresampled(
                     $qrImage,
                     $logoImage,
