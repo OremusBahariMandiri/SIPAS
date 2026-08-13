@@ -9,9 +9,6 @@ use setasign\Fpdi\Tcpdf\Fpdi;
 
 class TteService
 {
-    /**
-     * Generate QR Code PNG — endroid/qr-code v6, pure GD tanpa imagick
-     */
     public function generateQrCode(PengajuanTtePlacement $placement): string
     {
         $verifyUrl = url('/verify/tte/' . $placement->qr_token);
@@ -36,24 +33,14 @@ class TteService
         }
         $qrSize = imagesx($qrImage);
 
-        // ← Ambil logo dari perusahaan yang terkait dengan TTE ini
-        // bukan dari user->perusahaan (departemen user)
+        // Ambil logo dari perusahaan TTE
         $logoPath = null;
-
         if ($placement->tte->perusahaan?->logo) {
             $candidate = storage_path('app/public/' . $placement->tte->perusahaan->logo);
             if (file_exists($candidate)) {
                 $logoPath = $candidate;
             }
         }
-
-        \Log::info('TTE Logo', [
-            'tte_id'      => $placement->tte->id,
-            'perusahaan'  => $placement->tte->perusahaan?->nama,
-            'logo_field'  => $placement->tte->perusahaan?->logo,
-            'logo_path'   => $logoPath,
-            'file_exists' => $logoPath ? file_exists($logoPath) : false,
-        ]);
 
         if ($logoPath) {
             $ext       = strtolower(pathinfo($logoPath, PATHINFO_EXTENSION));
@@ -68,7 +55,6 @@ class TteService
                 $logoX    = (int) (($qrSize - $logoSize) / 2);
                 $logoY    = (int) (($qrSize - $logoSize) / 2);
 
-                // Padding background di sekitar logo
                 $padding = 12;
                 $bgX     = $logoX - $padding;
                 $bgY     = $logoY - $padding;
@@ -76,31 +62,19 @@ class TteService
 
                 $white = imagecolorallocate($qrImage, 255, 255, 255);
 
-                // ── Pilih salah satu: ──────────────────────────
-
-                // OPSI A — Background KOTAK (persegi dengan sudut rounded)
                 imagefilledrectangle(
                     $qrImage,
-                    $bgX,
-                    $bgY,
-                    $bgX + $bgSize,
-                    $bgY + $bgSize,
+                    $bgX, $bgY,
+                    $bgX + $bgSize, $bgY + $bgSize,
                     $white
                 );
 
-                //test prod to dev
-
                 imagecopyresampled(
-                    $qrImage,
-                    $logoImage,
-                    $logoX,
-                    $logoY,
-                    0,
-                    0,
-                    $logoSize,
-                    $logoSize,
-                    imagesx($logoImage),
-                    imagesy($logoImage)
+                    $qrImage, $logoImage,
+                    $logoX, $logoY,
+                    0, 0,
+                    $logoSize, $logoSize,
+                    imagesx($logoImage), imagesy($logoImage)
                 );
 
                 imagedestroy($logoImage);
@@ -114,11 +88,7 @@ class TteService
 
         return $pngData;
     }
-    /**
-     * Inject semua QR Code TTE ke PDF
-     * Koordinat dari DB dalam satuan PDF points (pt)
-     * FPDI butuh satuan mm → konversi: 1pt = 0.352778mm
-     */
+
     public function injectTteToPdf(PengajuanSurat $pengajuan): string
     {
         $sourcePath = storage_path('app/' . $pengajuan->file_original);
@@ -143,12 +113,6 @@ class TteService
 
         $totalPages = $pdf->setSourceFile($sourcePath);
 
-        \Log::info('TTE: PDF source loaded', [
-            'pengajuan_id' => $pengajuan->id,
-            'total_pages'  => $totalPages,
-            'placements'   => $pengajuan->ttePlacements->count(),
-        ]);
-
         for ($pageNo = 1; $pageNo <= $totalPages; $pageNo++) {
             $templateId  = $pdf->importPage($pageNo);
             $size        = $pdf->getTemplateSize($templateId);
@@ -160,76 +124,28 @@ class TteService
             $placements = $pengajuan->ttePlacements->where('halaman', $pageNo);
 
             foreach ($placements as $placement) {
-                // Konversi pt → mm (1 pt = 0.352778 mm)
-                $ptToMm = 0.352778;
-
+                $ptToMm     = 0.352778;
                 $qrWidthMm  = $placement->lebar  * $ptToMm;
                 $qrHeightMm = $placement->tinggi * $ptToMm;
+                $xMm        = $placement->pos_x  * $ptToMm;
+                $posYMm     = $placement->pos_y  * $ptToMm;
+                $yMm        = $size['height'] - $posYMm - $qrHeightMm;
 
-                // pos_x = pojok kiri QR dalam pt → langsung konversi ke mm
-                $xMm = $placement->pos_x * $ptToMm;
-
-                // pos_y = pojok bawah QR dari bottom halaman (PDF origin)
-                // FPDI origin top-left:
-                // yMm = pageHeight - pos_y_mm - qrHeight_mm
-                // tapi pos_y sudah = bottom QR, jadi:
-                // yMm = pageHeight - (pos_y + qrHeight) * ptToMm
-                // = pageHeight - pos_y_mm - qrHeightMm
-                $posYMm = $placement->pos_y * $ptToMm;
-                $yMm    = $size['height'] - $posYMm - $qrHeightMm;
-
-                // Clamp
                 $xMm = max(0, min($xMm, $size['width']  - $qrWidthMm));
                 $yMm = max(0, min($yMm, $size['height'] - $qrHeightMm));
 
-                \Log::info('TTE coordinate', [
-                    'pos_x_pt'  => $placement->pos_x,
-                    'pos_y_pt'  => $placement->pos_y,
-                    'xMm'       => round($xMm, 2),
-                    'yMm'       => round($yMm, 2),
-                    'pageH_mm'  => $size['height'],
-                    'qrH_mm'    => $qrHeightMm,
-                ]);
-
-                \Log::info('TTE: Placement coordinate', [
-                    'placement_id' => $placement->id,
-                    'page'         => $pageNo,
-                    'pos_x_pt'     => $placement->pos_x,
-                    'pos_y_pt'     => $placement->pos_y,
-                    'lebar_pt'     => $placement->lebar,
-                    'tinggi_pt'    => $placement->tinggi,
-                    'xMm'          => round($xMm, 2),
-                    'yMm'          => round($yMm, 2),
-                    'qrWidthMm'    => round($qrWidthMm, 2),
-                    'qrHeightMm'   => round($qrHeightMm, 2),
-                    'pageW_mm'     => $size['width'],
-                    'pageH_mm'     => $size['height'],
-                ]);
-
-                // Generate QR PNG
                 $qrPng = $this->generateQrCode($placement);
-
-                // Simpan ke temp file
                 $tmpQr = tempnam(sys_get_temp_dir(), 'tte_') . '.png';
                 file_put_contents($tmpQr, $qrPng);
 
-                // Tempel QR ke PDF
                 $pdf->Image($tmpQr, $xMm, $yMm, $qrWidthMm, $qrHeightMm, 'PNG');
 
                 $placement->update(['signed_at' => now()]);
                 @unlink($tmpQr);
-
-                \Log::info('TTE: Placement injected', ['placement_id' => $placement->id]);
             }
         }
 
         $pdf->Output($signedPath, 'F');
-
-        \Log::info('TTE: Signed PDF saved', [
-            'path'   => $signedPath,
-            'exists' => file_exists($signedPath),
-            'size'   => file_exists($signedPath) ? filesize($signedPath) : 0,
-        ]);
 
         if (!file_exists($signedPath) || filesize($signedPath) === 0) {
             throw new \RuntimeException('Signed PDF was not created or is empty.');
