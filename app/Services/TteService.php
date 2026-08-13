@@ -88,7 +88,7 @@ class TteService
                     $white
                 );
 
-                //test
+                //test prod
 
                 imagecopyresampled(
                     $qrImage,
