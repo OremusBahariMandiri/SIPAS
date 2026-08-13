@@ -87,18 +87,7 @@ class TteService
                     $bgY + $bgSize,
                     $white
                 );
-
-                // OPSI B — Background CIRCLE (hapus opsi A jika pakai ini)
-                // imagefilledellipse(
-                //     $qrImage,
-                //     (int) ($qrSize / 2),
-                //     (int) ($qrSize / 2),
-                //     $bgSize, $bgSize,
-                //     $white
-                // );
-
-                // ───────────────────────────────────────────────
-
+                
                 imagecopyresampled(
                     $qrImage,
                     $logoImage,
