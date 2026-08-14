@@ -186,11 +186,12 @@ class SubmissionController extends Controller
         return view('data.submission.show', compact('submission'));
     }
 
-    public function edit(PengajuanSurat $submission): View
+    public function edit(PengajuanSurat $submission): View|RedirectResponse
     {
         $this->authorizeAccess($this->menu, 'update_access');
         $this->authorizeOwner($submission);
 
+        // Draft dan rejected boleh diedit
         if (!$submission->isEditable()) {
             return redirect()->route('data.submission.show', $submission)
                 ->with('error', 'This submission can no longer be edited.');
@@ -226,18 +227,25 @@ class SubmissionController extends Controller
                 ->with('error', 'This submission can no longer be edited.');
         }
 
+        // File wajib diganti jika status rejected
+        $fileRule = $submission->status === 'rejected'
+            ? ['required', 'file', 'mimes:pdf', 'max:10240']
+            : ['nullable', 'file', 'mimes:pdf', 'max:10240'];
+
         $request->validate([
-            'tanggal_surat'    => ['required', 'date'],
-            'id_perusahaan'    => ['required', 'exists:a01_perusahaan,id'],
-            'id_kepada'        => ['required', 'exists:users,id'],
-            'nomor_surat'      => ['required', 'string', 'max:100'],
-            'id_jenis_dokumen' => ['required', 'exists:a06_jenis_dokumen,id'],
-            'perihal'          => ['required', 'string', 'max:255'],
-            'file_dokumen'     => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
-            'terusan'          => ['nullable', 'array'],
+            'tanggal_surat'           => ['required', 'date'],
+            'id_perusahaan'           => ['required', 'exists:a01_perusahaan,id'],
+            'id_kepada'               => ['required', 'exists:users,id'],
+            'nomor_surat'             => ['required', 'string', 'max:100'],
+            'id_jenis_dokumen'        => ['required', 'exists:a06_jenis_dokumen,id'],
+            'perihal'                 => ['required', 'string', 'max:255'],
+            'file_dokumen'            => $fileRule,
+            'terusan'                 => ['nullable', 'array'],
             'terusan.*.id_departemen' => ['required_with:terusan', 'exists:a02_departemen,id'],
             'terusan.*.require_tte'   => ['nullable', 'boolean'],
-        ], $this->messages());
+        ], array_merge($this->messages(), [
+            'file_dokumen.required' => 'A new document file is required when resubmitting a rejected submission.',
+        ]));
 
         $data = [
             'tanggal_surat'    => $request->tanggal_surat,
@@ -248,6 +256,11 @@ class SubmissionController extends Controller
             'perihal'          => $request->perihal,
             'status'           => $request->action === 'submit' ? 'waiting' : 'draft',
         ];
+
+        // Jika rejected dan resubmit → reset rejection_reason
+        if ($submission->status === 'rejected' && $request->action === 'submit') {
+            $data['rejection_reason'] = null;
+        }
 
         // Ganti file jika ada upload baru
         if ($request->hasFile('file_dokumen')) {
@@ -273,9 +286,11 @@ class SubmissionController extends Controller
             }
         }
 
-        $msg = $request->action === 'submit'
-            ? 'Submission has been sent successfully.'
-            : 'Draft has been updated.';
+        $msg = match (true) {
+            $request->action === 'submit' && $submission->wasChanged('status') => 'Submission has been resubmitted successfully.',
+            $request->action === 'submit' => 'Submission has been sent successfully.',
+            default => 'Draft has been updated.',
+        };
 
         return redirect()->route('data.submission.index')->with('success', $msg);
     }
