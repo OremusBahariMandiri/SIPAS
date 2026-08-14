@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -24,7 +29,7 @@
         .card {
             background: #fff;
             border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.08);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .08);
             width: 100%;
             max-width: 480px;
             overflow: hidden;
@@ -47,8 +52,15 @@
             font-size: 2rem;
         }
 
-        .status-icon.valid   { background: #dcfce7; color: #16a34a; }
-        .status-icon.invalid { background: #fee2e2; color: #dc2626; }
+        .status-icon.valid {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-icon.invalid {
+            background: #fee2e2;
+            color: #dc2626;
+        }
 
         .status-title {
             font-size: 1.25rem;
@@ -56,8 +68,13 @@
             margin-bottom: .25rem;
         }
 
-        .status-title.valid   { color: #15803d; }
-        .status-title.invalid { color: #dc2626; }
+        .status-title.valid {
+            color: #15803d;
+        }
+
+        .status-title.invalid {
+            color: #dc2626;
+        }
 
         .status-subtitle {
             font-size: .85rem;
@@ -87,7 +104,9 @@
             font-size: .85rem;
         }
 
-        .info-row:last-child { border-bottom: none; }
+        .info-row:last-child {
+            border-bottom: none;
+        }
 
         .info-label {
             color: #64748b;
@@ -145,9 +164,20 @@
             font-weight: 600;
         }
 
-        .badge-success { background: #dcfce7; color: #15803d; }
-        .badge-danger  { background: #fee2e2; color: #dc2626; }
-        .badge-muted   { background: #f1f5f9; color: #64748b; }
+        .badge-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-muted {
+            background: #f1f5f9;
+            color: #64748b;
+        }
 
         .card-footer {
             padding: 1rem 2rem;
@@ -175,163 +205,174 @@
         }
 
         @media (max-width: 480px) {
-            .card-body { padding: 1.25rem; }
-            .card-header { padding: 1.5rem 1.25rem 1.25rem; }
+            .card-body {
+                padding: 1.25rem;
+            }
+
+            .card-header {
+                padding: 1.5rem 1.25rem 1.25rem;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<div class="card">
+    <div class="card">
 
-    {{-- Header Status --}}
-    <div class="card-header">
-        @if($valid)
-        <div class="status-icon valid">
-            <i class="bi bi-shield-fill-check"></i>
-        </div>
-        <div class="status-title valid">Dokumen Terverifikasi</div>
-        <div class="status-subtitle">Tanda tangan elektronik ini valid dan sah.</div>
-        @else
-        <div class="status-icon invalid">
-            <i class="bi bi-shield-fill-x"></i>
-        </div>
-        <div class="status-title invalid">Tidak Terverifikasi</div>
-        <div class="status-subtitle">
-            @if(!$tte)
-                Token tidak ditemukan atau tidak valid.
-            @elseif($tte->isExpired())
-                TTE ini sudah melewati masa berlaku.
-            @elseif(!$tte->is_active)
-                TTE ini sudah dinonaktifkan.
-            @elseif($placement && !$placement->signed_at)
-                Dokumen belum ditandatangani.
+        {{-- Header Status --}}
+        <div class="card-header">
+            @if ($valid)
+                <div class="status-icon valid">
+                    <i class="bi bi-shield-fill-check"></i>
+                </div>
+                <div class="status-title valid">Dokumen Terverifikasi</div>
+                <div class="status-subtitle">Tanda tangan elektronik ini valid dan sah.</div>
             @else
-                TTE tidak dapat diverifikasi.
+                <div class="status-icon invalid">
+                    <i class="bi bi-shield-fill-x"></i>
+                </div>
+                <div class="status-title invalid">Tidak Terverifikasi</div>
+                <div class="status-subtitle">
+                    @if (!$tte)
+                        Token tidak ditemukan atau tidak valid.
+                    @elseif($tte->isExpired())
+                        TTE ini sudah melewati masa berlaku.
+                    @elseif(!$tte->is_active)
+                        TTE ini sudah dinonaktifkan.
+                    @elseif($placement && !$placement->signed_at)
+                        Dokumen belum ditandatangani.
+                    @else
+                        TTE tidak dapat diverifikasi.
+                    @endif
+                </div>
             @endif
         </div>
-        @endif
-    </div>
 
-    <div class="card-body">
+        <div class="card-body">
 
-        @if($tte)
+            @if ($tte)
 
-        {{-- Info Perusahaan --}}
-        @if($tte->perusahaan)
-        <div class="logo-wrap">
-            @if($tte->perusahaan->logo)
-            <img src="{{ Storage::url($tte->perusahaan->logo) }}" alt="{{ $tte->perusahaan->singkatan }}">
+                {{-- Info Perusahaan --}}
+                @if ($tte->perusahaan)
+                    <div class="logo-wrap">
+                        @if ($tte->perusahaan->logo)
+                            <img src="{{ Storage::url($tte->perusahaan->logo) }}"
+                                alt="{{ $tte->perusahaan->singkatan }}">
+                        @endif
+                        <div>
+                            <div class="logo-wrap-name">{{ $tte->perusahaan->nama }}</div>
+                            <div class="logo-wrap-sub">{{ $tte->perusahaan->singkatan }}</div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Info Penandatangan --}}
+                <div class="section-label">Penandatangan</div>
+                <div class="info-row">
+                    <span class="info-label">Nama</span>
+                    <span class="info-value">{{ $tte->user->nama_karyawan ?? '-' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">NRK</span>
+                    <span class="info-value">{{ $tte->user->nrk ?? '-' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Jabatan</span>
+                    <span class="info-value">{{ $tte->user->jabatan ?? '-' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status TTE</span>
+                    <span class="info-value">
+                        @if ($tte->isExpired())
+                            <span class="badge badge-danger"><i class="bi bi-clock"></i> Expired</span>
+                        @elseif($tte->is_active)
+                            <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Aktif</span>
+                        @else
+                            <span class="badge badge-muted">Non-aktif</span>
+                        @endif
+                    </span>
+                </div>
+                @if ($tte->expired_at)
+                    <div class="info-row">
+                        <span class="info-label">Berlaku Hingga</span>
+                        <span class="info-value">{{ $tte->expired_at->format('d/m/Y') }}</span>
+                    </div>
+                @endif
+
+                @if ($placement && $pengajuan)
+                    <div class="divider"></div>
+
+                    {{-- Info Dokumen --}}
+                    <div class="section-label">Informasi Dokumen</div>
+                    <div class="info-row">
+                        <span class="info-label">Nomor Surat</span>
+                        <span class="info-value">{{ $pengajuan->nomor_surat }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Perihal</span>
+                        <span class="info-value">{{ $pengajuan->perihal }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Jenis Dokumen</span>
+                        <span class="info-value">{{ $pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tanggal Surat</span>
+                        <span class="info-value">{{ $pengajuan->tanggal_surat->format('d/m/Y H:i') }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Diajukan Oleh</span>
+                        <span class="info-value">{{ $pengajuan->user->nrk ?? '-' }}</span>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    {{-- Info TTD --}}
+                    <div class="section-label">Detail Tanda Tangan</div>
+                    <div class="info-row">
+                        <span class="info-label">Tahap</span>
+                        <span class="info-value">
+                            {{ $placement->tahap === 'kepada' ? 'Persetujuan Final' : 'Persetujuan Terusan' }}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ditandatangani</span>
+                        <span class="info-value">
+                            @if ($placement->signed_at)
+                                {{ $placement->signed_at->format('d/m/Y H:i') }}
+                            @else
+                                <span class="badge badge-muted">Belum ditandatangani</span>
+                            @endif
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Halaman</span>
+                        <span class="info-value">{{ $placement->halaman }}</span>
+                    </div>
+                @endif
+
+                {{-- Token --}}
+                <div class="token-code">
+                    <i class="bi bi-qr-code"></i> {{ $token }}
+                </div>
+            @else
+                {{-- Token tidak ditemukan --}}
+                <div style="text-align:center;padding:1rem 0;color:#94a3b8;font-size:.85rem;">
+                    <i class="bi bi-question-circle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
+                    Token <code>{{ Str::limit($token, 20) }}</code> tidak ditemukan dalam sistem.
+                </div>
             @endif
-            <div>
-                <div class="logo-wrap-name">{{ $tte->perusahaan->nama }}</div>
-                <div class="logo-wrap-sub">{{ $tte->perusahaan->singkatan }}</div>
-            </div>
-        </div>
-        @endif
 
-        {{-- Info Penandatangan --}}
-        <div class="section-label">Penandatangan</div>
-        <div class="info-row">
-            <span class="info-label">NRK</span>
-            <span class="info-value">{{ $tte->user->nrk ?? '-' }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Jabatan</span>
-            <span class="info-value">{{ $tte->user->jabatan ?? '-' }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Status TTE</span>
-            <span class="info-value">
-                @if($tte->isExpired())
-                    <span class="badge badge-danger"><i class="bi bi-clock"></i> Expired</span>
-                @elseif($tte->is_active)
-                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Aktif</span>
-                @else
-                    <span class="badge badge-muted">Non-aktif</span>
-                @endif
-            </span>
-        </div>
-        @if($tte->expired_at)
-        <div class="info-row">
-            <span class="info-label">Berlaku Hingga</span>
-            <span class="info-value">{{ $tte->expired_at->format('d/m/Y') }}</span>
-        </div>
-        @endif
-
-        @if($placement && $pengajuan)
-        <div class="divider"></div>
-
-        {{-- Info Dokumen --}}
-        <div class="section-label">Informasi Dokumen</div>
-        <div class="info-row">
-            <span class="info-label">Nomor Surat</span>
-            <span class="info-value">{{ $pengajuan->nomor_surat }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Perihal</span>
-            <span class="info-value">{{ $pengajuan->perihal }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Jenis Dokumen</span>
-            <span class="info-value">{{ $pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Tanggal Surat</span>
-            <span class="info-value">{{ $pengajuan->tanggal_surat->format('d/m/Y H:i') }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Diajukan Oleh</span>
-            <span class="info-value">{{ $pengajuan->user->nrk ?? '-' }}</span>
         </div>
 
-        <div class="divider"></div>
-
-        {{-- Info TTD --}}
-        <div class="section-label">Detail Tanda Tangan</div>
-        <div class="info-row">
-            <span class="info-label">Tahap</span>
-            <span class="info-value">
-                {{ $placement->tahap === 'kepada' ? 'Persetujuan Final' : 'Persetujuan Terusan' }}
-            </span>
+        <div class="card-footer">
+            Diverifikasi oleh sistem <a href="https://sipas.oremus.id" target="_blank">SIPAS</a>
+            &middot; {{ now()->format('d/m/Y H:i') }}
         </div>
-        <div class="info-row">
-            <span class="info-label">Ditandatangani</span>
-            <span class="info-value">
-                @if($placement->signed_at)
-                    {{ $placement->signed_at->format('d/m/Y H:i') }}
-                @else
-                    <span class="badge badge-muted">Belum ditandatangani</span>
-                @endif
-            </span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Halaman</span>
-            <span class="info-value">{{ $placement->halaman }}</span>
-        </div>
-        @endif
-
-        {{-- Token --}}
-        <div class="token-code">
-            <i class="bi bi-qr-code"></i> {{ $token }}
-        </div>
-
-        @else
-        {{-- Token tidak ditemukan --}}
-        <div style="text-align:center;padding:1rem 0;color:#94a3b8;font-size:.85rem;">
-            <i class="bi bi-question-circle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
-            Token <code>{{ Str::limit($token, 20) }}</code> tidak ditemukan dalam sistem.
-        </div>
-        @endif
 
     </div>
-
-    <div class="card-footer">
-        Diverifikasi oleh sistem <a href="https://sipas.oremus.id" target="_blank">SIPAS</a>
-        &middot; {{ now()->format('d/m/Y H:i') }}
-    </div>
-
-</div>
 
 </body>
+
 </html>
