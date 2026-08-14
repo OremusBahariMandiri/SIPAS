@@ -41,7 +41,13 @@
             --sb-sub-bg: rgba(0, 0, 0, .20);
         }
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -52,211 +58,627 @@
 
         /* ── SIDEBAR ── */
         .sidebar {
-            position: fixed; top: 0; left: 0;
-            width: var(--sidebar-w); height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-w);
+            height: 100vh;
             background: var(--sb-bg);
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             z-index: 200;
-            transition: transform .28s cubic-bezier(.4,0,.2,1), width .28s cubic-bezier(.4,0,.2,1);
+            transition: transform .28s cubic-bezier(.4, 0, .2, 1), width .28s cubic-bezier(.4, 0, .2, 1);
         }
-        .sidebar.collapsed { width: 64px; }
+
+        .sidebar.collapsed {
+            width: 64px;
+        }
 
         .sidebar-brand {
             height: var(--navbar-h);
-            display: flex; align-items: center; gap: .65rem;
+            display: flex;
+            align-items: center;
+            gap: .65rem;
             padding: 0 1.1rem;
             border-bottom: 1px solid var(--sb-border);
-            text-decoration: none; flex-shrink: 0;
-            overflow: hidden; white-space: nowrap;
+            text-decoration: none;
+            flex-shrink: 0;
+            overflow: hidden;
+            white-space: nowrap;
         }
+
         .sidebar-brand-icon {
-            width: 32px; height: 32px;
-            background: var(--sb-active); border-radius: 8px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--sb-active);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .sidebar-brand-icon i { color: var(--sb-bg); font-size: 1rem; }
+
+        .sidebar-brand-icon i {
+            color: var(--sb-bg);
+            font-size: 1rem;
+        }
+
         .sidebar-brand-name {
-            font-size: .95rem; font-weight: 700; color: var(--sb-text-hv);
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--sb-text-hv);
             letter-spacing: -.2px;
-            transition: opacity .2s, width .2s; overflow: hidden;
+            transition: opacity .2s, width .2s;
+            overflow: hidden;
         }
-        .sidebar.collapsed .sidebar-brand-name { opacity: 0; width: 0; }
+
+        .sidebar.collapsed .sidebar-brand-name {
+            opacity: 0;
+            width: 0;
+        }
 
         .sidebar-nav {
-            flex: 1; overflow-y: auto; overflow-x: hidden;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
             padding: .75rem 0;
             scrollbar-width: thin;
-            scrollbar-color: rgba(240,210,215,.1) transparent;
+            scrollbar-color: rgba(240, 210, 215, .1) transparent;
         }
-        .sidebar-nav::-webkit-scrollbar { width: 4px; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(240,210,215,.1); border-radius: 2px; }
+
+        .sidebar-nav::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(240, 210, 215, .1);
+            border-radius: 2px;
+        }
 
         .nav-section-label {
-            font-size: .6rem; font-weight: 700;
-            color: rgba(240,210,215,.28);
-            letter-spacing: 1.2px; text-transform: uppercase;
+            font-size: .6rem;
+            font-weight: 700;
+            color: rgba(240, 210, 215, .28);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
             padding: .9rem 1.25rem .35rem;
-            white-space: nowrap; overflow: hidden;
+            white-space: nowrap;
+            overflow: hidden;
             transition: opacity .2s;
         }
-        .sidebar.collapsed .nav-section-label { opacity: 0; }
+
+        .sidebar.collapsed .nav-section-label {
+            opacity: 0;
+        }
 
         .nav-item {
-            display: flex; align-items: center; gap: .75rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
             padding: .58rem 1.25rem;
-            color: var(--sb-text); text-decoration: none;
-            font-size: .855rem; font-weight: 500;
+            color: var(--sb-text);
+            text-decoration: none;
+            font-size: .855rem;
+            font-weight: 500;
             border-left: 3px solid transparent;
             transition: color .15s, background .15s, border-color .15s;
-            cursor: pointer; white-space: nowrap; overflow: hidden; position: relative;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            position: relative;
         }
-        .nav-item i { font-size: 1.05rem; width: 18px; min-width: 18px; text-align: center; flex-shrink: 0; }
-        .nav-item-label { overflow: hidden; transition: opacity .2s, width .2s; }
-        .sidebar.collapsed .nav-item-label { opacity: 0; width: 0; }
-        .nav-item:hover { color: var(--sb-text-hv); background: rgba(240,210,215,.06); }
-        .nav-item.active { color: var(--sb-active); background: var(--sb-active-bg); border-left-color: var(--sb-active); }
-        .nav-item.active i { color: var(--sb-active); }
+
+        .nav-item i {
+            font-size: 1.05rem;
+            width: 18px;
+            min-width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .nav-item-label {
+            overflow: hidden;
+            transition: opacity .2s, width .2s;
+        }
+
+        .sidebar.collapsed .nav-item-label {
+            opacity: 0;
+            width: 0;
+        }
+
+        .nav-item:hover {
+            color: var(--sb-text-hv);
+            background: rgba(240, 210, 215, .06);
+        }
+
+        .nav-item.active {
+            color: var(--sb-active);
+            background: var(--sb-active-bg);
+            border-left-color: var(--sb-active);
+        }
+
+        .nav-item.active i {
+            color: var(--sb-active);
+        }
 
         .sidebar.collapsed .nav-item::after {
             content: attr(data-tooltip);
-            position: absolute; left: 64px; top: 50%; transform: translateY(-50%);
-            background: var(--sb-bg); border: 1px solid var(--sb-border);
-            color: var(--sb-text-hv); font-size: .78rem;
-            padding: 4px 10px; border-radius: 6px;
-            white-space: nowrap; opacity: 0; pointer-events: none;
-            transition: opacity .15s; z-index: 300;
+            position: absolute;
+            left: 64px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--sb-bg);
+            border: 1px solid var(--sb-border);
+            color: var(--sb-text-hv);
+            font-size: .78rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s;
+            z-index: 300;
         }
-        .sidebar.collapsed .nav-item:hover::after { opacity: 1; }
 
-        .nav-item-toggle { justify-content: space-between; }
-        .nav-item-toggle .nav-item-left { display: flex; align-items: center; gap: .75rem; overflow: hidden; }
-        .nav-item-toggle .chevron { font-size: .7rem; transition: transform .2s; color: rgba(240,210,215,.3); flex-shrink: 0; }
-        .nav-item-toggle[aria-expanded="true"] .chevron { transform: rotate(90deg); }
-        .sidebar.collapsed .nav-item-toggle .chevron { opacity: 0; width: 0; }
+        .sidebar.collapsed .nav-item:hover::after {
+            opacity: 1;
+        }
 
-        .nav-sub { background: var(--sb-sub-bg); overflow: hidden; }
-        .sidebar.collapsed .nav-sub { display: none; }
-        .nav-sub .nav-item { font-size: .815rem; padding-left: 3rem; font-weight: 400; color: var(--accent-light); border-left: none; }
-        .nav-sub .nav-item::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: rgba(240,210,215,.2); flex-shrink: 0; }
-        .nav-sub .nav-item:hover, .nav-sub .nav-item.active { color: var(--sb-active); }
-        .nav-sub .nav-item.active::before { background: var(--sb-active); }
+        .nav-item-toggle {
+            justify-content: space-between;
+        }
 
-        .sidebar-footer { padding: .9rem 1.1rem; border-top: 1px solid var(--sb-border); flex-shrink: 0; overflow: hidden; }
-        .sidebar-user { display: flex; align-items: center; gap: .7rem; }
-        .sidebar-avatar {
-            width: 34px; height: 34px; border-radius: 50%;
+        .nav-item-toggle .nav-item-left {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            overflow: hidden;
+        }
+
+        .nav-item-toggle .chevron {
+            font-size: .7rem;
+            transition: transform .2s;
+            color: rgba(240, 210, 215, .3);
+            flex-shrink: 0;
+        }
+
+        .nav-item-toggle[aria-expanded="true"] .chevron {
+            transform: rotate(90deg);
+        }
+
+        .sidebar.collapsed .nav-item-toggle .chevron {
+            opacity: 0;
+            width: 0;
+        }
+
+        .nav-sub {
+            background: var(--sb-sub-bg);
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed .nav-sub {
+            display: none;
+        }
+
+        .nav-sub .nav-item {
+            font-size: .815rem;
+            padding-left: 3rem;
+            font-weight: 400;
+            color: var(--accent-light);
+            border-left: none;
+        }
+
+        .nav-sub .nav-item::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: rgba(240, 210, 215, .2);
+            flex-shrink: 0;
+        }
+
+        .nav-sub .nav-item:hover,
+        .nav-sub .nav-item.active {
+            color: var(--sb-active);
+        }
+
+        .nav-sub .nav-item.active::before {
             background: var(--sb-active);
-            display: flex; align-items: center; justify-content: center;
-            font-size: .78rem; font-weight: 700; color: var(--sb-bg); flex-shrink: 0;
         }
-        .sidebar-user-info { flex: 1; min-width: 0; transition: opacity .2s, width .2s; overflow: hidden; }
-        .sidebar.collapsed .sidebar-user-info { opacity: 0; width: 0; }
-        .sidebar-user-name { font-size: .8rem; font-weight: 600; color: var(--sb-text-hv); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sidebar-user-role { font-size: .68rem; color: rgba(240,210,215,.3); }
-        .sidebar-logout { color: rgba(240,210,215,.35); font-size: 1rem; background: none; border: none; cursor: pointer; transition: color .15s; flex-shrink: 0; text-decoration: none; }
-        .sidebar-logout:hover { color: #E53935; }
-        .sidebar.collapsed .sidebar-logout { opacity: 0; pointer-events: none; }
+
+        .sidebar-footer {
+            padding: .9rem 1.1rem;
+            border-top: 1px solid var(--sb-border);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+        }
+
+        .sidebar-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--sb-active);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .78rem;
+            font-weight: 700;
+            color: var(--sb-bg);
+            flex-shrink: 0;
+        }
+
+        .sidebar-user-info {
+            flex: 1;
+            min-width: 0;
+            transition: opacity .2s, width .2s;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed .sidebar-user-info {
+            opacity: 0;
+            width: 0;
+        }
+
+        .sidebar-user-name {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--sb-text-hv);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user-role {
+            font-size: .68rem;
+            color: rgba(240, 210, 215, .3);
+        }
+
+        .sidebar-logout {
+            color: rgba(240, 210, 215, .35);
+            font-size: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color .15s;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .sidebar-logout:hover {
+            color: #E53935;
+        }
+
+        .sidebar.collapsed .sidebar-logout {
+            opacity: 0;
+            pointer-events: none;
+        }
 
         /* ── OVERLAY ── */
-        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 199; backdrop-filter: blur(1px); }
-        .sidebar-overlay.show { display: block; }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+            z-index: 199;
+            backdrop-filter: blur(1px);
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
 
         /* ── NAVBAR ── */
         .main-navbar {
-            position: fixed; top: 0; left: var(--sidebar-w); right: 0;
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-w);
+            right: 0;
             height: var(--navbar-h);
-            background: var(--card); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 1.25rem; z-index: 100; gap: 1rem;
-            transition: left .28s cubic-bezier(.4,0,.2,1);
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            z-index: 100;
+            gap: 1rem;
+            transition: left .28s cubic-bezier(.4, 0, .2, 1);
         }
-        body.sb-collapsed .main-navbar { left: 64px; }
-        body.sb-mobile .main-navbar { left: 0; }
 
-        .navbar-left { display: flex; align-items: center; gap: .6rem; }
+        body.sb-collapsed .main-navbar {
+            left: 64px;
+        }
+
+        body.sb-mobile .main-navbar {
+            left: 0;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+
         .btn-sidebar-toggle {
-            width: 36px; height: 36px; background: none;
-            border: 1px solid var(--border); border-radius: 8px;
-            cursor: pointer; color: var(--muted); font-size: 1.2rem;
-            display: flex; align-items: center; justify-content: center;
-            transition: color .15s, background .15s, border-color .15s; flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color .15s, background .15s, border-color .15s;
+            flex-shrink: 0;
         }
-        .btn-sidebar-toggle:hover { color: var(--primary); background: var(--primary-light); border-color: var(--primary); }
-        .navbar-breadcrumb { font-size: .83rem; color: var(--muted); }
-        .navbar-breadcrumb span { color: var(--text); font-weight: 600; }
 
-        .navbar-right { display: flex; align-items: center; gap: .45rem; }
+        .btn-sidebar-toggle:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .navbar-breadcrumb {
+            font-size: .83rem;
+            color: var(--muted);
+        }
+
+        .navbar-breadcrumb span {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+        }
+
         .btn-notif {
-            position: relative; width: 36px; height: 36px;
-            background: none; border: 1px solid var(--border); border-radius: 8px;
-            cursor: pointer; color: var(--muted); font-size: 1.05rem;
-            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: color .15s, background .15s, border-color .15s;
         }
-        .btn-notif:hover { color: var(--text); background: var(--bg); border-color: var(--primary); }
-        .notif-badge { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; background: var(--accent); border-radius: 50%; border: 2px solid var(--card); }
 
-        .navbar-user { position: relative; }
+        .btn-notif:hover {
+            color: var(--text);
+            background: var(--bg);
+            border-color: var(--primary);
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 7px;
+            height: 7px;
+            background: var(--accent);
+            border-radius: 50%;
+            border: 2px solid var(--card);
+        }
+
+        .navbar-user {
+            position: relative;
+        }
+
         .navbar-user-btn {
-            display: flex; align-items: center; gap: .45rem;
-            background: none; border: 1px solid var(--border); border-radius: 8px;
-            padding: .32rem .6rem .32rem .38rem; cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .32rem .6rem .32rem .38rem;
+            cursor: pointer;
             transition: border-color .15s, background .15s;
         }
-        .navbar-user-btn:hover { border-color: var(--primary); background: var(--primary-light); }
-        .navbar-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; }
-        .navbar-user-name { font-size: .8rem; font-weight: 600; color: var(--text); max-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .navbar-user-btn i.chevron { font-size: .65rem; color: var(--muted); }
+
+        .navbar-user-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .navbar-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .navbar-user-name {
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text);
+            max-width: 110px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .navbar-user-btn i.chevron {
+            font-size: .65rem;
+            color: var(--muted);
+        }
 
         .user-dropdown {
-            position: absolute; top: calc(100% + 8px); right: 0;
-            background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-            min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,.1);
-            display: none; z-index: 300; overflow: hidden;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            min-width: 180px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .1);
+            display: none;
+            z-index: 300;
+            overflow: hidden;
         }
-        .user-dropdown.show { display: block; }
-        .dropdown-header { padding: .7rem 1rem; border-bottom: 1px solid var(--border); }
-        .dropdown-header-name { font-size: .82rem; font-weight: 600; color: var(--text); }
-        .dropdown-header-nrk { font-size: .7rem; color: var(--muted); }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .dropdown-header {
+            padding: .7rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dropdown-header-name {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .dropdown-header-nrk {
+            font-size: .7rem;
+            color: var(--muted);
+        }
+
         .dropdown-item {
-            display: flex; align-items: center; gap: .55rem;
-            padding: .58rem 1rem; font-size: .82rem; color: var(--text);
-            text-decoration: none; transition: background .15s;
-            cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            padding: .58rem 1rem;
+            font-size: .82rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: background .15s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
         }
-        .dropdown-item:hover { background: var(--primary-light); }
-        .dropdown-item i { color: var(--muted); font-size: .88rem; width: 16px; }
-        .dropdown-item.danger { color: #C0392B; }
-        .dropdown-item.danger i { color: #C0392B; }
-        .dropdown-item.danger:hover { background: #FEF2F2; }
+
+        .dropdown-item:hover {
+            background: var(--primary-light);
+        }
+
+        .dropdown-item i {
+            color: var(--muted);
+            font-size: .88rem;
+            width: 16px;
+        }
+
+        .dropdown-item.danger {
+            color: #C0392B;
+        }
+
+        .dropdown-item.danger i {
+            color: #C0392B;
+        }
+
+        .dropdown-item.danger:hover {
+            background: #FEF2F2;
+        }
 
         /* ── MAIN WRAPPER ── */
         .main-wrapper {
-            margin-left: var(--sidebar-w); margin-top: var(--navbar-h);
+            margin-left: var(--sidebar-w);
+            margin-top: var(--navbar-h);
             min-height: calc(100vh - var(--navbar-h));
             padding: 1.5rem;
-            transition: margin-left .28s cubic-bezier(.4,0,.2,1);
+            transition: margin-left .28s cubic-bezier(.4, 0, .2, 1);
         }
-        body.sb-collapsed .main-wrapper { margin-left: 64px; }
-        body.sb-mobile .main-wrapper { margin-left: 0; }
+
+        body.sb-collapsed .main-wrapper {
+            margin-left: 64px;
+        }
+
+        body.sb-mobile .main-wrapper {
+            margin-left: 0;
+        }
 
         /* ── RESPONSIVE ── */
         @media (max-width:768px) {
-            .sidebar { width: var(--sidebar-w) !important; transform: translateX(calc(-1 * var(--sidebar-w))); box-shadow: none; }
-            .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.25); }
-            .sidebar .nav-item::after { display: none; }
-            .main-navbar { left: 0 !important; padding: 0 1rem; }
-            .navbar-breadcrumb, .navbar-user-name { display: none; }
-            .main-wrapper { margin-left: 0 !important; padding: 1rem; }
+            .sidebar {
+                width: var(--sidebar-w) !important;
+                transform: translateX(calc(-1 * var(--sidebar-w)));
+                box-shadow: none;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 4px 0 24px rgba(0, 0, 0, .25);
+            }
+
+            .sidebar .nav-item::after {
+                display: none;
+            }
+
+            .main-navbar {
+                left: 0 !important;
+                padding: 0 1rem;
+            }
+
+            .navbar-breadcrumb,
+            .navbar-user-name {
+                display: none;
+            }
+
+            .main-wrapper {
+                margin-left: 0 !important;
+                padding: 1rem;
+            }
         }
+
         @media (min-width:769px) and (max-width:1024px) {
-            :root { --sidebar-w: 64px; }
-            .sidebar { width: 64px; }
-            .sidebar-brand-name, .nav-item-label, .nav-section-label,
-            .nav-item-toggle .chevron, .sidebar-user-info, .sidebar-logout, .nav-badge { opacity: 0; width: 0; pointer-events: none; }
-            .nav-sub { display: none; }
-            .main-navbar { left: 64px; }
-            .main-wrapper { margin-left: 64px; }
+            :root {
+                --sidebar-w: 64px;
+            }
+
+            .sidebar {
+                width: 64px;
+            }
+
+            .sidebar-brand-name,
+            .nav-item-label,
+            .nav-section-label,
+            .nav-item-toggle .chevron,
+            .sidebar-user-info,
+            .sidebar-logout,
+            .nav-badge {
+                opacity: 0;
+                width: 0;
+                pointer-events: none;
+            }
+
+            .nav-sub {
+                display: none;
+            }
+
+            .main-navbar {
+                left: 64px;
+            }
+
+            .main-wrapper {
+                margin-left: 64px;
+            }
         }
     </style>
 
@@ -277,68 +699,11 @@
 
             {{-- Dashboard --}}
             <div class="nav-section-label">Main Menu</div>
-            <a href="{{ url('/home') }}"
-               class="nav-item {{ Request::is('home') ? 'active' : '' }}"
-               data-tooltip="Dashboard">
+            <a href="{{ url('/home') }}" class="nav-item {{ Request::is('home') ? 'active' : '' }}"
+                data-tooltip="Dashboard">
                 <i class="bi bi-speedometer2"></i>
                 <span class="nav-item-label">Dashboard</span>
             </a>
-
-            {{-- ── Document Submission ── --}}
-            @php
-                $showData =
-                    Auth::user()->isAdmin() ||
-                    Auth::user()->hasAccess('data.submission', 'index_access');
-                $dataActive = Request::is('data/*');
-
-                // Hitung pending approval untuk badge
-                $pendingApproval = 0;
-                if (Auth::check()) {
-                    $user = Auth::user();
-                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_departemen', $user->id_departemen)
-                        ->where('status', 'waiting')
-                        ->whereHas('pengajuan', fn($q) => $q->whereIn('status', ['waiting','in_review']))
-                        ->count();
-                    $pendingKepada = \App\Models\Data\PengajuanSurat::where('id_kepada', $user->id)
-                        ->whereIn('status', ['waiting','in_review'])
-                        ->whereDoesntHave('terusans', fn($q) => $q->where('status','waiting'))
-                        ->count();
-                    $pendingApproval = $pendingTerusan + $pendingKepada;
-                }
-            @endphp
-
-            @if($showData)
-                <div class="nav-section-label">Documents</div>
-
-                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse"
-                   href="#menu-data" role="button"
-                   aria-expanded="{{ $dataActive ? 'true' : 'false' }}"
-                   data-tooltip="Documents">
-                    <span class="nav-item-left">
-                        <i class="bi bi-file-earmark-text"></i>
-                        <span class="nav-item-label">Documents</span>
-                    </span>
-                    <i class="bi bi-chevron-right chevron"></i>
-                </a>
-
-                <div class="collapse nav-sub {{ $dataActive ? 'show' : '' }}" id="menu-data">
-                    <a href="{{ route('data.submission.index') }}"
-                       class="nav-item {{ Request::is('data/submission*') ? 'active' : '' }}">
-                        <span class="nav-item-label">My Submissions</span>
-                    </a>
-                    <a href="{{ route('data.approval.index') }}"
-                       class="nav-item {{ Request::is('data/approval*') ? 'active' : '' }}">
-                        <span class="nav-item-label">
-                            Approval Inbox
-                            @if($pendingApproval > 0)
-                                <span style="background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">
-                                    {{ $pendingApproval }}
-                                </span>
-                            @endif
-                        </span>
-                    </a>
-                </div>
-            @endif
 
             {{-- ── Data Master ── --}}
             @php
@@ -354,13 +719,11 @@
                 $masterActive = Request::is('master/*') && !Request::is('master/tte*');
             @endphp
 
-            @if($showMaster)
+            @if ($showMaster)
                 <div class="nav-section-label">Master Data</div>
 
-                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse"
-                   href="#menu-master" role="button"
-                   aria-expanded="{{ $masterActive ? 'true' : 'false' }}"
-                   data-tooltip="Master Data">
+                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse" href="#menu-master" role="button"
+                    aria-expanded="{{ $masterActive ? 'true' : 'false' }}" data-tooltip="Master Data">
                     <span class="nav-item-left">
                         <i class="bi bi-database"></i>
                         <span class="nav-item-label">Master Data</span>
@@ -370,46 +733,46 @@
 
                 <div class="collapse nav-sub {{ $masterActive ? 'show' : '' }}" id="menu-master">
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('users', 'index_access'))
-                    <a href="{{ route('users.index') }}"
-                       class="nav-item {{ Request::routeIs('users.index','users.create','users.show','users.edit') ? 'active' : '' }}">
-                        <span class="nav-item-label">Users</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('users', 'index_access'))
+                        <a href="{{ route('users.index') }}"
+                            class="nav-item {{ Request::routeIs('users.index', 'users.create', 'users.show', 'users.edit') ? 'active' : '' }}">
+                            <span class="nav-item-label">Users</span>
+                        </a>
                     @endif
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.perusahaan', 'index_access'))
-                    <a href="{{ route('master.perusahaan.index') }}"
-                       class="nav-item {{ Request::is('master/perusahaan*') ? 'active' : '' }}">
-                        <span class="nav-item-label">Perusahaan</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.perusahaan', 'index_access'))
+                        <a href="{{ route('master.perusahaan.index') }}"
+                            class="nav-item {{ Request::is('master/perusahaan*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Perusahaan</span>
+                        </a>
                     @endif
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.departemen', 'index_access'))
-                    <a href="{{ route('master.departemen.index') }}"
-                       class="nav-item {{ Request::is('master/departemen*') ? 'active' : '' }}">
-                        <span class="nav-item-label">Departemen</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.departemen', 'index_access'))
+                        <a href="{{ route('master.departemen.index') }}"
+                            class="nav-item {{ Request::is('master/departemen*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Departemen</span>
+                        </a>
                     @endif
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jabatan', 'index_access'))
-                    <a href="{{ route('master.jabatan.index') }}"
-                       class="nav-item {{ Request::is('master/jabatan*') ? 'active' : '' }}">
-                        <span class="nav-item-label">Jabatan</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jabatan', 'index_access'))
+                        <a href="{{ route('master.jabatan.index') }}"
+                            class="nav-item {{ Request::is('master/jabatan*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Jabatan</span>
+                        </a>
                     @endif
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.wilker', 'index_access'))
-                    <a href="{{ route('master.wilker.index') }}"
-                       class="nav-item {{ Request::is('master/wilayah-kerja*') ? 'active' : '' }}">
-                        <span class="nav-item-label">Wilayah Kerja</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.wilker', 'index_access'))
+                        <a href="{{ route('master.wilker.index') }}"
+                            class="nav-item {{ Request::is('master/wilayah-kerja*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Wilayah Kerja</span>
+                        </a>
                     @endif
 
-                    @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jenis-dokumen', 'index_access'))
-                    <a href="{{ route('master.jenis-dokumen.index') }}"
-                       class="nav-item {{ Request::is('master/jenis-dokumen*') ? 'active' : '' }}">
-                        <span class="nav-item-label">Jenis Dokumen</span>
-                    </a>
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jenis-dokumen', 'index_access'))
+                        <a href="{{ route('master.jenis-dokumen.index') }}"
+                            class="nav-item {{ Request::is('master/jenis-dokumen*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Jenis Dokumen</span>
+                        </a>
                     @endif
 
                 </div>
@@ -417,17 +780,15 @@
 
             {{-- ── TTE ── --}}
             @php
-                $showTte    = Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access');
-                $tteActive  = Request::is('master/tte*');
+                $showTte = Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access');
+                $tteActive = Request::is('master/tte*');
             @endphp
 
-            @if($showTte)
+            @if ($showTte)
                 <div class="nav-section-label">TTE</div>
 
-                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse"
-                   href="#menu-tte" role="button"
-                   aria-expanded="{{ $tteActive ? 'true' : 'false' }}"
-                   data-tooltip="TTE">
+                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse" href="#menu-tte" role="button"
+                    aria-expanded="{{ $tteActive ? 'true' : 'false' }}" data-tooltip="TTE">
                     <span class="nav-item-left">
                         <i class="bi bi-shield-check"></i>
                         <span class="nav-item-label">TTE</span>
@@ -437,9 +798,92 @@
 
                 <div class="collapse nav-sub {{ $tteActive ? 'show' : '' }}" id="menu-tte">
                     <a href="{{ route('master.tte.index') }}"
-                       class="nav-item {{ Request::is('master/tte*') ? 'active' : '' }}">
+                        class="nav-item {{ Request::is('master/tte*') ? 'active' : '' }}">
                         <span class="nav-item-label">Manage TTE</span>
                     </a>
+                </div>
+            @endif
+
+            {{-- ── Document Submission ── --}}
+            @php
+                $showData = Auth::user()->isAdmin() || Auth::user()->hasAccess('data.submission', 'index_access');
+                $dataActive = Request::is('data/*');
+
+                // Hitung pending approval untuk badge
+                $pendingApproval = 0;
+                if (Auth::check()) {
+                    $user = Auth::user();
+                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_departemen', $user->id_departemen)
+                        ->where('status', 'waiting')
+                        ->whereHas('pengajuan', fn($q) => $q->whereIn('status', ['waiting', 'in_review']))
+                        ->count();
+                    $pendingKepada = \App\Models\Data\PengajuanSurat::where('id_kepada', $user->id)
+                        ->whereIn('status', ['waiting', 'in_review'])
+                        ->whereDoesntHave('terusans', fn($q) => $q->where('status', 'waiting'))
+                        ->count();
+                    $pendingApproval = $pendingTerusan + $pendingKepada;
+                }
+            @endphp
+
+            @if ($showData)
+                <div class="nav-section-label">Documents</div>
+
+                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse" href="#menu-data" role="button"
+                    aria-expanded="{{ $dataActive ? 'true' : 'false' }}" data-tooltip="Documents">
+                    <span class="nav-item-left">
+                        <i class="bi bi-file-earmark-text"></i>
+                        <span class="nav-item-label">Documents</span>
+                    </span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+
+                <div class="collapse nav-sub {{ $dataActive ? 'show' : '' }}" id="menu-data">
+                    <a href="{{ route('data.submission.index') }}"
+                        class="nav-item {{ Request::is('data/submission*') ? 'active' : '' }}">
+                        <span class="nav-item-label">My Submissions</span>
+                    </a>
+                    <a href="{{ route('data.approval.index') }}"
+                        class="nav-item {{ Request::is('data/approval*') ? 'active' : '' }}">
+                        <span class="nav-item-label">
+                            Approval Inbox
+                            @if ($pendingApproval > 0)
+                                <span
+                                    style="background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">
+                                    {{ $pendingApproval }}
+                                </span>
+                            @endif
+                        </span>
+                    </a>
+                </div>
+            @endif
+
+            {{-- ── Settings ── --}}
+            @php
+                $showSettings = Auth::user()->isAdmin() || Auth::user()->hasAccess('settings.smtp', 'index_access');
+                $settingsActive = Request::is('settings/*');
+            @endphp
+
+            @if ($showSettings)
+                <div class="nav-section-label">Settings</div>
+
+                <a class="nav-item nav-item-toggle" data-bs-toggle="collapse" href="#menu-settings" role="button"
+                    aria-expanded="{{ $settingsActive ? 'true' : 'false' }}" data-tooltip="Settings">
+                    <span class="nav-item-left">
+                        <i class="bi bi-gear"></i>
+                        <span class="nav-item-label">Settings</span>
+                    </span>
+                    <i class="bi bi-chevron-right chevron"></i>
+                </a>
+
+                <div class="collapse nav-sub {{ $settingsActive ? 'show' : '' }}" id="menu-settings">
+
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('settings.smtp', 'index_access'))
+                        <a href="{{ route('settings.smtp.index') }}"
+                            class="nav-item {{ Request::is('settings/smtp*') ? 'active' : '' }}">
+                            <span class="nav-item-label">SMTP / Email</span>
+                        </a>
+                    @endif
+
                 </div>
             @endif
 
@@ -485,7 +929,7 @@
             {{-- Notif badge approval --}}
             <a href="{{ route('data.approval.index') }}" class="btn-notif" title="Approval Inbox">
                 <i class="bi bi-bell"></i>
-                @if($pendingApproval > 0)
+                @if ($pendingApproval > 0)
                     <span class="notif-badge"></span>
                 @endif
             </a>
@@ -520,18 +964,20 @@
     {{-- ═══════════════════ CONTENT ═══════════════════ --}}
     <main class="main-wrapper">
 
-        @if(session('success'))
-        <div class="flash-success" style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#166534;">
-            <i class="bi bi-check-circle-fill" style="color:#16a34a;flex-shrink:0;"></i>
-            {{ session('success') }}
-        </div>
+        @if (session('success'))
+            <div class="flash-success"
+                style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#166534;">
+                <i class="bi bi-check-circle-fill" style="color:#16a34a;flex-shrink:0;"></i>
+                {{ session('success') }}
+            </div>
         @endif
 
-        @if(session('error'))
-        <div class="flash-error" style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#991b1b;">
-            <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
-            {{ session('error') }}
-        </div>
+        @if (session('error'))
+            <div class="flash-error"
+                style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#991b1b;">
+                <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
+                {{ session('error') }}
+            </div>
         @endif
 
         @yield('content')
@@ -539,11 +985,11 @@
 
     {{-- ═══════════════════ SCRIPTS ═══════════════════ --}}
     <script>
-        const body      = document.getElementById('appBody');
-        const sidebar   = document.getElementById('sidebar');
-        const overlay   = document.getElementById('sidebarOverlay');
+        const body = document.getElementById('appBody');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
         const btnToggle = document.getElementById('btnSidebarToggle');
-        const toggleIcon= document.getElementById('toggleIcon');
+        const toggleIcon = document.getElementById('toggleIcon');
 
         const isMobile = () => window.innerWidth <= 768;
         const isTablet = () => window.innerWidth > 768 && window.innerWidth <= 1024;
@@ -563,19 +1009,26 @@
             }
         }
 
-        function closeMobileSidebar() { sidebar.classList.remove('mobile-open'); overlay.classList.remove('show'); }
-        function openMobileSidebar()  { sidebar.classList.add('mobile-open');    overlay.classList.add('show'); }
+        function closeMobileSidebar() {
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('show');
+        }
+
+        function openMobileSidebar() {
+            sidebar.classList.add('mobile-open');
+            overlay.classList.add('show');
+        }
 
         function init() {
             if (isMobile()) {
                 body.classList.add('sb-mobile');
                 body.classList.remove('sb-collapsed');
-                sidebar.classList.remove('collapsed','mobile-open');
+                sidebar.classList.remove('collapsed', 'mobile-open');
                 overlay.classList.remove('show');
                 toggleIcon.className = 'bi bi-list';
             } else if (isTablet()) {
-                body.classList.remove('sb-mobile','sb-collapsed');
-                sidebar.classList.remove('mobile-open','collapsed');
+                body.classList.remove('sb-mobile', 'sb-collapsed');
+                sidebar.classList.remove('mobile-open', 'collapsed');
                 overlay.classList.remove('show');
                 toggleIcon.className = 'bi bi-layout-sidebar';
             } else {
@@ -596,11 +1049,17 @@
         overlay.addEventListener('click', closeMobileSidebar);
 
         let resizeTimer;
-        window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(init, 80); });
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(init, 80);
+        });
 
         const btnUserDropdown = document.getElementById('btnUserDropdown');
-        const userDropdown    = document.getElementById('userDropdown');
-        btnUserDropdown?.addEventListener('click', e => { e.stopPropagation(); userDropdown.classList.toggle('show'); });
+        const userDropdown = document.getElementById('userDropdown');
+        btnUserDropdown?.addEventListener('click', e => {
+            e.stopPropagation();
+            userDropdown.classList.toggle('show');
+        });
         document.addEventListener('click', () => userDropdown?.classList.remove('show'));
 
         init();

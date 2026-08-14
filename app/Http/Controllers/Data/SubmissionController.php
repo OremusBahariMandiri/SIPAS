@@ -23,25 +23,72 @@ class SubmissionController extends Controller
     {
         $this->authorizeAccess($this->menu, 'index_access');
 
-        $query = PengajuanSurat::with(['perusahaan', 'jenisDokumen', 'kepada'])
-                               ->byUser(auth()->id())
-                               ->orderBy('created_at', 'desc');
+        /* ── Whitelist sort ── */
+        $sortable = ['nomor_surat', 'perihal', 'tanggal_surat', 'created_at'];
+        $sort     = in_array($request->get('sort'), $sortable) ? $request->get('sort') : 'created_at';
+        $dir      = $request->get('dir') === 'asc' ? 'asc' : 'desc';
 
+        /* ── Per-page ── */
+        $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+            ? (int) $request->get('per_page') : 15;
+
+        /* ── Query ── */
+        $query = PengajuanSurat::with(['perusahaan', 'jenisDokumen', 'kepada'])
+            ->byUser(auth()->id())
+            ->orderBy($sort, $dir);
+
+        /* Filter: status */
         if ($request->filled('status')) {
             $query->byStatus($request->status);
         }
 
+        /* Filter: perusahaan */
+        if ($request->filled('perusahaan')) {
+            $query->where('id_perusahaan', $request->perusahaan);
+        }
+
+        /* Filter: departemen (melalui jenis dokumen) */
+        if ($request->filled('departemen')) {
+            $query->whereHas('jenisDokumen', function ($q) use ($request) {
+                $q->where('id_departemen', $request->departemen);
+            });
+        }
+
+        /* Filter: rentang tanggal surat */
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal_surat', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal_surat', '<=', $request->date_to);
+        }
+
+        /* Filter: search (perihal + nomor_surat) */
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('nomor_surat', 'like', "%{$s}%")
-                  ->orWhere('perihal',   'like', "%{$s}%");
+                    ->orWhere('perihal',   'like', "%{$s}%");
             });
         }
 
-        $items = $query->paginate(15)->withQueryString();
+        /* Filter: tipe dokumen */
+        if ($request->filled('dok_type')) {
+            $query->whereHas('jenisDokumen', function ($q) use ($request) {
+                $q->where('jenis_dokumen', 'like', '%' . $request->dok_type . '%');
+            });
+        }
 
-        return view('data.submission.index', compact('items'));
+        $items = $query->paginate($perPage)->withQueryString();
+
+        /* ── Data untuk modal filter (dropdown) ── */
+        $perusahaanList = Perusahaan::where('status', 1)->orderBy('nama')->get();
+        $departemenList = Departemen::aktif()->orderBy('nama')->get();
+
+        return view('data.submission.index', compact(
+            'items',
+            'perusahaanList',
+            'departemenList'
+        ));
     }
 
     public function create(): View
@@ -52,13 +99,17 @@ class SubmissionController extends Controller
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
         $kepadas     = User::where('id', '!=', $user->id)->orderBy('nrk')->get();
         $jenisDoks   = JenisDokumen::with('departemen')
-                                   ->byDepartemen($user->id_departemen)
-                                   ->orderBy('jenis_dokumen')
-                                   ->get();
+            ->byDepartemen($user->id_departemen)
+            ->orderBy('jenis_dokumen')
+            ->get();
         $departemens = Departemen::aktif()->orderBy('nama')->get();
 
         return view('data.submission.create', compact(
-            'perusahaans', 'kepadas', 'jenisDoks', 'departemens', 'user'
+            'perusahaans',
+            'kepadas',
+            'jenisDoks',
+            'departemens',
+            'user'
         ));
     }
 
@@ -122,9 +173,14 @@ class SubmissionController extends Controller
         $this->authorizeOwner($submission);
 
         $submission->load([
-            'perusahaan', 'jenisDokumen', 'kepada',
-            'user', 'terusans.departemen', 'terusans.approvedBy',
-            'approvals.approver', 'ttePlacements.tte',
+            'perusahaan',
+            'jenisDokumen',
+            'kepada',
+            'user',
+            'terusans.departemen',
+            'terusans.approvedBy',
+            'approvals.approver',
+            'ttePlacements.tte',
         ]);
 
         return view('data.submission.show', compact('submission'));
@@ -144,15 +200,19 @@ class SubmissionController extends Controller
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
         $kepadas     = User::where('id', '!=', $user->id)->orderBy('nrk')->get();
         $jenisDoks   = JenisDokumen::with('departemen')
-                                   ->byDepartemen($user->id_departemen)
-                                   ->orderBy('jenis_dokumen')
-                                   ->get();
+            ->byDepartemen($user->id_departemen)
+            ->orderBy('jenis_dokumen')
+            ->get();
         $departemens = Departemen::aktif()->orderBy('nama')->get();
 
         $submission->load('terusans');
 
         return view('data.submission.edit', compact(
-            'submission', 'perusahaans', 'kepadas', 'jenisDoks', 'departemens'
+            'submission',
+            'perusahaans',
+            'kepadas',
+            'jenisDoks',
+            'departemens'
         ));
     }
 

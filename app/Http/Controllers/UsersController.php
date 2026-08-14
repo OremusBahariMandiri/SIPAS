@@ -35,6 +35,9 @@ class UsersController extends Controller
 
         // Data Transaksi
         'data.submission'     => 'Dokumen – Pengajuan Surat',
+
+         // Settings
+        'settings.smtp'     => 'SMTP Konfigurasi',
     ];
 
     /**

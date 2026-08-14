@@ -10,6 +10,7 @@ use App\Http\Controllers\DataMaster\TteController;
 use App\Http\Controllers\DataMaster\WilayahKerjaController;
 use App\Http\Controllers\Data\SubmissionController;
 use App\Http\Controllers\Data\ApprovalController;
+use App\Http\Controllers\Settings\SmtpSettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +26,7 @@ Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/verify/tte/{token}', [App\Http\Controllers\VerifyTteController::class, 'show'])
-     ->name('verify.tte');
+    ->name('verify.tte');
 
 Route::middleware(['auth'])->group(function () {
 
@@ -196,17 +197,17 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:data.submission,delete_access')->name('submission.destroy');
 
         // Serve PDF file
-// Serve PDF file — hapus prefix 'data.' dari name
-Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
-    abort_unless(auth()->check(), 403);
+        // Serve PDF file — hapus prefix 'data.' dari name
+        Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
 
-    $relativePath = $submission->file_signed ?? $submission->file_original;
-    $path = storage_path('app/' . $relativePath);
+            $relativePath = $submission->file_signed ?? $submission->file_original;
+            $path = storage_path('app/' . $relativePath);
 
-    abort_unless(file_exists($path), 404);
+            abort_unless(file_exists($path), 404);
 
-    return response()->file($path, ['Content-Type' => 'application/pdf']);
-})->name('submission.file'); // ← was 'data.submission.file', sekarang cukup 'submission.file'
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.file'); // ← was 'data.submission.file', sekarang cukup 'submission.file'
 
         // Approval
         Route::get('approval',                          [ApprovalController::class, 'index'])
@@ -217,5 +218,30 @@ Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSu
             ->name('approval.approve');
         Route::post('approval/{submission}/reject',     [ApprovalController::class, 'reject'])
             ->name('approval.reject');
+    });
+
+    Route::prefix('settings')->name('settings.')->group(function () {
+
+        // SMTP — index_access untuk melihat, create_access untuk simpan & tes
+        Route::get(
+            'smtp',
+            [SmtpSettingController::class, 'index']
+        )
+            ->middleware('akses:settings.smtp,index_access')
+            ->name('smtp.index');
+
+        Route::post(
+            'smtp/save',
+            [SmtpSettingController::class, 'save']
+        )
+            ->middleware('akses:settings.smtp,create_access')
+            ->name('smtp.save');
+
+        Route::post(
+            'smtp/test',
+            [SmtpSettingController::class, 'test']
+        )
+            ->middleware('akses:settings.smtp,index_access')
+            ->name('smtp.test');
     });
 });
