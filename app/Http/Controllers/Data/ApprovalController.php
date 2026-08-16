@@ -50,8 +50,11 @@ class ApprovalController extends Controller
         $user = auth()->user();
 
         $submission->load([
-            'perusahaan', 'jenisDokumen', 'kepada',
-            'user', 'terusans.departemen',
+            'perusahaan',
+            'jenisDokumen',
+            'kepada',
+            'user',
+            'terusans.departemen',
         ]);
 
         $tahap   = null;
@@ -86,7 +89,11 @@ class ApprovalController extends Controller
         }
 
         return view('data.approval.review', compact(
-            'submission', 'tahap', 'idRef', 'needTte', 'tte'
+            'submission',
+            'tahap',
+            'idRef',
+            'needTte',
+            'tte'
         ));
     }
 
@@ -95,36 +102,42 @@ class ApprovalController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'tahap'   => ['required', 'in:terusan,kepada'],
-            'id_ref'  => ['required', 'integer'],
-            'catatan' => ['nullable', 'string', 'max:500'],
-            'halaman' => ['nullable', 'integer', 'min:1'],
-            'pos_x'   => ['nullable', 'numeric'],
-            'pos_y'   => ['nullable', 'numeric'],
-            'lebar'   => ['nullable', 'numeric'],
-            'tinggi'  => ['nullable', 'numeric'],
+            'tahap'               => ['required', 'in:terusan,kepada'],
+            'id_ref'              => ['required', 'integer'],
+            'catatan'             => ['nullable', 'string', 'max:500'],
+            // Placements: array of TTD positions
+            'placements'          => ['nullable', 'array'],
+            'placements.*.halaman' => ['required_with:placements', 'integer', 'min:1'],
+            'placements.*.pos_x'  => ['required_with:placements', 'numeric'],
+            'placements.*.pos_y'  => ['required_with:placements', 'numeric'],
+            'placements.*.lebar'  => ['nullable', 'numeric'],
+            'placements.*.tinggi' => ['nullable', 'numeric'],
         ]);
 
-        // ← Ambil TTE sesuai perusahaan pengajuan
         $tte = $user->tteForPerusahaan($submission->id_perusahaan);
 
-        // Simpan placement jika ada koordinat TTD
-        if ($request->filled('pos_x') && $request->filled('pos_y') && $tte) {
-            PengajuanTtePlacement::create([
-                'id_pengajuan' => $submission->id,
-                'id_tte'       => $tte->id, // ← TTE sesuai perusahaan
-                'tahap'        => $request->tahap,
-                'id_ref'       => $request->id_ref,
-                'halaman'      => $request->halaman ?? 1,
-                'pos_x'        => $request->pos_x,
-                'pos_y'        => $request->pos_y,
-                'lebar'        => $request->lebar  ?? 71,
-                'tinggi'       => $request->tinggi ?? 71,
-                'qr_token'     => Str::random(64),
-            ]);
+        // ── Simpan semua placement (bisa > 1 TTD per orang) ──────────────────────
+        if ($request->filled('placements') && $tte) {
+            foreach ($request->placements as $pl) {
+                // Pastikan koordinat ada
+                if (empty($pl['pos_x']) || empty($pl['pos_y'])) continue;
+
+                PengajuanTtePlacement::create([
+                    'id_pengajuan' => $submission->id,
+                    'id_tte'       => $tte->id,
+                    'tahap'        => $request->tahap,
+                    'id_ref'       => $request->id_ref,
+                    'halaman'      => $pl['halaman'] ?? 1,
+                    'pos_x'        => $pl['pos_x'],
+                    'pos_y'        => $pl['pos_y'],
+                    'lebar'        => $pl['lebar']  ?? 71,
+                    'tinggi'       => $pl['tinggi'] ?? 71,
+                    'qr_token'     => Str::random(64),
+                ]);
+            }
         }
 
-        // Catat approval log
+        // ── Catat approval log ────────────────────────────────────────────────────
         PengajuanApproval::create([
             'id_pengajuan' => $submission->id,
             'tahap'        => $request->tahap,
@@ -135,7 +148,7 @@ class ApprovalController extends Controller
             'acted_at'     => now(),
         ]);
 
-        // ── Tahap Terusan ────────────────────────────────────
+        // ── Tahap Terusan ─────────────────────────────────────────────────────────
         if ($request->tahap === 'terusan') {
             PengajuanTerusan::where('id', $request->id_ref)->update([
                 'status'      => 'approved',
@@ -149,12 +162,12 @@ class ApprovalController extends Controller
                 ->with('success', 'Forwarding approval has been submitted.');
         }
 
-        // ── Tahap Kepada (Final) ─────────────────────────────
+        // ── Tahap Kepada (Final) ──────────────────────────────────────────────────
         if ($request->tahap === 'kepada') {
             $submission->update(['status' => 'approved']);
 
             $submission->load([
-                'ttePlacements.tte.perusahaan', // ← relasi perusahaan langsung dari TTE
+                'ttePlacements.tte.perusahaan',
                 'ttePlacements.tte.user',
             ]);
 
