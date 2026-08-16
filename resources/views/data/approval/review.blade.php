@@ -117,6 +117,101 @@
     }
     .rv-sig-slot { padding: .6rem; }
 }
+
+/* ═══════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   FLOATING PLACEMENT BAR — mengambang di atas canvas
+═══════════════════════════════════════════════════ */
+.tte-float-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: none;                 /* ditampilkan via JS saat placement mode ON */
+    align-items: center;
+    gap: .5rem;
+    background: rgba(15,15,15,.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 40px;
+    padding: .45rem .55rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    white-space: nowrap;
+    pointer-events: all;
+}
+.tte-float-bar.visible { display: flex; }
+
+/* Label kecil di kiri bar */
+.tte-float-label {
+    font-size: .72rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.7);
+    padding: 0 .3rem 0 .5rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+.tte-float-label i {
+    color: #f59e0b;
+    animation: rv-pulse 1.2s ease-in-out infinite;
+}
+
+/* Tombol aksi di dalam bar */
+.tte-float-btn {
+    border: none;
+    border-radius: 30px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: .4rem .85rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    transition: filter .15s;
+}
+.tte-float-btn:active { filter: brightness(.85); }
+.tte-float-btn-cancel {
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.75);
+}
+.tte-float-btn-save {
+    background: #22c55e;
+    color: #fff;
+}
+.tte-float-btn-save:disabled {
+    background: rgba(255,255,255,.15);
+    color: rgba(255,255,255,.35);
+    cursor: not-allowed;
+}
+
+/* Divider vertikal di dalam bar */
+.tte-float-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255,255,255,.18);
+    flex-shrink: 0;
+}
+
+/* Tombol tambah slot — ikon saja, bulat */
+.tte-float-btn-add {
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.85);
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .88rem;
+    flex-shrink: 0;
+}
+.tte-float-btn-add:hover { background: rgba(255,255,255,.22); }
+.tte-float-btn-add:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
 </style>
 @endpush
 
@@ -338,6 +433,59 @@
                     <div id="placeGhostLayer"
                          style="position:absolute;top:0;left:0;width:100%;height:100%;
                                 pointer-events:none;z-index:20;"></div>
+
+                    {{-- Floating bar: placement mode aktif --}}
+                    <div class="tte-float-bar" id="tteFloatBar">
+                        {{-- Label slot aktif --}}
+                        <div class="tte-float-label">
+                            <i class="bi bi-record-circle"></i>
+                            <span id="tteFloatSlotName">TTD #1</span>
+                        </div>
+
+                        {{-- Tombol Batal --}}
+                        <button type="button"
+                                class="tte-float-btn tte-float-btn-cancel"
+                                id="tteFloatCancel"
+                                title="Batal">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+
+                        {{-- Tombol Simpan --}}
+                        <button type="button"
+                                class="tte-float-btn tte-float-btn-save"
+                                id="tteFloatSave"
+                                disabled
+                                title="Simpan posisi">
+                            <i class="bi bi-check-lg"></i> Simpan
+                        </button>
+
+                        {{-- Divider --}}
+                        <div class="tte-float-divider"></div>
+
+                        {{-- Tombol tambah TTD baru --}}
+                        <button type="button"
+                                class="tte-float-btn tte-float-btn-add"
+                                id="tteFloatAdd"
+                                title="Tambah tanda tangan lain">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+
+                    {{-- Floating bar: idle (placement mode OFF, ada slot yg sudah placed) --}}
+                    <div class="tte-float-bar" id="tteFloatIdle"
+                         style="bottom:12px;gap:.4rem;">
+                        <div class="tte-float-label" style="padding-left:.6rem;">
+                            <i class="bi bi-check-circle-fill" style="color:#22c55e;animation:none;"></i>
+                            <span id="tteFloatIdleLabel">1 TTD ditempatkan</span>
+                        </div>
+                        <div class="tte-float-divider"></div>
+                        <button type="button"
+                                class="tte-float-btn tte-float-btn-add"
+                                id="tteFloatIdleAdd"
+                                title="Tambah tanda tangan lain">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -538,9 +686,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (bar) {
             bar.style.display = 'flex';
             document.getElementById('tteActiveLabel').textContent =
-                'Place mode ON — Signature #' + (activeSlotIdx + 1)
-                + '  ·  Click canvas to position  ·  Click again to move';
+                'Tap dokumen untuk posisikan — lalu tekan Simpan';
         }
+        showFloatBar(activeSlotIdx);
         renderSlotsUI();
     }
 
@@ -550,109 +698,213 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('placeClickLayer').style.display = 'none';
         const bar = document.getElementById('tteActiveBar');
         if (bar) bar.style.display = 'none';
-        if (rerender) renderSlotsUI();
+        hideFloatBar();
+        removeDraftGhost();
+        if (rerender) { renderSlotsUI(); refreshIdleBar(); }
     };
 
     /* ══════════════════════════════════════════════════════════
-       PLACEMENT HANDLER — desktop (click) + mobile (touchend)
-
-       Semua koordinat dihitung dari placeWrapper.getBoundingClientRect()
-       + scroll offset container, agar akurat di semua device.
+    /* ══════════════════════════════════════════════════════════
+       PLACEMENT HANDLER
+       Tap bebas → ghost langsung pindah → floating bar muncul
+       → user tap Simpan kalau sudah pas, atau Batal.
     ══════════════════════════════════════════════════════════ */
+
+    /* Koordinat sementara (belum disimpan ke slot) */
+    let draftPlacement = null;
+
     function handlePlacement(clientX, clientY) {
         if (activeSlotIdx === null || !placeViewport || !pageNaturalH) return;
 
-        /*
-         * Referensi: pojok kiri-atas placeWrapper (elemen canvas PDF).
-         * getBoundingClientRect() mengembalikan posisi relatif viewport browser
-         * sudah memperhitungkan scroll window dan zoom browser,
-         * tapi TIDAK memperhitungkan scroll di dalam container (placementScroll).
-         * Scroll container ditambahkan manual.
-         */
         const wrapper    = document.getElementById('placeWrapper');
         const wrapRect   = wrapper.getBoundingClientRect();
         const scroll     = document.getElementById('placementScroll');
         const scrollLeft = scroll ? scroll.scrollLeft : 0;
         const scrollTop  = scroll ? scroll.scrollTop  : 0;
 
-        /* Posisi tap/klik dalam CSS pixels relatif pojok kiri-atas canvas */
         const cssX = (clientX - wrapRect.left) + scrollLeft;
         const cssY = (clientY - wrapRect.top)  + scrollTop;
 
-        /* ── DEBUG ── */
-        console.table({
-            'clientX/Y'         : clientX.toFixed(1) + ' / ' + clientY.toFixed(1),
-            'wrapRect left/top' : wrapRect.left.toFixed(1) + ' / ' + wrapRect.top.toFixed(1),
-            'wrapRect W/H'      : wrapRect.width.toFixed(1) + ' / ' + wrapRect.height.toFixed(1),
-            'scrollLeft/Top'    : scrollLeft + ' / ' + scrollTop,
-            'cssX/cssY raw'     : cssX.toFixed(1) + ' / ' + cssY.toFixed(1),
-            'placeVP W/H'       : placeViewport.width.toFixed(1) + ' / ' + placeViewport.height.toFixed(1),
-            'pageNatural W/H'   : pageNaturalW.toFixed(1) + ' / ' + pageNaturalH.toFixed(1),
-            'devicePixelRatio'  : window.devicePixelRatio,
-            'visualVP scale'    : window.visualViewport ? window.visualViewport.scale.toFixed(3) : 'N/A',
-            'visualVP offsetX'  : window.visualViewport ? window.visualViewport.offsetLeft.toFixed(1) : 'N/A',
-            'visualVP offsetY'  : window.visualViewport ? window.visualViewport.offsetTop.toFixed(1) : 'N/A',
-        });
-
-        /*
-         * PENTING: Gunakan wrapRect.width/height (ukuran aktual canvas di layar)
-         * bukan placeViewport.width/height (ukuran CSS canvas saat dirender).
-         *
-         * Di mobile, canvas bisa dikecilkan browser karena lebar layar sempit,
-         * sehingga ukuran visual ≠ ukuran CSS saat render.
-         * wrapRect.width/height = ukuran yang benar-benar terlihat user.
-         */
         const cssPageW = wrapRect.width;
         const cssPageH = wrapRect.height;
 
-        /* Clamp agar tidak keluar batas canvas */
         const cx = Math.max(0, Math.min(cssPageW, cssX));
         const cy = Math.max(0, Math.min(cssPageH, cssY));
 
-        /*
-         * CSS pixels → PDF points.
-         * Rasio posisi relatif canvas = rasio posisi relatif halaman PDF.
-         * pageNaturalW/H sudah dalam PDF points (getViewport({scale:1})).
-         */
         const pdfPtX = cx * (pageNaturalW / cssPageW);
         const pdfPtY = cy * (pageNaturalH / cssPageH);
 
-        /*
-         * Balik sumbu Y: PDF.js origin kiri-atas → PDF standar origin kiri-bawah.
-         * pdfX/pdfY = tepi kiri/bawah QR box (bukan titik tengah).
-         */
         const pdfX = pdfPtX - QR_PT / 2;
         const pdfY = (pageNaturalH - pdfPtY) - QR_PT / 2;
 
-        const slot  = slots[activeSlotIdx];
-        slot.page   = placePage;
-        slot.pdfX   = +pdfX.toFixed(4);
-        slot.pdfY   = +pdfY.toFixed(4);
-        slot.cssX   = cx;
-        slot.cssY   = cy;
+        /* Simpan sebagai draft */
+        draftPlacement = {
+            page : placePage,
+            pdfX : +pdfX.toFixed(4),
+            pdfY : +pdfY.toFixed(4),
+            cssX : cx,
+            cssY : cy,
+        };
 
-        drawGhost(activeSlotIdx);
+        /* Gambar ghost draft langsung agar user tahu posisinya */
+        drawDraftGhost(cx, cy);
+
+        /* Aktifkan tombol Simpan; update tombol + (disable saat belum simpan) */
+        const btnSave = document.getElementById('tteFloatSave');
+        if (btnSave) btnSave.disabled = false;
+        const btnAdd = document.getElementById('tteFloatAdd');
+        if (btnAdd)  btnAdd.disabled = false; /* boleh tambah slot baru kapan saja */
+    }
+
+    /* ── Draft ghost — marker sementara sebelum disimpan ── */
+    let draftGhostEl = null;
+    function drawDraftGhost(cx, cy) {
+        const wrapper  = document.getElementById('placeGhostLayer');
+        const wrapRect = document.getElementById('placeWrapper').getBoundingClientRect();
+        const scaleX   = pageNaturalW > 0 ? wrapRect.width / pageNaturalW : PLACE_SCALE;
+        const ghostPx  = QR_PT * scaleX;
+        const x        = Math.max(0, cx - ghostPx / 2);
+        const y        = Math.max(0, cy - ghostPx / 2);
+
+        if (!draftGhostEl) {
+            const el = document.createElement('div');
+            el.style.position       = 'absolute';
+            el.style.borderRadius   = '6px';
+            el.style.pointerEvents  = 'none';
+            el.style.display        = 'flex';
+            el.style.alignItems     = 'center';
+            el.style.justifyContent = 'center';
+            el.style.flexDirection  = 'column';
+            el.style.gap            = '2px';
+            el.style.border         = '2px dashed #f59e0b';
+            el.style.background     = 'rgba(245,158,11,.2)';
+            el.style.color          = '#d97706';
+            el.innerHTML = '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>'
+                + '<span style="font-size:.48rem;font-weight:700;pointer-events:none;">draft</span>';
+            wrapper.appendChild(el);
+            draftGhostEl = el;
+        }
+        draftGhostEl.style.left   = x + 'px';
+        draftGhostEl.style.top    = y + 'px';
+        draftGhostEl.style.width  = ghostPx + 'px';
+        draftGhostEl.style.height = ghostPx + 'px';
+        draftGhostEl.style.display = 'flex';
+    }
+
+    function removeDraftGhost() {
+        if (draftGhostEl) { draftGhostEl.style.display = 'none'; }
+        draftPlacement = null;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       FLOATING BAR
+       - #tteFloatBar  : muncul saat placement mode ON
+       - #tteFloatIdle : muncul saat ada slot placed & mode OFF
+    ═══════════════════════════════════════════════════ */
+
+    function showFloatBar(slotIdx) {
+        /* Sembunyikan idle bar, tampilkan active bar */
+        const idle = document.getElementById('tteFloatIdle');
+        const bar  = document.getElementById('tteFloatBar');
+        const label   = document.getElementById('tteFloatSlotName');
+        const btnSave = document.getElementById('tteFloatSave');
+        const btnAdd  = document.getElementById('tteFloatAdd');
+        if (idle) idle.classList.remove('visible');
+        if (!bar) return;
+        if (label)   label.textContent = 'TTD #' + (slotIdx + 1);
+        if (btnSave) btnSave.disabled = true;  /* aktif setelah tap pertama */
+        /* Tombol + disabled saat slot aktif belum di-place */
+        if (btnAdd)  btnAdd.disabled = (slots[slotIdx] && slots[slotIdx].pdfX === null);
+        bar.classList.add('visible');
+    }
+
+    function hideFloatBar() {
+        const bar = document.getElementById('tteFloatBar');
+        if (bar) bar.classList.remove('visible');
+    }
+
+    /* Idle bar: tampil setelah simpan / saat ada slot placed & mode OFF */
+    function refreshIdleBar() {
+        const placed = slots.filter(function (s) { return s.pdfX !== null; }).length;
+        const idle   = document.getElementById('tteFloatIdle');
+        const label  = document.getElementById('tteFloatIdleLabel');
+        if (!idle) return;
+        if (placed > 0 && activeSlotIdx === null) {
+            if (label) label.textContent = placed + ' TTD ditempatkan';
+            idle.classList.add('visible');
+        } else {
+            idle.classList.remove('visible');
+        }
+    }
+
+    /* Simpan draft ke slot → mode OFF → tampilkan idle bar */
+    function saveFloatPlacement() {
+        if (!draftPlacement || activeSlotIdx === null) return;
+        const slot = slots[activeSlotIdx];
+        if (!slot) return;
+
+        slot.page = draftPlacement.page;
+        slot.pdfX = draftPlacement.pdfX;
+        slot.pdfY = draftPlacement.pdfY;
+        slot.cssX = draftPlacement.cssX;
+        slot.cssY = draftPlacement.cssY;
+
+        removeDraftGhost();
+        hideFloatBar();
+        window.exitTapMode(false); /* rerender=false, kita handle manual */
+        drawGhost(slots.indexOf(slot));
         renderSlotsUI();
         syncInputs();
         enableApprove();
+        refreshIdleBar();
     }
+
+    /* Batal → buang draft, mode OFF */
+    function cancelFloatPlacement() {
+        removeDraftGhost();
+        hideFloatBar();
+        window.exitTapMode(false);
+        renderSlotsUI();
+        refreshIdleBar();
+    }
+
+    /* Tambah slot baru langsung dari floating bar */
+    function addSlotFromFloat() {
+        /* Jika sedang placement mode, simpan dulu jika ada draft */
+        if (activeSlotIdx !== null && draftPlacement) {
+            saveFloatPlacement();
+        } else if (activeSlotIdx !== null) {
+            cancelFloatPlacement();
+        }
+        slotAdd(); /* buat slot baru & langsung aktifkan */
+    }
+
+    /* Bind semua tombol floating bar */
+    (function bindFloatBar() {
+        const btnSave      = document.getElementById('tteFloatSave');
+        const btnCancel    = document.getElementById('tteFloatCancel');
+        const btnAdd       = document.getElementById('tteFloatAdd');
+        const btnIdleAdd   = document.getElementById('tteFloatIdleAdd');
+        if (btnSave)    btnSave.addEventListener('click',    saveFloatPlacement);
+        if (btnCancel)  btnCancel.addEventListener('click',  cancelFloatPlacement);
+        if (btnAdd)     btnAdd.addEventListener('click',     addSlotFromFloat);
+        if (btnIdleAdd) btnIdleAdd.addEventListener('click', addSlotFromFloat);
+    })();
 
     /* ── Desktop: mouse click ── */
     document.getElementById('placeClickLayer').addEventListener('click', function (e) {
         if (activeSlotIdx === null) return;
-        /* Abaikan jika ini adalah akhir dari touch (touchend sudah menangani) */
         if (e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) {
             handlePlacement(e.clientX, e.clientY);
         } else if (!('ontouchstart' in window)) {
-            /* Fallback untuk browser tanpa InputDeviceCapabilities API */
             handlePlacement(e.clientX, e.clientY);
         }
     });
 
-    /* ── Mobile: touchend (lebih akurat dan tidak ada 300ms delay) ── */
+    /* ── Mobile: touchend — tanpa 300ms delay ── */
     document.getElementById('placeClickLayer').addEventListener('touchend', function (e) {
         if (activeSlotIdx === null) return;
-        e.preventDefault(); /* Cegah ghost click dari browser */
+        e.preventDefault();
         const touch = e.changedTouches[0];
         if (touch) handlePlacement(touch.clientX, touch.clientY);
     }, { passive: false });
