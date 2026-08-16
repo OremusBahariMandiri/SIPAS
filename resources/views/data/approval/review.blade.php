@@ -449,28 +449,46 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderPlacePage(num) {
         pdfDoc.getPage(num).then(page => {
+            /* Device Pixel Ratio — penting untuk layar retina/HiDPI */
+            const dpr = window.devicePixelRatio || 1;
+
+            /* Viewport dalam CSS pixel */
             placeViewport = page.getViewport({ scale: PLACE_SCALE });
-            const canvas  = document.getElementById('placeCanvas');
-            const ctx     = canvas.getContext('2d');
-            canvas.width  = Math.floor(placeViewport.width);
-            canvas.height = Math.floor(placeViewport.height);
-            canvas.style.width  = canvas.width  + 'px';
-            canvas.style.height = canvas.height + 'px';
+
+            const cssW = Math.floor(placeViewport.width);
+            const cssH = Math.floor(placeViewport.height);
+
+            const canvas = document.getElementById('placeCanvas');
+            const ctx    = canvas.getContext('2d');
+
+            /* Canvas buffer = CSS size × DPR (tajam di retina) */
+            canvas.width  = cssW * dpr;
+            canvas.height = cssH * dpr;
+
+            /* CSS size tetap = CSS pixel (layout tidak berubah) */
+            canvas.style.width  = cssW + 'px';
+            canvas.style.height = cssH + 'px';
+
+            /* Scale context agar render cocok dengan buffer */
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
             const wrapper = document.getElementById('placeWrapper');
-            wrapper.style.width  = canvas.width  + 'px';
-            wrapper.style.height = canvas.height + 'px';
+            wrapper.style.width  = cssW + 'px';
+            wrapper.style.height = cssH + 'px';
+
             ['placeClickLayer', 'placeGhostLayer'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) { el.style.width = canvas.width + 'px'; el.style.height = canvas.height + 'px'; }
+                if (el) {
+                    el.style.width  = cssW + 'px';
+                    el.style.height = cssH + 'px';
+                }
             });
 
-            /* Set scroll container height = canvas height + padding (= 1 full page visible) */
+            /* Scroll container tinggi = 1 halaman penuh */
             const scroll = document.getElementById('placementScroll');
-            if (scroll) {
-                /* canvas height + 2×padding (0.75rem ≈ 12px each side) */
-                scroll.style.height = (canvas.height + 24) + 'px';
-            }
+            if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
+            /* Render dengan viewport CSS (ctx sudah di-scale untuk DPR) */
             page.render({ canvasContext: ctx, viewport: placeViewport })
                 .promise.then(() => {
                     document.getElementById('placePageNum').textContent = num;
@@ -498,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.slotAdd = function () {
         slots.push({ id: slotCounter++, page: null, pdfX: null, pdfY: null,
-                     canvasX: null, canvasY: null, ghostEl: null });
+                     cssX: null, cssY: null, ghostEl: null });
         renderSlotsUI();
         activateSlot(slots.length - 1);
     };
@@ -546,47 +564,48 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('placeClickLayer').addEventListener('click', function (e) {
         if (activeSlotIdx === null || !placeViewport) return;
 
-        const canvas  = document.getElementById('placeCanvas');
-        const rect    = canvas.getBoundingClientRect();
+        const layer  = document.getElementById('placeClickLayer');
+        const rect   = layer.getBoundingClientRect();
 
         /*
-         * Account for CSS scaling vs actual canvas pixel size.
-         * canvas.width = actual pixels; rect.width = CSS size (may differ if DPR != 1)
+         * CSS pixel position of click relative to layer.
+         * getBoundingClientRect() returns CSS pixels — correct for our needs
+         * because canvas.style.width/height are set in CSS pixels.
+         * We do NOT multiply by DPR here because PLACE_SCALE is applied in CSS space.
          */
-        const scaleX  = canvas.width  / rect.width;
-        const scaleY  = canvas.height / rect.height;
-        const canvasX = (e.clientX - rect.left) * scaleX;
-        const canvasY = (e.clientY - rect.top)  * scaleY;
+        const cssX = e.clientX - rect.left;
+        const cssY = e.clientY - rect.top;
 
-        /* Canvas pixels → PDF points */
-        const pdfPtX      = canvasX / PLACE_SCALE;
-        const pdfPtY      = canvasY / PLACE_SCALE;
+        /* CSS pixels → PDF points */
+        const pdfPtX      = cssX / PLACE_SCALE;
+        const pdfPtY      = cssY / PLACE_SCALE;
         const pageHeightPt = placeViewport.height / PLACE_SCALE;
 
         /* PDF coordinate origin is bottom-left */
         const pdfX = pdfPtX - QR_PT / 2;
         const pdfY = (pageHeightPt - pdfPtY) - QR_PT / 2;
 
-        const slot    = slots[activeSlotIdx];
-        slot.page     = placePage;
-        slot.pdfX     = +pdfX.toFixed(4);
-        slot.pdfY     = +pdfY.toFixed(4);
-        slot.canvasX  = canvasX;
-        slot.canvasY  = canvasY;
+        const slot   = slots[activeSlotIdx];
+        slot.page    = placePage;
+        slot.pdfX    = +pdfX.toFixed(4);
+        slot.pdfY    = +pdfY.toFixed(4);
+        /* Store CSS pixel center for ghost drawing */
+        slot.cssX    = cssX;
+        slot.cssY    = cssY;
 
         drawGhost(activeSlotIdx);
         renderSlotsUI();
         syncInputs();
         enableApprove();
-        /* stay in tap mode — user taps again to reposition */
     });
 
-    /* ── Draw ghost (pixel-based, PLACE_SCALE fixed → always accurate) ── */
+    /* ── Draw ghost (CSS pixel position — matches what user sees) ── */
     function drawGhost(idx) {
         const slot    = slots[idx];
+        /* Ghost size in CSS pixels = QR_PT × PLACE_SCALE */
         const ghostPx = QR_PT * PLACE_SCALE;
-        const x       = Math.max(0, slot.canvasX - ghostPx / 2);
-        const y       = Math.max(0, slot.canvasY - ghostPx / 2);
+        const x       = Math.max(0, slot.cssX - ghostPx / 2);
+        const y       = Math.max(0, slot.cssY - ghostPx / 2);
         const visible = slot.page === placePage;
         const isActive = activeSlotIdx === idx;
 
@@ -618,15 +637,15 @@ document.addEventListener('DOMContentLoaded', function () {
         slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
     }
 
-    /* Recalculate canvasX/Y from PDF points (for page change) */
+    /* Recalculate cssX/cssY from stored PDF points when page changes */
     function redrawPageGhosts() {
         if (!placeViewport) return;
         const pageHeightPt = placeViewport.height / PLACE_SCALE;
         slots.forEach((slot, idx) => {
             if (slot.pdfX === null) return;
-            /* PDF points → canvas pixels */
-            slot.canvasX = (slot.pdfX + QR_PT / 2) * PLACE_SCALE;
-            slot.canvasY = (pageHeightPt - slot.pdfY - QR_PT / 2) * PLACE_SCALE;
+            /* PDF points → CSS pixels */
+            slot.cssX = (slot.pdfX + QR_PT / 2) * PLACE_SCALE;
+            slot.cssY = (pageHeightPt - slot.pdfY - QR_PT / 2) * PLACE_SCALE;
             drawGhost(idx);
         });
     }
