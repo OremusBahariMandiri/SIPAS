@@ -102,36 +102,34 @@ class ApprovalController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'tahap'               => ['required', 'in:terusan,kepada'],
-            'id_ref'              => ['required', 'integer'],
-            'catatan'             => ['nullable', 'string', 'max:500'],
-            // Placements: array of TTD positions
-            'placements'          => ['nullable', 'array'],
-            'placements.*.halaman' => ['required_with:placements', 'integer', 'min:1'],
-            'placements.*.pos_x'  => ['required_with:placements', 'numeric'],
-            'placements.*.pos_y'  => ['required_with:placements', 'numeric'],
-            'placements.*.lebar'  => ['nullable', 'numeric'],
-            'placements.*.tinggi' => ['nullable', 'numeric'],
+            'tahap'                  => ['required', 'in:terusan,kepada'],
+            'id_ref'                 => ['required', 'integer'],
+            'catatan'                => ['nullable', 'string', 'max:500'],
+            'placements'             => ['nullable', 'array'],
+            'placements.*.halaman'   => ['required_with:placements', 'integer', 'min:1'],
+            'placements.*.pos_x'     => ['required_with:placements', 'numeric'],
+            'placements.*.pos_y'     => ['required_with:placements', 'numeric'],
+            'placements.*.lebar'     => ['nullable', 'numeric'],
+            'placements.*.tinggi'    => ['nullable', 'numeric'],
         ]);
 
         $tte = $user->tteForPerusahaan($submission->id_perusahaan);
 
-        // ── Simpan semua placement (bisa > 1 TTD per orang) ──────────────────────
+        // ── Simpan placements (koordinat sudah PDF points dari PDF.js) ────────────
         if ($request->filled('placements') && $tte) {
             foreach ($request->placements as $pl) {
-                // Pastikan koordinat ada
-                if (empty($pl['pos_x']) || empty($pl['pos_y'])) continue;
+                if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
 
                 PengajuanTtePlacement::create([
                     'id_pengajuan' => $submission->id,
                     'id_tte'       => $tte->id,
                     'tahap'        => $request->tahap,
                     'id_ref'       => $request->id_ref,
-                    'halaman'      => $pl['halaman'] ?? 1,
-                    'pos_x'        => $pl['pos_x'],
-                    'pos_y'        => $pl['pos_y'],
-                    'lebar'        => $pl['lebar']  ?? 71,
-                    'tinggi'       => $pl['tinggi'] ?? 71,
+                    'halaman'      => (int) ($pl['halaman'] ?? 1),
+                    'pos_x'        => round((float) $pl['pos_x'], 4),
+                    'pos_y'        => round((float) $pl['pos_y'], 4),
+                    'lebar'        => (float) ($pl['lebar']  ?? 40),
+                    'tinggi'       => (float) ($pl['tinggi'] ?? 40),
                     'qr_token'     => Str::random(64),
                 ]);
             }
@@ -155,7 +153,6 @@ class ApprovalController extends Controller
                 'approved_by' => $user->id,
                 'approved_at' => now(),
             ]);
-
             $submission->update(['status' => 'in_review']);
 
             return redirect()->route('data.approval.index')
@@ -166,10 +163,7 @@ class ApprovalController extends Controller
         if ($request->tahap === 'kepada') {
             $submission->update(['status' => 'approved']);
 
-            $submission->load([
-                'ttePlacements.tte.perusahaan',
-                'ttePlacements.tte.user',
-            ]);
+            $submission->load(['ttePlacements.tte.perusahaan', 'ttePlacements.tte.user']);
 
             if ($submission->ttePlacements->isNotEmpty()) {
                 try {
