@@ -143,18 +143,33 @@
 @media (max-width: 767px) {
     .rv-wrap {
         grid-template-columns: 1fr;
-        gap: .6rem;
+        gap: .75rem;
+        /* Breathing room from screen edges — main-wrapper has 1rem padding
+           but we add a bit more so cards don't feel wall-to-wall */
+        padding: 0 .1rem;
+        /* No horizontal scroll ever */
+        overflow-x: hidden;
+        max-width: 100%;
     }
-    .rv-pdf-col { position: static; }
 
-    /* Iframe: tidak terlalu tinggi di mobile */
-    .rv-pdf-iframe { height: 42vh !important; }
+    /* Prevent any child from causing horizontal overflow */
+    .rv-wrap * { max-width: 100%; box-sizing: border-box; }
 
-    /* Placement canvas */
-    .rv-placement-scroll { max-height: 28vh !important; }
+    .rv-pdf-col  { position: static; overflow: hidden; }
+    .rv-pdf-card { overflow: hidden; }
 
-    /* Card padding lebih kecil di mobile */
-    .rv-pdf-card .rv-placement-scroll { padding: .5rem; }
+    /* Iframe: moderate height — not full screen */
+    .rv-pdf-iframe { height: 45vh !important; }
+
+    /* Placement canvas: full page height set by JS, allow scroll within */
+    .rv-placement-scroll {
+        max-height: none !important;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Card padding tighter on mobile */
+    .rv-sig-slot { padding: .6rem; }
 }
 </style>
 @endpush
@@ -286,15 +301,52 @@
                     <i class="bi bi-file-earmark-pdf" style="color:#DC2626;"></i>
                     Document Viewer
                 </span>
-                <span style="font-size:.72rem;color:var(--muted);">
-                    Use browser controls to zoom &amp; print
-                </span>
+                <a href="{{ route('data.submission.file', $submission) }}"
+                   target="_blank"
+                   style="font-size:.75rem;color:var(--accent);text-decoration:none;
+                          display:flex;align-items:center;gap:.3rem;">
+                    <i class="bi bi-box-arrow-up-right"></i> Open / Print
+                </a>
             </div>
-            <iframe id="pdfIframe"
-                    src="{{ route('data.submission.file', $submission) }}#toolbar=1&navpanes=1&scrollbar=1&view=FitH"
-                    style="width:100%;height:52vh;border:none;display:block;background:#525659;"
-                    title="Document Viewer">
-            </iframe>
+
+            {{--
+                iOS Safari does not render PDFs in <iframe>.
+                Solution: <object> with <iframe> fallback, plus always-visible
+                "Open in new tab" link above.
+            --}}
+            <div id="pdfViewerWrap"
+                 style="width:100%;height:52vh;background:#525659;position:relative;">
+
+                {{-- Desktop / Android: iframe --}}
+                <iframe id="pdfIframe"
+                        src="{{ route('data.submission.file', $submission) }}#toolbar=1&navpanes=1&scrollbar=1&view=FitH"
+                        class="rv-pdf-iframe"
+                        style="width:100%;height:100%;border:none;display:block;"
+                        title="Document Viewer">
+                </iframe>
+
+                {{-- iOS fallback: shown by JS if iframe fails --}}
+                <div id="pdfIosFallback"
+                     style="display:none;position:absolute;inset:0;
+                            background:#525659;flex-direction:column;
+                            align-items:center;justify-content:center;gap:1rem;
+                            color:#fff;text-align:center;padding:1.5rem;">
+                    <i class="bi bi-file-earmark-pdf" style="font-size:3rem;opacity:.7;"></i>
+                    <div style="font-size:.85rem;font-weight:600;">
+                        PDF preview not supported on this browser.
+                    </div>
+                    <a href="{{ route('data.submission.file', $submission) }}"
+                       target="_blank"
+                       style="display:inline-flex;align-items:center;gap:.4rem;
+                              padding:.5rem 1.1rem;border-radius:8px;
+                              background:var(--accent);color:#fff;
+                              text-decoration:none;font-size:.83rem;font-weight:600;">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        Open Document
+                    </a>
+                </div>
+
+            </div>
         </div>
 
         @if($needTte)
@@ -332,8 +384,9 @@
             </div>
 
             <div class="rv-placement-scroll"
+                 id="placementScroll"
                  style="background:#525659;display:flex;justify-content:center;
-                        padding:.75rem;overflow:auto;max-height:40vh;">
+                        padding:.75rem;overflow:auto;">
                 <div id="placeWrapper"
                      style="position:relative;display:inline-block;line-height:0;">
                     <canvas id="placeCanvas"
@@ -359,6 +412,21 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     const NEED_TTE = {{ $needTte ? 'true' : 'false' }};
+
+    /* ── iOS Safari PDF iframe detection ──
+       iOS Safari cannot render PDFs in iframes — show fallback UI.
+    ── */
+    (function () {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS) {
+            const iframe   = document.getElementById('pdfIframe');
+            const fallback = document.getElementById('pdfIosFallback');
+            if (iframe)   iframe.style.display   = 'none';
+            if (fallback) fallback.style.display  = 'flex';
+        }
+    })();
+
     if (!NEED_TTE) return;
 
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -395,6 +463,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 const el = document.getElementById(id);
                 if (el) { el.style.width = canvas.width + 'px'; el.style.height = canvas.height + 'px'; }
             });
+
+            /* Set scroll container height = canvas height + padding (= 1 full page visible) */
+            const scroll = document.getElementById('placementScroll');
+            if (scroll) {
+                /* canvas height + 2×padding (0.75rem ≈ 12px each side) */
+                scroll.style.height = (canvas.height + 24) + 'px';
+            }
+
             page.render({ canvasContext: ctx, viewport: placeViewport })
                 .promise.then(() => {
                     document.getElementById('placePageNum').textContent = num;
