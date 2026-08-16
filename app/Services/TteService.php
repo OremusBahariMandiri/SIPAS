@@ -64,17 +64,24 @@ class TteService
 
                 imagefilledrectangle(
                     $qrImage,
-                    $bgX, $bgY,
-                    $bgX + $bgSize, $bgY + $bgSize,
+                    $bgX,
+                    $bgY,
+                    $bgX + $bgSize,
+                    $bgY + $bgSize,
                     $white
                 );
 
                 imagecopyresampled(
-                    $qrImage, $logoImage,
-                    $logoX, $logoY,
-                    0, 0,
-                    $logoSize, $logoSize,
-                    imagesx($logoImage), imagesy($logoImage)
+                    $qrImage,
+                    $logoImage,
+                    $logoX,
+                    $logoY,
+                    0,
+                    0,
+                    $logoSize,
+                    $logoSize,
+                    imagesx($logoImage),
+                    imagesy($logoImage)
                 );
 
                 imagedestroy($logoImage);
@@ -124,15 +131,28 @@ class TteService
             $placements = $pengajuan->ttePlacements->where('halaman', $pageNo);
 
             foreach ($placements as $placement) {
+                /*
+                 * 1 PDF point = 0.352778 mm
+                 *
+                 * pos_x, pos_y dikirim dari JS dalam PDF points:
+                 *   pos_x = kiri QR dari kiri halaman (origin kiri-atas)
+                 *   pos_y = BAWAH QR dari BAWAH halaman (bottom-left PDF origin)
+                 *
+                 * TCPDF/FPDI: origin kiri-atas dalam mm.
+                 * Konversi pos_y ke top-origin:
+                 *   yMm = pageHeightMm - (pos_y × ptToMm) - qrHeightMm
+                 */
                 $ptToMm     = 0.352778;
+
                 $qrWidthMm  = $placement->lebar  * $ptToMm;
                 $qrHeightMm = $placement->tinggi * $ptToMm;
-                $xMm        = $placement->pos_x  * $ptToMm;
-                $posYMm     = $placement->pos_y  * $ptToMm;
-                $yMm        = $size['height'] - $posYMm - $qrHeightMm;
 
-                $xMm = max(0, min($xMm, $size['width']  - $qrWidthMm));
-                $yMm = max(0, min($yMm, $size['height'] - $qrHeightMm));
+                $xMm        = $placement->pos_x * $ptToMm;
+                $yMm        = $size['height'] - ($placement->pos_y * $ptToMm) - $qrHeightMm;
+
+                /* Clamp agar tidak keluar batas halaman */
+                $xMm = max(0.0, min((float)$size['width']  - $qrWidthMm,  $xMm));
+                $yMm = max(0.0, min((float)$size['height'] - $qrHeightMm, $yMm));
 
                 $qrPng = $this->generateQrCode($placement);
                 $tmpQr = tempnam(sys_get_temp_dir(), 'tte_') . '.png';

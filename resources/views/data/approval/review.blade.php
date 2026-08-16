@@ -439,6 +439,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let pdfDoc        = null;
     let placeViewport = null;
     let placePage     = 1;
+    let pageNaturalH  = 0;  /* page height in PDF points (at scale=1), for coordinate math */
+    let pageNaturalW  = 0;
 
     /* ── Load PDF into placement canvas ── */
     pdfjsLib.getDocument({ url: PDF_URL }).promise.then(doc => {
@@ -449,11 +451,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderPlacePage(num) {
         pdfDoc.getPage(num).then(page => {
-            /* Device Pixel Ratio — penting untuk layar retina/HiDPI */
             const dpr = window.devicePixelRatio || 1;
 
-            /* Viewport dalam CSS pixel */
-            placeViewport = page.getViewport({ scale: PLACE_SCALE });
+            /* Get natural page size at scale=1 — this gives PDF points directly */
+            const vp1       = page.getViewport({ scale: 1 });
+            pageNaturalW    = vp1.width;   /* PDF points */
+            pageNaturalH    = vp1.height;  /* PDF points */
+
+            /* Render viewport */
+            placeViewport   = page.getViewport({ scale: PLACE_SCALE });
 
             const cssW = Math.floor(placeViewport.width);
             const cssH = Math.floor(placeViewport.height);
@@ -461,15 +467,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.getElementById('placeCanvas');
             const ctx    = canvas.getContext('2d');
 
-            /* Canvas buffer = CSS size × DPR (tajam di retina) */
             canvas.width  = cssW * dpr;
             canvas.height = cssH * dpr;
-
-            /* CSS size tetap = CSS pixel (layout tidak berubah) */
             canvas.style.width  = cssW + 'px';
             canvas.style.height = cssH + 'px';
 
-            /* Scale context agar render cocok dengan buffer */
             ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
             const wrapper = document.getElementById('placeWrapper');
@@ -484,11 +486,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
-            /* Scroll container tinggi = 1 halaman penuh */
             const scroll = document.getElementById('placementScroll');
             if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
-            /* Render dengan viewport CSS (ctx sudah di-scale untuk DPR) */
             page.render({ canvasContext: ctx, viewport: placeViewport })
                 .promise.then(() => {
                     document.getElementById('placePageNum').textContent = num;
@@ -562,36 +562,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ── Click on placement canvas ── */
     document.getElementById('placeClickLayer').addEventListener('click', function (e) {
-        if (activeSlotIdx === null || !placeViewport) return;
+        if (activeSlotIdx === null || !placeViewport || !pageNaturalH) return;
 
-        const layer  = document.getElementById('placeClickLayer');
-        const rect   = layer.getBoundingClientRect();
+        const layer = document.getElementById('placeClickLayer');
+        const rect  = layer.getBoundingClientRect();
 
-        /*
-         * CSS pixel position of click relative to layer.
-         * getBoundingClientRect() returns CSS pixels — correct for our needs
-         * because canvas.style.width/height are set in CSS pixels.
-         * We do NOT multiply by DPR here because PLACE_SCALE is applied in CSS space.
-         */
+        /* Click in CSS pixels relative to layer */
         const cssX = e.clientX - rect.left;
         const cssY = e.clientY - rect.top;
 
-        /* CSS pixels → PDF points */
-        const pdfPtX      = cssX / PLACE_SCALE;
-        const pdfPtY      = cssY / PLACE_SCALE;
-        const pageHeightPt = placeViewport.height / PLACE_SCALE;
+        /*
+         * Convert CSS pixels → PDF points.
+         *
+         * placeViewport at PLACE_SCALE gives CSS size of the page.
+         * pageNaturalW/H is the page size in PDF points (at scale=1).
+         *
+         * Ratio: cssX / cssPageWidth = pdfPtX / pageNaturalW
+         * So:   pdfPtX = cssX * (pageNaturalW / cssPageWidth)
+         *
+         * cssPageWidth  = placeViewport.width
+         * cssPageHeight = placeViewport.height
+         */
+        const cssPageW = placeViewport.width;
+        const cssPageH = placeViewport.height;
 
-        /* PDF coordinate origin is bottom-left */
-        const pdfX = pdfPtX - QR_PT / 2;
-        const pdfY = (pageHeightPt - pdfPtY) - QR_PT / 2;
+        const pdfPtX = cssX * (pageNaturalW / cssPageW);
+        const pdfPtY = cssY * (pageNaturalH / cssPageH);
 
-        const slot   = slots[activeSlotIdx];
-        slot.page    = placePage;
-        slot.pdfX    = +pdfX.toFixed(4);
-        slot.pdfY    = +pdfY.toFixed(4);
-        /* Store CSS pixel center for ghost drawing */
-        slot.cssX    = cssX;
-        slot.cssY    = cssY;
+        /*
+         * TteService uses bottom-left origin (PDF standard).
+         * pos_x = left edge of QR box
+         * pos_y = bottom edge of QR box from page bottom
+         */
+        const pdfX = pdfPtX - QR_PT / 2;                         /* left edge */
+        const pdfY = (pageNaturalH - pdfPtY) - QR_PT / 2;        /* bottom edge */
+
+        const slot  = slots[activeSlotIdx];
+        slot.page   = placePage;
+        slot.pdfX   = +pdfX.toFixed(4);
+        slot.pdfY   = +pdfY.toFixed(4);
+        slot.cssX   = cssX;
+        slot.cssY   = cssY;
 
         drawGhost(activeSlotIdx);
         renderSlotsUI();
@@ -637,15 +648,20 @@ document.addEventListener('DOMContentLoaded', function () {
         slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
     }
 
-    /* Recalculate cssX/cssY from stored PDF points when page changes */
+    /* Recalculate cssX/cssY from PDF points (called after page change / resize) */
     function redrawPageGhosts() {
-        if (!placeViewport) return;
-        const pageHeightPt = placeViewport.height / PLACE_SCALE;
+        if (!placeViewport || !pageNaturalH) return;
+        const cssPageW = placeViewport.width;
+        const cssPageH = placeViewport.height;
+
         slots.forEach((slot, idx) => {
             if (slot.pdfX === null) return;
-            /* PDF points → CSS pixels */
-            slot.cssX = (slot.pdfX + QR_PT / 2) * PLACE_SCALE;
-            slot.cssY = (pageHeightPt - slot.pdfY - QR_PT / 2) * PLACE_SCALE;
+            /* PDF points → CSS pixels (inverse of click calculation) */
+            const pdfPtX = slot.pdfX + QR_PT / 2;  /* center X in PDF points */
+            const pdfPtY = pageNaturalH - slot.pdfY - QR_PT / 2;  /* center Y from top in PDF points */
+
+            slot.cssX = pdfPtX * (cssPageW / pageNaturalW);
+            slot.cssY = pdfPtY * (cssPageH / pageNaturalH);
             drawGhost(idx);
         });
     }
