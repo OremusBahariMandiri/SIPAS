@@ -123,6 +123,17 @@ class TteService
         for ($pageNo = 1; $pageNo <= $totalPages; $pageNo++) {
             $templateId  = $pdf->importPage($pageNo);
             $size        = $pdf->getTemplateSize($templateId);
+
+            /*
+             * $size['width']  — lebar halaman dalam mm  (dikembalikan FPDI)
+             * $size['height'] — tinggi halaman dalam mm (dikembalikan FPDI)
+             *
+             * Konversi mm → PDF points untuk verifikasi / debug:
+             *   1 mm = 1 / 0.352778 pt ≈ 2.8346 pt
+             *
+             * Frontend mengirim koordinat dalam PDF points (origin kiri-bawah).
+             * Backend mengonversinya ke mm untuk TCPDF/FPDI (origin kiri-atas).
+             */
             $orientation = ($size['width'] > $size['height']) ? 'L' : 'P';
 
             $pdf->AddPage($orientation, [$size['width'], $size['height']]);
@@ -132,25 +143,47 @@ class TteService
 
             foreach ($placements as $placement) {
                 /*
-                 * 1 PDF point = 0.352778 mm
+                 * ═══════════════════════════════════════════════════════
+                 * KONVERSI KOORDINAT
+                 * ═══════════════════════════════════════════════════════
                  *
-                 * pos_x, pos_y dikirim dari JS dalam PDF points:
-                 *   pos_x = kiri QR dari kiri halaman (origin kiri-atas)
-                 *   pos_y = BAWAH QR dari BAWAH halaman (bottom-left PDF origin)
+                 * Frontend mengirim (sudah dalam PDF points, origin kiri-bawah):
+                 *   pos_x   = tepi KIRI  QR dari tepi kiri halaman   (PDF points)
+                 *   pos_y   = tepi BAWAH QR dari tepi bawah halaman  (PDF points)
+                 *   lebar   = lebar QR   (PDF points)
+                 *   tinggi  = tinggi QR  (PDF points)
                  *
-                 * TCPDF/FPDI: origin kiri-atas dalam mm.
-                 * Konversi pos_y ke top-origin:
-                 *   yMm = pageHeightMm - (pos_y × ptToMm) - qrHeightMm
+                 * TCPDF/FPDI menggunakan mm dengan origin kiri-ATAS.
+                 *
+                 * Langkah konversi:
+                 *   1. PDF points → mm  : kalikan dengan PT_TO_MM (0.352778)
+                 *   2. Balik sumbu Y    : yMm = pageHeightMm - pos_y_mm - qrHeightMm
+                 *      (mengubah "jarak dari bawah" menjadi "jarak dari atas")
+                 * ═══════════════════════════════════════════════════════
                  */
-                $ptToMm     = 0.352778;
+                $ptToMm     = 0.352778; /* 1 PDF point = 0.352778 mm */
 
                 $qrWidthMm  = $placement->lebar  * $ptToMm;
                 $qrHeightMm = $placement->tinggi * $ptToMm;
 
-                $xMm        = $placement->pos_x * $ptToMm;
-                $yMm        = $size['height'] - ($placement->pos_y * $ptToMm) - $qrHeightMm;
+                /* X: tepi kiri QR dari tepi kiri halaman, dalam mm */
+                $xMm = $placement->pos_x * $ptToMm;
 
-                /* Clamp agar tidak keluar batas halaman */
+                /*
+                 * Y: balik dari origin bawah (PDF) ke origin atas (TCPDF).
+                 *
+                 * $size['height']            = tinggi halaman dalam mm (dari FPDI)
+                 * $placement->pos_y * $ptToMm = jarak tepi bawah QR dari bawah halaman, dalam mm
+                 * $qrHeightMm                = tinggi QR dalam mm
+                 *
+                 * Hasil: jarak tepi ATAS QR dari tepi atas halaman, dalam mm.
+                 */
+                $yMm = (float)$size['height'] - ($placement->pos_y * $ptToMm) - $qrHeightMm;
+
+                /*
+                 * Clamp agar QR tidak melampaui batas halaman.
+                 * Diperlukan jika user menaruh tanda tangan di tepi ekstrem.
+                 */
                 $xMm = max(0.0, min((float)$size['width']  - $qrWidthMm,  $xMm));
                 $yMm = max(0.0, min((float)$size['height'] - $qrHeightMm, $yMm));
 

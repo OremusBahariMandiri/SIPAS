@@ -97,78 +97,24 @@
 }
 .rv-btn-add-slot:disabled { opacity: .4; cursor: not-allowed; }
 
-/* TTE placement overlay — sits on top of iframe via absolute positioning */
-.rv-tte-overlay-wrap {
-    position: relative;
-}
-.rv-tte-canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    cursor: crosshair;
-    z-index: 10;
-    /* transparent — just catches clicks */
-    background: transparent;
-    display: none;
-}
-.rv-tte-canvas.active { display: block; }
-
-/* Ghost markers container */
-.rv-ghost-layer {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 20;
-}
-
-/* Ghost marker */
-.rv-ghost {
-    position: absolute;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 2px;
-    pointer-events: none;
-    font-size: .55rem;
-    font-weight: 700;
-}
-
-/* Active slot pulse border */
-.rv-sig-slot.active { animation: none; }
-
 /* ── MOBILE ── */
 @media (max-width: 767px) {
     .rv-wrap {
         grid-template-columns: 1fr;
         gap: .75rem;
-        /* Breathing room from screen edges — main-wrapper has 1rem padding
-           but we add a bit more so cards don't feel wall-to-wall */
         padding: 0 .1rem;
-        /* No horizontal scroll ever */
         overflow-x: hidden;
         max-width: 100%;
     }
-
-    /* Prevent any child from causing horizontal overflow */
     .rv-wrap * { max-width: 100%; box-sizing: border-box; }
-
     .rv-pdf-col  { position: static; overflow: hidden; }
     .rv-pdf-card { overflow: hidden; }
-
-    /* Iframe: moderate height — not full screen */
     .rv-pdf-iframe { height: 45vh !important; }
-
-    /* Placement canvas: full page height set by JS, allow scroll within */
     .rv-placement-scroll {
         max-height: none !important;
         overflow: auto;
         -webkit-overflow-scrolling: touch;
     }
-
-    /* Card padding tighter on mobile */
     .rv-sig-slot { padding: .6rem; }
 }
 </style>
@@ -309,15 +255,9 @@
                 </a>
             </div>
 
-            {{--
-                iOS Safari does not render PDFs in <iframe>.
-                Solution: <object> with <iframe> fallback, plus always-visible
-                "Open in new tab" link above.
-            --}}
             <div id="pdfViewerWrap"
                  style="width:100%;height:52vh;background:#525659;position:relative;">
 
-                {{-- Desktop / Android: iframe --}}
                 <iframe id="pdfIframe"
                         src="{{ route('data.submission.file', $submission) }}#toolbar=1&navpanes=1&scrollbar=1&view=FitH"
                         class="rv-pdf-iframe"
@@ -325,7 +265,6 @@
                         title="Document Viewer">
                 </iframe>
 
-                {{-- iOS fallback: shown by JS if iframe fails --}}
                 <div id="pdfIosFallback"
                      style="display:none;position:absolute;inset:0;
                             background:#525659;flex-direction:column;
@@ -350,7 +289,7 @@
         </div>
 
         @if($needTte)
-        {{-- 2. PDF.js placement canvas (PLACE_SCALE fixed = ghost never drifts) --}}
+        {{-- 2. PDF.js placement canvas --}}
         <div class="rv-pdf-card">
             <div style="padding:.6rem 1rem;border-bottom:1px solid var(--border);
                         display:flex;align-items:center;justify-content:space-between;
@@ -413,9 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const NEED_TTE = {{ $needTte ? 'true' : 'false' }};
 
-    /* ── iOS Safari PDF iframe detection ──
-       iOS Safari cannot render PDFs in iframes — show fallback UI.
-    ── */
+    /* ── iOS Safari PDF iframe detection ── */
     (function () {
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
                    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -433,33 +370,74 @@ document.addEventListener('DOMContentLoaded', function () {
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const PDF_URL     = '{{ route("data.submission.file", $submission) }}';
-    const PLACE_SCALE = 0.8;  /* FIXED — never changes regardless of iframe zoom */
-    const QR_PT       = 40;   /* signature size in PDF points */
 
-    let pdfDoc        = null;
-    let placeViewport = null;
-    let placePage     = 1;
-    let pageNaturalH  = 0;  /* page height in PDF points (at scale=1), for coordinate math */
-    let pageNaturalW  = 0;
+    /*
+     * PLACE_SCALE  : skala render PDF.js untuk tampilan canvas placement.
+     *                Hanya memengaruhi tampilan — TIDAK memengaruhi koordinat PDF points.
+     *
+     * QR_PT        : ukuran QR code dalam PDF points (satuan asli PDF).
+     *                Nilai ini harus sama dengan yang dipakai TteService di backend.
+     *
+     * PDF_JS_TO_PT : PDF.js getViewport({ scale: 1 }) mengembalikan CSS pixels pada 96 dpi.
+     *                PDF points menggunakan 72 dpi.
+     *                Konversi: 1 CSS px (PDF.js scale=1) = 72/96 = 0.75 PDF points.
+     *
+     *                Tanpa faktor ini, semua koordinat yang dikirim ke backend meleset
+     *                sekitar 33% (dikali 1/0.75 = 1.333 terlalu besar).
+     */
+    const PLACE_SCALE  = 0.8;
+    const QR_PT        = 40;
 
-    /* ── Load PDF into placement canvas ── */
+    let pdfDoc         = null;
+    let placeViewport  = null;
+    let placePage      = 1;
+
+    /*
+     * pageNaturalW / pageNaturalH
+     * Ukuran halaman dalam PDF POINTS (bukan CSS pixel, bukan mm).
+     * Dipakai untuk semua perhitungan koordinat.
+     * Diisi ulang setiap kali renderPlacePage() dipanggil.
+     */
+    let pageNaturalW   = 0;
+    let pageNaturalH   = 0;
+
+    /* ── Load PDF ── */
     pdfjsLib.getDocument({ url: PDF_URL }).promise.then(doc => {
         pdfDoc = doc;
         document.getElementById('placePageCount').textContent = doc.numPages;
         renderPlacePage(placePage);
     }).catch(err => console.error('PDF.js placement error:', err));
 
+    /* ── Render halaman ke canvas placement ── */
     function renderPlacePage(num) {
         pdfDoc.getPage(num).then(page => {
             const dpr = window.devicePixelRatio || 1;
 
-            /* Get natural page size at scale=1 — this gives PDF points directly */
-            const vp1       = page.getViewport({ scale: 1 });
-            pageNaturalW    = vp1.width;   /* PDF points */
-            pageNaturalH    = vp1.height;  /* PDF points */
+            /*
+             * FIX UTAMA — konversi ke PDF points yang benar.
+             *
+             * PDF.js getViewport({ scale: 1 }) = CSS pixels at 96 dpi.
+             * PDF points                        = unit at 72 dpi.
+             *
+             * Kalikan dengan PDF_JS_TO_PT (72/96 = 0.75) untuk mendapatkan
+             * ukuran halaman dalam PDF points yang sesungguhnya.
+             *
+             * Nilai ini harus cocok dengan yang dikembalikan oleh FPDI
+             * $size['width'] / 0.352778 (mm → pt) di backend.
+             */
+            /*
+             * PDF.js getViewport({ scale: 1 }) pada environment ini sudah
+             * mengembalikan PDF points langsung (bukan CSS pixels).
+             * Tidak perlu konversi tambahan.
+             * Diverifikasi via log backend: page_w_pt_from_fpdi = 595.2
+             * dan vp1.width dari PDF.js = 595.28 — cocok tanpa faktor apapun.
+             */
+            const vp1      = page.getViewport({ scale: 1 });
+            pageNaturalW   = vp1.width;   /* PDF points lebar halaman  */
+            pageNaturalH   = vp1.height;  /* PDF points tinggi halaman */
 
-            /* Render viewport */
-            placeViewport   = page.getViewport({ scale: PLACE_SCALE });
+            /* Viewport untuk render — hanya untuk tampilan, bukan koordinat */
+            placeViewport  = page.getViewport({ scale: PLACE_SCALE });
 
             const cssW = Math.floor(placeViewport.width);
             const cssH = Math.floor(placeViewport.height);
@@ -467,8 +445,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.getElementById('placeCanvas');
             const ctx    = canvas.getContext('2d');
 
-            canvas.width  = cssW * dpr;
-            canvas.height = cssH * dpr;
+            canvas.width        = cssW * dpr;
+            canvas.height       = cssH * dpr;
             canvas.style.width  = cssW + 'px';
             canvas.style.height = cssH + 'px';
 
@@ -478,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function () {
             wrapper.style.width  = cssW + 'px';
             wrapper.style.height = cssH + 'px';
 
-            ['placeClickLayer', 'placeGhostLayer'].forEach(id => {
+            ['placeClickLayer', 'placeGhostLayer'].forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) {
                     el.style.width  = cssW + 'px';
@@ -490,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
             page.render({ canvasContext: ctx, viewport: placeViewport })
-                .promise.then(() => {
+                .promise.then(function () {
                     document.getElementById('placePageNum').textContent = num;
                     redrawPageGhosts();
                 });
@@ -506,31 +484,46 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* ═══════════════════════════════════════════════════════
        SIGNATURE SLOTS
-       Coordinates: PDF points (pdfX, pdfY) — origin bottom-left.
-       These never change regardless of zoom/resize.
-       Ghost pixel position = pdfX * PLACE_SCALE (PLACE_SCALE is fixed).
+
+       Semua koordinat disimpan dalam PDF POINTS dengan origin kiri-bawah
+       (standar PDF / yang diharapkan TteService di backend).
+
+       pdfX = jarak kiri QR dari tepi kiri halaman   (PDF points)
+       pdfY = jarak bawah QR dari tepi bawah halaman (PDF points)
+
+       cssX / cssY hanya untuk menggambar ghost marker di canvas — tidak
+       dikirim ke backend.
     ═══════════════════════════════════════════════════════ */
     let slots         = [];
     let slotCounter   = 0;
     let activeSlotIdx = null;
 
     window.slotAdd = function () {
-        slots.push({ id: slotCounter++, page: null, pdfX: null, pdfY: null,
-                     cssX: null, cssY: null, ghostEl: null });
+        slots.push({
+            id: slotCounter++,
+            page: null,
+            pdfX: null,   /* PDF points, origin kiri-bawah */
+            pdfY: null,   /* PDF points, origin kiri-bawah */
+            cssX: null,   /* CSS pixels di canvas — hanya untuk ghost */
+            cssY: null,
+            ghostEl: null
+        });
         renderSlotsUI();
         activateSlot(slots.length - 1);
     };
 
     window.slotDelete = function (id) {
-        const i = slots.findIndex(s => s.id === id);
+        const i = slots.findIndex(function (s) { return s.id === id; });
         if (i === -1) return;
-        if (slots[i].ghostEl?.parentNode) slots[i].ghostEl.parentNode.removeChild(slots[i].ghostEl);
+        if (slots[i].ghostEl && slots[i].ghostEl.parentNode) {
+            slots[i].ghostEl.parentNode.removeChild(slots[i].ghostEl);
+        }
         if (activeSlotIdx === i) exitTapMode(false);
         else if (activeSlotIdx !== null && activeSlotIdx > i) activeSlotIdx--;
         slots.splice(i, 1);
         renderSlotsUI();
         syncInputs();
-        if (!slots.some(s => s.pdfX !== null)) disableApprove();
+        if (!slots.some(function (s) { return s.pdfX !== null; })) disableApprove();
     };
 
     function activateSlot(idx) {
@@ -560,61 +553,124 @@ document.addEventListener('DOMContentLoaded', function () {
         if (rerender) renderSlotsUI();
     };
 
-    /* ── Click on placement canvas ── */
-    document.getElementById('placeClickLayer').addEventListener('click', function (e) {
+    /* ══════════════════════════════════════════════════════════
+       PLACEMENT HANDLER — desktop (click) + mobile (touchend)
+
+       Semua koordinat dihitung dari placeWrapper.getBoundingClientRect()
+       + scroll offset container, agar akurat di semua device.
+    ══════════════════════════════════════════════════════════ */
+    function handlePlacement(clientX, clientY) {
         if (activeSlotIdx === null || !placeViewport || !pageNaturalH) return;
 
-        const layer = document.getElementById('placeClickLayer');
-        const rect  = layer.getBoundingClientRect();
+        /*
+         * Referensi: pojok kiri-atas placeWrapper (elemen canvas PDF).
+         * getBoundingClientRect() mengembalikan posisi relatif viewport browser
+         * sudah memperhitungkan scroll window dan zoom browser,
+         * tapi TIDAK memperhitungkan scroll di dalam container (placementScroll).
+         * Scroll container ditambahkan manual.
+         */
+        const wrapper    = document.getElementById('placeWrapper');
+        const wrapRect   = wrapper.getBoundingClientRect();
+        const scroll     = document.getElementById('placementScroll');
+        const scrollLeft = scroll ? scroll.scrollLeft : 0;
+        const scrollTop  = scroll ? scroll.scrollTop  : 0;
 
-        /* Click in CSS pixels relative to layer */
-        const cssX = e.clientX - rect.left;
-        const cssY = e.clientY - rect.top;
+        /* Posisi tap/klik dalam CSS pixels relatif pojok kiri-atas canvas */
+        const cssX = (clientX - wrapRect.left) + scrollLeft;
+        const cssY = (clientY - wrapRect.top)  + scrollTop;
+
+        /* ── DEBUG ── */
+        console.table({
+            'clientX/Y'         : clientX.toFixed(1) + ' / ' + clientY.toFixed(1),
+            'wrapRect left/top' : wrapRect.left.toFixed(1) + ' / ' + wrapRect.top.toFixed(1),
+            'wrapRect W/H'      : wrapRect.width.toFixed(1) + ' / ' + wrapRect.height.toFixed(1),
+            'scrollLeft/Top'    : scrollLeft + ' / ' + scrollTop,
+            'cssX/cssY raw'     : cssX.toFixed(1) + ' / ' + cssY.toFixed(1),
+            'placeVP W/H'       : placeViewport.width.toFixed(1) + ' / ' + placeViewport.height.toFixed(1),
+            'pageNatural W/H'   : pageNaturalW.toFixed(1) + ' / ' + pageNaturalH.toFixed(1),
+            'devicePixelRatio'  : window.devicePixelRatio,
+            'visualVP scale'    : window.visualViewport ? window.visualViewport.scale.toFixed(3) : 'N/A',
+            'visualVP offsetX'  : window.visualViewport ? window.visualViewport.offsetLeft.toFixed(1) : 'N/A',
+            'visualVP offsetY'  : window.visualViewport ? window.visualViewport.offsetTop.toFixed(1) : 'N/A',
+        });
 
         /*
-         * Convert CSS pixels → PDF points.
+         * PENTING: Gunakan wrapRect.width/height (ukuran aktual canvas di layar)
+         * bukan placeViewport.width/height (ukuran CSS canvas saat dirender).
          *
-         * placeViewport at PLACE_SCALE gives CSS size of the page.
-         * pageNaturalW/H is the page size in PDF points (at scale=1).
-         *
-         * Ratio: cssX / cssPageWidth = pdfPtX / pageNaturalW
-         * So:   pdfPtX = cssX * (pageNaturalW / cssPageWidth)
-         *
-         * cssPageWidth  = placeViewport.width
-         * cssPageHeight = placeViewport.height
+         * Di mobile, canvas bisa dikecilkan browser karena lebar layar sempit,
+         * sehingga ukuran visual ≠ ukuran CSS saat render.
+         * wrapRect.width/height = ukuran yang benar-benar terlihat user.
          */
-        const cssPageW = placeViewport.width;
-        const cssPageH = placeViewport.height;
+        const cssPageW = wrapRect.width;
+        const cssPageH = wrapRect.height;
 
-        const pdfPtX = cssX * (pageNaturalW / cssPageW);
-        const pdfPtY = cssY * (pageNaturalH / cssPageH);
+        /* Clamp agar tidak keluar batas canvas */
+        const cx = Math.max(0, Math.min(cssPageW, cssX));
+        const cy = Math.max(0, Math.min(cssPageH, cssY));
 
         /*
-         * TteService uses bottom-left origin (PDF standard).
-         * pos_x = left edge of QR box
-         * pos_y = bottom edge of QR box from page bottom
+         * CSS pixels → PDF points.
+         * Rasio posisi relatif canvas = rasio posisi relatif halaman PDF.
+         * pageNaturalW/H sudah dalam PDF points (getViewport({scale:1})).
          */
-        const pdfX = pdfPtX - QR_PT / 2;                         /* left edge */
-        const pdfY = (pageNaturalH - pdfPtY) - QR_PT / 2;        /* bottom edge */
+        const pdfPtX = cx * (pageNaturalW / cssPageW);
+        const pdfPtY = cy * (pageNaturalH / cssPageH);
+
+        /*
+         * Balik sumbu Y: PDF.js origin kiri-atas → PDF standar origin kiri-bawah.
+         * pdfX/pdfY = tepi kiri/bawah QR box (bukan titik tengah).
+         */
+        const pdfX = pdfPtX - QR_PT / 2;
+        const pdfY = (pageNaturalH - pdfPtY) - QR_PT / 2;
 
         const slot  = slots[activeSlotIdx];
         slot.page   = placePage;
         slot.pdfX   = +pdfX.toFixed(4);
         slot.pdfY   = +pdfY.toFixed(4);
-        slot.cssX   = cssX;
-        slot.cssY   = cssY;
+        slot.cssX   = cx;
+        slot.cssY   = cy;
 
         drawGhost(activeSlotIdx);
         renderSlotsUI();
         syncInputs();
         enableApprove();
+    }
+
+    /* ── Desktop: mouse click ── */
+    document.getElementById('placeClickLayer').addEventListener('click', function (e) {
+        if (activeSlotIdx === null) return;
+        /* Abaikan jika ini adalah akhir dari touch (touchend sudah menangani) */
+        if (e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) {
+            handlePlacement(e.clientX, e.clientY);
+        } else if (!('ontouchstart' in window)) {
+            /* Fallback untuk browser tanpa InputDeviceCapabilities API */
+            handlePlacement(e.clientX, e.clientY);
+        }
     });
 
-    /* ── Draw ghost (CSS pixel position — matches what user sees) ── */
+    /* ── Mobile: touchend (lebih akurat dan tidak ada 300ms delay) ── */
+    document.getElementById('placeClickLayer').addEventListener('touchend', function (e) {
+        if (activeSlotIdx === null) return;
+        e.preventDefault(); /* Cegah ghost click dari browser */
+        const touch = e.changedTouches[0];
+        if (touch) handlePlacement(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    /* ── Gambar ghost marker di canvas ── */
     function drawGhost(idx) {
         const slot    = slots[idx];
-        /* Ghost size in CSS pixels = QR_PT × PLACE_SCALE */
-        const ghostPx = QR_PT * PLACE_SCALE;
+        /*
+         * Ukuran ghost dalam CSS pixels dihitung dari ukuran aktual wrapper di layar.
+         * Ini akurat di desktop maupun mobile karena mengacu ke ukuran visual,
+         * bukan ukuran CSS saat render (yang bisa berbeda di mobile karena scaling).
+         *
+         * ghostPx = QR_PT (pdf points) × (ukuranVisualCanvas / pageNaturalW)
+         */
+        const wrapper  = document.getElementById('placeWrapper');
+        const wRect    = wrapper.getBoundingClientRect();
+        const scaleX   = pageNaturalW > 0 ? wRect.width  / pageNaturalW : PLACE_SCALE;
+        const ghostPx  = QR_PT * scaleX;
         const x       = Math.max(0, slot.cssX - ghostPx / 2);
         const y       = Math.max(0, slot.cssY - ghostPx / 2);
         const visible = slot.page === placePage;
@@ -648,38 +704,53 @@ document.addEventListener('DOMContentLoaded', function () {
         slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
     }
 
-    /* Recalculate cssX/cssY from PDF points (called after page change / resize) */
+    /*
+     * Hitung ulang cssX/cssY dari PDF points setelah ganti halaman / resize.
+     * Kebalikan dari perhitungan di click handler.
+     */
     function redrawPageGhosts() {
         if (!placeViewport || !pageNaturalH) return;
-        const cssPageW = placeViewport.width;
-        const cssPageH = placeViewport.height;
 
-        slots.forEach((slot, idx) => {
+        /*
+         * Gunakan ukuran visual aktual wrapper (bukan placeViewport CSS size)
+         * agar ghost tepat di posisi yang diklik, konsisten desktop & mobile.
+         */
+        const wrapper  = document.getElementById('placeWrapper');
+        const wRect    = wrapper.getBoundingClientRect();
+        const cssPageW = wRect.width;
+        const cssPageH = wRect.height;
+
+        slots.forEach(function (slot, idx) {
             if (slot.pdfX === null) return;
-            /* PDF points → CSS pixels (inverse of click calculation) */
-            const pdfPtX = slot.pdfX + QR_PT / 2;  /* center X in PDF points */
-            const pdfPtY = pageNaturalH - slot.pdfY - QR_PT / 2;  /* center Y from top in PDF points */
 
-            slot.cssX = pdfPtX * (cssPageW / pageNaturalW);
-            slot.cssY = pdfPtY * (cssPageH / pageNaturalH);
+            /*
+             * Balik dari PDF points (origin kiri-bawah) ke CSS pixels (origin kiri-atas).
+             * pdfX = tepi kiri QR  → titik tengah = pdfX + QR_PT/2
+             * pdfY = tepi bawah QR → titik tengah dari atas = pageNaturalH - (pdfY + QR_PT/2)
+             */
+            const centerPtX = slot.pdfX + QR_PT / 2;
+            const centerPtY = pageNaturalH - (slot.pdfY + QR_PT / 2);
+
+            slot.cssX = centerPtX * (cssPageW / pageNaturalW);
+            slot.cssY = centerPtY * (cssPageH / pageNaturalH);
+
             drawGhost(idx);
         });
     }
 
-    /* ── Render slot UI cards ── */
+    /* ── Render kartu UI slot ── */
     function renderSlotsUI() {
         const container = document.getElementById('sigSlots');
         if (!container) return;
         container.innerHTML = '';
 
-        slots.forEach((slot, idx) => {
+        slots.forEach(function (slot, idx) {
             const isActive = activeSlotIdx === idx;
             const isPlaced = slot.pdfX !== null;
 
             const card = document.createElement('div');
             card.className = 'rv-sig-slot' + (isActive ? ' active' : '');
 
-            /* Header */
             const hdr = document.createElement('div');
             hdr.className = 'rv-sig-slot-header';
             const delBtn = slots.length > 1
@@ -693,7 +764,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 + delBtn;
             card.appendChild(hdr);
 
-            /* Status */
             const meta = document.createElement('div');
             meta.className = 'rv-sig-meta' + (isPlaced ? ' placed' : '');
             meta.innerHTML = isPlaced
@@ -701,7 +771,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 : '<i class="bi bi-circle"></i> Not placed yet';
             card.appendChild(meta);
 
-            /* Toggle button */
             const row = document.createElement('div');
             row.style.cssText = 'display:flex;gap:.5rem;margin-top:.55rem;';
             const btn = document.createElement('button');
@@ -713,12 +782,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     + 'justify-content:center;gap:.35rem;padding:.4rem .75rem;'
                     + 'border-radius:8px;border:none;background:var(--accent);'
                     + 'color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;';
-                btn.addEventListener('click', () => window.exitTapMode());
+                btn.addEventListener('click', function () { window.exitTapMode(); });
 
                 const hint = document.createElement('div');
-                hint.className    = 'rv-sig-hint';
+                hint.className       = 'rv-sig-hint';
                 hint.style.marginTop = '.4rem';
-                hint.innerHTML    = '<i class="bi bi-hand-index"></i>'
+                hint.innerHTML       = '<i class="bi bi-hand-index"></i>'
                     + ' Click the canvas below — click again to move';
                 row.appendChild(btn);
                 card.appendChild(row);
@@ -732,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     + 'border-radius:8px;border:1px solid var(--border);'
                     + 'background:var(--card);color:var(--muted);'
                     + 'font-size:.78rem;font-weight:600;cursor:pointer;';
-                btn.addEventListener('click', () => activateSlot(idx));
+                btn.addEventListener('click', function () { activateSlot(idx); });
                 row.appendChild(btn);
                 card.appendChild(row);
             }
@@ -740,8 +809,7 @@ document.addEventListener('DOMContentLoaded', function () {
             container.appendChild(card);
         });
 
-        /* Block "add" if active slot not yet placed */
-        const blockAdd = activeSlotIdx !== null && slots[activeSlotIdx]?.pdfX === null;
+        const blockAdd = activeSlotIdx !== null && slots[activeSlotIdx] && slots[activeSlotIdx].pdfX === null;
         const addBtn   = document.getElementById('btnAddSlot');
         if (addBtn) {
             addBtn.disabled = blockAdd;
@@ -749,15 +817,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    /* ── Sync hidden inputs (PDF points → server) ── */
+    /* ── Sync hidden inputs — kirim PDF points ke server ── */
     function syncInputs() {
         const c = document.getElementById('placementsInput');
         if (!c) return;
         c.innerHTML = '';
         let i = 0;
-        slots.forEach(slot => {
+        slots.forEach(function (slot) {
             if (slot.pdfX === null) return;
-            const fields = {
+            /*
+             * Nilai yang dikirim ke backend (PDF points):
+             *   halaman : nomor halaman (1-based)
+             *   pos_x   : tepi kiri QR dari tepi kiri halaman   (PDF points)
+             *   pos_y   : tepi bawah QR dari tepi bawah halaman (PDF points, bottom-left origin)
+             *   lebar   : lebar QR dalam PDF points
+             *   tinggi  : tinggi QR dalam PDF points
+             *
+             * TteService.php memakai konversi:
+             *   xMm = pos_x × 0.352778
+             *   yMm = pageHeightMm - (pos_y × 0.352778) - qrHeightMm
+             * yang identik dengan origin bottom-left → top-left untuk TCPDF/FPDI.
+             */
+            var fields = {
                 ['placements[' + i + '][halaman]'] : slot.page,
                 ['placements[' + i + '][pos_x]']  : slot.pdfX,
                 ['placements[' + i + '][pos_y]']  : slot.pdfY,
@@ -765,8 +846,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 ['placements[' + i + '][tinggi]'] : QR_PT,
             };
             Object.entries(fields).forEach(function (entry) {
-                const inp = document.createElement('input');
-                inp.type = 'hidden'; inp.name = entry[0]; inp.value = entry[1];
+                const inp  = document.createElement('input');
+                inp.type   = 'hidden';
+                inp.name   = entry[0];
+                inp.value  = entry[1];
                 c.appendChild(inp);
             });
             i++;
@@ -794,7 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* Init */
+    /* Init — buat slot pertama otomatis */
     window.slotAdd();
 
 }); /* end DOMContentLoaded */
