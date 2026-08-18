@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\NotificationService;
 
 class SubmissionController extends Controller
 {
@@ -130,7 +131,6 @@ class SubmissionController extends Controller
             'terusan.*.require_tte'   => ['nullable', 'boolean'],
         ], $this->messages());
 
-        // Upload PDF
         $file     = $request->file('file_dokumen');
         $filename = Str::uuid() . '.pdf';
         $path     = $file->storeAs('submissions/original', $filename, 'local');
@@ -147,7 +147,6 @@ class SubmissionController extends Controller
             'id_user'          => auth()->id(),
         ]);
 
-        // Simpan terusan
         if ($request->filled('terusan')) {
             foreach ($request->terusan as $urutan => $t) {
                 PengajuanTerusan::create([
@@ -158,6 +157,11 @@ class SubmissionController extends Controller
                     'status'        => 'waiting',
                 ]);
             }
+        }
+
+        // ── Kirim notifikasi email hanya jika di-submit (bukan draft) ────────
+        if ($request->action === 'submit') {
+            (new \App\Services\NotificationService())->notifyOnSubmit($pengajuan);
         }
 
         $msg = $request->action === 'submit'
@@ -227,10 +231,9 @@ class SubmissionController extends Controller
                 ->with('error', 'This submission can no longer be edited.');
         }
 
-        // File wajib diganti jika status rejected
         $fileRule = $submission->status === 'rejected'
-            ? ['required', 'file', 'mimes:pdf',]
-            : ['nullable', 'file', 'mimes:pdf',];
+            ? ['required', 'file', 'mimes:pdf']
+            : ['nullable', 'file', 'mimes:pdf'];
 
         $request->validate([
             'tanggal_surat'           => ['required', 'date'],
@@ -257,12 +260,10 @@ class SubmissionController extends Controller
             'status'           => $request->action === 'submit' ? 'waiting' : 'draft',
         ];
 
-        // Jika rejected dan resubmit → reset rejection_reason
         if ($submission->status === 'rejected' && $request->action === 'submit') {
             $data['rejection_reason'] = null;
         }
 
-        // Ganti file jika ada upload baru
         if ($request->hasFile('file_dokumen')) {
             Storage::disk('local')->delete($submission->file_original);
             $file     = $request->file('file_dokumen');
@@ -272,7 +273,6 @@ class SubmissionController extends Controller
 
         $submission->update($data);
 
-        // Reset dan simpan ulang terusan
         $submission->terusans()->delete();
         if ($request->filled('terusan')) {
             foreach ($request->terusan as $urutan => $t) {
@@ -284,6 +284,12 @@ class SubmissionController extends Controller
                     'status'        => 'waiting',
                 ]);
             }
+        }
+
+        // ── Kirim notifikasi saat resubmit ───────────────────────────────────
+        if ($request->action === 'submit') {
+            $submission->refresh();
+            (new \App\Services\NotificationService())->notifyOnSubmit($submission);
         }
 
         $msg = match (true) {

@@ -6,21 +6,25 @@
 
 @php
     /* ── Query params aktif ── */
-    $activeTab  = request('tab', 'inbox');   // inbox | history
-    $fSearch    = request('search', '');
-    $fStatus    = request('status', '');
-    $fDateFrom  = request('date_from', '');
-    $fDateTo    = request('date_to', '');
-    $perPageNow = request('per_page', 15);
-    $sortNow    = request('sort', 'acted_at');
-    $dirNow     = request('dir', 'desc');
+    $activeTab   = request('tab', 'inbox');   // inbox | history
+    $fSearch     = request('search', '');
+    $fStatus     = request('status', '');
+    $fPerusahaan = request('perusahaan', '');
+    $fDokType    = request('dok_type', '');
+    $fDateFrom   = request('date_from', '');
+    $fDateTo     = request('date_to', '');
+    $perPageNow  = request('per_page', 15);
+    $sortNow     = request('sort', 'acted_at');
+    $dirNow      = request('dir', 'desc');
 
     /* Hitung filter aktif (hanya relevan di tab history) */
     $activeFilters = collect([
-        'search'    => $fSearch,
-        'status'    => $fStatus,
-        'date_from' => $fDateFrom,
-        'date_to'   => $fDateTo,
+        'search'     => $fSearch,
+        'status'     => $fStatus,
+        'perusahaan' => $fPerusahaan,
+        'dok_type'   => $fDokType,
+        'date_from'  => $fDateFrom,
+        'date_to'    => $fDateTo,
     ])->filter(fn($v) => $v !== '')->count();
 
     $hasFilter = $activeFilters > 0;
@@ -325,15 +329,14 @@
     @if($hasFilter)
     <div class="idx-active-chips">
         <span class="idx-active-chips-label">
-            <i class="bi bi-funnel-fill"></i> Filter aktif:
+            <i class="bi bi-funnel-fill"></i> Active filters:
         </span>
 
         @if($fSearch)
         <span class="idx-chip">
             <i class="bi bi-search" style="font-size:.68rem;"></i>
             "{{ Str::limit($fSearch, 24) }}"
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="search" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="search" title="Remove">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -343,8 +346,27 @@
         <span class="idx-chip">
             <i class="bi bi-circle-fill" style="font-size:.45rem;"></i>
             {{ $labels[$fStatus] ?? $fStatus }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="status" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="status" title="Remove">
+                <i class="bi bi-x"></i>
+            </button>
+        </span>
+        @endif
+
+        @if($fPerusahaan)
+        <span class="idx-chip">
+            <i class="bi bi-building" style="font-size:.68rem;"></i>
+            {{ Str::limit($perusahaanList->find($fPerusahaan)?->nama ?? 'Company', 20) }}
+            <button type="button" class="idx-chip-remove" data-remove-filter="perusahaan" title="Remove">
+                <i class="bi bi-x"></i>
+            </button>
+        </span>
+        @endif
+
+        @if($fDokType)
+        <span class="idx-chip">
+            <i class="bi bi-file-earmark" style="font-size:.68rem;"></i>
+            "{{ Str::limit($fDokType, 20) }}"
+            <button type="button" class="idx-chip-remove" data-remove-filter="dok_type" title="Remove">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -356,8 +378,7 @@
             {{ $fDateFrom ? \Carbon\Carbon::parse($fDateFrom)->format('d/m/Y') : '…' }}
             –
             {{ $fDateTo ? \Carbon\Carbon::parse($fDateTo)->format('d/m/Y') : '…' }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="date_from,date_to" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="date_from,date_to" title="Remove">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -578,23 +599,27 @@
 
             <div class="idx-fm-body">
 
-                {{-- Search --}}
+                {{-- 1. Perusahaan --}}
                 <div class="idx-fm-group">
-                    <label class="idx-fm-label" for="fm_search">
-                        <i class="bi bi-search"></i> Letter No. / Subject
+                    <label class="idx-fm-label" for="fm_perusahaan">
+                        <i class="bi bi-building"></i> Company
                     </label>
-                    <input type="text" name="search" id="fm_search"
-                           class="idx-fm-input" value="{{ $fSearch }}"
-                           placeholder="Search letter number or subject…"
-                           autocomplete="off">
+                    <select name="perusahaan" id="fm_perusahaan" class="idx-fm-select2-single">
+                        <option value="">— All Companies —</option>
+                        @foreach($perusahaanList as $p)
+                        <option value="{{ $p->id }}" {{ $fPerusahaan == $p->id ? 'selected' : '' }}>
+                            {{ $p->nama }}
+                        </option>
+                        @endforeach
+                    </select>
                 </div>
 
-                {{-- Status (aksi) --}}
+                {{-- 2. Action (approve/reject) --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label" for="fm_status">
                         <i class="bi bi-circle-half"></i> Action
                     </label>
-                    <select name="status" id="fm_status" class="idx-fm-input">
+                    <select name="status" id="fm_status" class="idx-fm-select2-single">
                         <option value="">— All Actions —</option>
                         <option value="approve" {{ $fStatus === 'approve' ? 'selected' : '' }}>Approved</option>
                         <option value="reject"  {{ $fStatus === 'reject'  ? 'selected' : '' }}>Rejected</option>
@@ -603,7 +628,7 @@
 
                 <div class="idx-fm-divider"></div>
 
-                {{-- Date Range --}}
+                {{-- 3. Date Range --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label">
                         <i class="bi bi-calendar-range"></i> Acted Date Range
@@ -617,6 +642,30 @@
                                class="idx-fm-input" value="{{ $fDateTo }}"
                                placeholder="To" title="To date">
                     </div>
+                </div>
+
+                <div class="idx-fm-divider"></div>
+
+                {{-- 4. Search --}}
+                <div class="idx-fm-group">
+                    <label class="idx-fm-label" for="fm_search">
+                        <i class="bi bi-text-left"></i> Subject / Letter No.
+                    </label>
+                    <input type="text" name="search" id="fm_search"
+                           class="idx-fm-input" value="{{ $fSearch }}"
+                           placeholder="Search subject or letter number…"
+                           autocomplete="off">
+                </div>
+
+                {{-- 5. Document Type --}}
+                <div class="idx-fm-group">
+                    <label class="idx-fm-label" for="fm_dok_type">
+                        <i class="bi bi-file-earmark-text"></i> Document Type
+                    </label>
+                    <input type="text" name="dok_type" id="fm_dok_type"
+                           class="idx-fm-input" value="{{ $fDokType }}"
+                           placeholder="Search document type…"
+                           autocomplete="off">
                 </div>
 
             </div>
@@ -684,16 +733,21 @@
 @endsection
 
 @push('scripts')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 @if($activeTab === 'history')
 <script>
 (function () {
 
     /* ── FILTER MODAL ── */
     const backdrop = document.getElementById('idxFmBackdrop');
+    let s2Inited = false;
 
     function idxFmOpen() {
         backdrop?.classList.add('show');
         document.body.style.overflow = 'hidden';
+        if (!s2Inited) { setTimeout(initSelect2, 60); s2Inited = true; }
     }
     function idxFmClose() {
         backdrop?.classList.remove('show');
@@ -703,6 +757,23 @@
     document.getElementById('idxBtnOpenFilter')?.addEventListener('click', idxFmOpen);
     document.getElementById('idxFmClose')?.addEventListener('click', idxFmClose);
     backdrop?.addEventListener('click', e => { if (e.target === backdrop) idxFmClose(); });
+
+    /* ── SELECT2 ── */
+    function initSelect2() {
+        $('.idx-fm-select2-single').each(function () {
+            $(this).select2({
+                dropdownParent: $('#idxFmPanel'),
+                dropdownCssClass: 'idx-fm-select2-dropdown',
+                width: '100%',
+                allowClear: true,
+                placeholder: $(this).find('option[value=""]').first().text() || '— Select —',
+                language: {
+                    noResults: () => '<span style="padding:.5rem .85rem;display:block;font-size:.82rem;color:var(--muted);">No results found</span>',
+                },
+                escapeMarkup: m => m,
+            });
+        });
+    }
 
     /* Date validation */
     const dateFrom = document.getElementById('fm_date_from');
