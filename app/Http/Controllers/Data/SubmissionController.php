@@ -124,7 +124,7 @@ class SubmissionController extends Controller
             'nomor_surat'       => ['required', 'string', 'max:100'],
             'id_jenis_dokumen'  => ['required', 'exists:a06_jenis_dokumen,id'],
             'perihal'           => ['required', 'string', 'max:255'],
-            'file_dokumen'      => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'file_dokumen'      => ['required', 'file', 'mimes:pdf'],
             'terusan'           => ['nullable', 'array'],
             'terusan.*.id_departemen' => ['required_with:terusan', 'exists:a02_departemen,id'],
             'terusan.*.require_tte'   => ['nullable', 'boolean'],
@@ -229,8 +229,8 @@ class SubmissionController extends Controller
 
         // File wajib diganti jika status rejected
         $fileRule = $submission->status === 'rejected'
-            ? ['required', 'file', 'mimes:pdf', 'max:10240']
-            : ['nullable', 'file', 'mimes:pdf', 'max:10240'];
+            ? ['required', 'file', 'mimes:pdf',]
+            : ['nullable', 'file', 'mimes:pdf',];
 
         $request->validate([
             'tanggal_surat'           => ['required', 'date'],

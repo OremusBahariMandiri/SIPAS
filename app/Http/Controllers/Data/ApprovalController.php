@@ -15,10 +15,12 @@ use Illuminate\Support\Str;
 
 class ApprovalController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = auth()->user();
+        $user      = auth()->user();
+        $activeTab = $request->get('tab', 'inbox');
 
+        // ── INBOX data (selalu dimuat untuk badge count di tab nav) ──────────────
         $terusans = PengajuanTerusan::with(['pengajuan.perusahaan', 'pengajuan.user', 'departemen'])
             ->where('id_departemen', $user->id_departemen)
             ->where('status', 'waiting')
@@ -42,7 +44,54 @@ class ApprovalController extends Controller
             })
             ->get();
 
-        return view('data.approval.index', compact('terusans', 'kepadas'));
+        // ── HISTORY data (hanya dimuat di tab history) ────────────────────────────
+        $histories = null;
+
+        if ($activeTab === 'history') {
+            $query = PengajuanApproval::with(['pengajuan'])
+                ->where('id_approver', $user->id);
+
+            // Filter: search (nomor_surat / perihal)
+            if ($search = $request->get('search')) {
+                $query->whereHas('pengajuan', function ($q) use ($search) {
+                    $q->where('nomor_surat', 'like', "%{$search}%")
+                      ->orWhere('perihal', 'like', "%{$search}%");
+                });
+            }
+
+            // Filter: aksi (approve / reject)
+            if ($status = $request->get('status')) {
+                $query->where('aksi', $status);
+            }
+
+            // Filter: rentang tanggal acted_at
+            if ($dateFrom = $request->get('date_from')) {
+                $query->whereDate('acted_at', '>=', $dateFrom);
+            }
+            if ($dateTo = $request->get('date_to')) {
+                $query->whereDate('acted_at', '<=', $dateTo);
+            }
+
+            // Sorting
+            $sortable  = ['acted_at', 'aksi', 'tahap'];
+            $sortCol   = in_array($request->get('sort'), $sortable)
+                         ? $request->get('sort') : 'acted_at';
+            $sortDir   = $request->get('dir') === 'asc' ? 'asc' : 'desc';
+
+            $perPage   = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+                         ? (int) $request->get('per_page') : 15;
+
+            $histories = $query->orderBy($sortCol, $sortDir)
+                               ->paginate($perPage)
+                               ->withQueryString();
+        }
+
+        return view('data.approval.index', compact(
+            'terusans',
+            'kepadas',
+            'histories',
+            'activeTab'
+        ));
     }
 
     public function review(PengajuanSurat $submission): View|RedirectResponse
@@ -78,7 +127,6 @@ class ApprovalController extends Controller
             abort(403, 'You are not authorized to review this submission.');
         }
 
-        // ← Ambil TTE sesuai perusahaan pengajuan
         $tte = $user->tteForPerusahaan($submission->id_perusahaan);
 
         if ($needTte && (!$tte || !$tte->isValid())) {
@@ -115,7 +163,7 @@ class ApprovalController extends Controller
 
         $tte = $user->tteForPerusahaan($submission->id_perusahaan);
 
-        // ── Simpan placements (koordinat sudah PDF points dari PDF.js) ────────────
+        // ── Simpan placements ────────────────────────────────────────────────────
         if ($request->filled('placements') && $tte) {
             foreach ($request->placements as $pl) {
                 if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
@@ -135,7 +183,7 @@ class ApprovalController extends Controller
             }
         }
 
-        // ── Catat approval log ────────────────────────────────────────────────────
+        // ── Catat approval log ───────────────────────────────────────────────────
         PengajuanApproval::create([
             'id_pengajuan' => $submission->id,
             'tahap'        => $request->tahap,
@@ -146,7 +194,7 @@ class ApprovalController extends Controller
             'acted_at'     => now(),
         ]);
 
-        // ── Tahap Terusan ─────────────────────────────────────────────────────────
+        // ── Tahap Terusan ────────────────────────────────────────────────────────
         if ($request->tahap === 'terusan') {
             PengajuanTerusan::where('id', $request->id_ref)->update([
                 'status'      => 'approved',
@@ -159,7 +207,7 @@ class ApprovalController extends Controller
                 ->with('success', 'Forwarding approval has been submitted.');
         }
 
-        // ── Tahap Kepada (Final) ──────────────────────────────────────────────────
+        // ── Tahap Kepada (Final) ─────────────────────────────────────────────────
         if ($request->tahap === 'kepada') {
             $submission->update(['status' => 'approved']);
 
