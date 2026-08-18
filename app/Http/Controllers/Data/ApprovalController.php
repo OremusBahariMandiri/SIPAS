@@ -44,24 +44,42 @@ class ApprovalController extends Controller
             })
             ->get();
 
+        // ── Data filter dropdown ──────────────────────────────────────────────────
+        $perusahaanList = \App\Models\DataMaster\Perusahaan::where('status', 1)
+            ->orderBy('nama')->get();
+
         // ── HISTORY data (hanya dimuat di tab history) ────────────────────────────
         $histories = null;
 
         if ($activeTab === 'history') {
-            $query = PengajuanApproval::with(['pengajuan'])
+            $query = PengajuanApproval::with(['pengajuan.perusahaan', 'pengajuan.jenisDokumen'])
                 ->where('id_approver', $user->id);
 
             // Filter: search (nomor_surat / perihal)
             if ($search = $request->get('search')) {
                 $query->whereHas('pengajuan', function ($q) use ($search) {
                     $q->where('nomor_surat', 'like', "%{$search}%")
-                      ->orWhere('perihal', 'like', "%{$search}%");
+                        ->orWhere('perihal', 'like', "%{$search}%");
                 });
             }
 
             // Filter: aksi (approve / reject)
             if ($status = $request->get('status')) {
                 $query->where('aksi', $status);
+            }
+
+            // Filter: perusahaan
+            if ($perusahaan = $request->get('perusahaan')) {
+                $query->whereHas('pengajuan', function ($q) use ($perusahaan) {
+                    $q->where('id_perusahaan', $perusahaan);
+                });
+            }
+
+            // Filter: tipe dokumen
+            if ($dokType = $request->get('dok_type')) {
+                $query->whereHas('pengajuan.jenisDokumen', function ($q) use ($dokType) {
+                    $q->where('jenis_dokumen', 'like', "%{$dokType}%");
+                });
             }
 
             // Filter: rentang tanggal acted_at
@@ -75,22 +93,23 @@ class ApprovalController extends Controller
             // Sorting
             $sortable  = ['acted_at', 'aksi', 'tahap'];
             $sortCol   = in_array($request->get('sort'), $sortable)
-                         ? $request->get('sort') : 'acted_at';
+                ? $request->get('sort') : 'acted_at';
             $sortDir   = $request->get('dir') === 'asc' ? 'asc' : 'desc';
 
             $perPage   = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
-                         ? (int) $request->get('per_page') : 15;
+                ? (int) $request->get('per_page') : 15;
 
             $histories = $query->orderBy($sortCol, $sortDir)
-                               ->paginate($perPage)
-                               ->withQueryString();
+                ->paginate($perPage)
+                ->withQueryString();
         }
 
         return view('data.approval.index', compact(
             'terusans',
             'kepadas',
             'histories',
-            'activeTab'
+            'activeTab',
+            'perusahaanList'
         ));
     }
 
@@ -163,7 +182,7 @@ class ApprovalController extends Controller
 
         $tte = $user->tteForPerusahaan($submission->id_perusahaan);
 
-        // ── Simpan placements ────────────────────────────────────────────────────
+        // ── Simpan placements ────────────────────────────────────────────────
         if ($request->filled('placements') && $tte) {
             foreach ($request->placements as $pl) {
                 if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
@@ -183,7 +202,7 @@ class ApprovalController extends Controller
             }
         }
 
-        // ── Catat approval log ───────────────────────────────────────────────────
+        // ── Catat approval log ───────────────────────────────────────────────
         PengajuanApproval::create([
             'id_pengajuan' => $submission->id,
             'tahap'        => $request->tahap,
@@ -194,8 +213,12 @@ class ApprovalController extends Controller
             'acted_at'     => now(),
         ]);
 
-        // ── Tahap Terusan ────────────────────────────────────────────────────────
+        $notifSvc = new \App\Services\NotificationService();
+
+        // ── Tahap Terusan ────────────────────────────────────────────────────
         if ($request->tahap === 'terusan') {
+            $approvedTerusan = PengajuanTerusan::find($request->id_ref);
+
             PengajuanTerusan::where('id', $request->id_ref)->update([
                 'status'      => 'approved',
                 'approved_by' => $user->id,
@@ -203,11 +226,17 @@ class ApprovalController extends Controller
             ]);
             $submission->update(['status' => 'in_review']);
 
+            // Kirim email ke terusan berikutnya atau ke final approver
+            if ($approvedTerusan) {
+                $submission->refresh();
+                $notifSvc->notifyOnTerusanApproved($submission, $approvedTerusan);
+            }
+
             return redirect()->route('data.approval.index')
                 ->with('success', 'Forwarding approval has been submitted.');
         }
 
-        // ── Tahap Kepada (Final) ─────────────────────────────────────────────────
+        // ── Tahap Kepada (Final) ─────────────────────────────────────────────
         if ($request->tahap === 'kepada') {
             $submission->update(['status' => 'approved']);
 
@@ -223,11 +252,12 @@ class ApprovalController extends Controller
                         'error'        => $e->getMessage(),
                         'trace'        => $e->getTraceAsString(),
                     ]);
-
-                    return redirect()->route('data.approval.index')
-                        ->with('success', 'Submission approved, but TTE injection failed. Please contact administrator.');
                 }
             }
+
+            // Kirim notifikasi ke pengaju bahwa surat disetujui
+            $submission->refresh();
+            $notifSvc->notifyOnFinalApproved($submission);
 
             return redirect()->route('data.approval.index')
                 ->with('success', 'Submission has been fully approved and signed.');
@@ -269,6 +299,14 @@ class ApprovalController extends Controller
         }
 
         $submission->update(['status' => 'rejected']);
+
+        // Kirim notifikasi penolakan ke pengaju
+        $submission->refresh();
+        (new \App\Services\NotificationService())->notifyOnRejected(
+            $submission,
+            $request->catatan,
+            $user->nama_karyawan ?? $user->nrk
+        );
 
         return redirect()->route('data.approval.index')
             ->with('success', 'Submission has been rejected.');
