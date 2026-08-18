@@ -16,33 +16,19 @@ use Illuminate\View\View;
 
 class UsersController extends Controller
 {
-    /**
-     * Daftar menu yang tersedia untuk hak akses.
-     * Tambahkan menu baru di sini agar muncul di form akses.
-     */
     public static array $menuList = [
-        // Master Data
-        'master.perusahaan'   => 'Master – Perusahaan',
-        'master.departemen'   => 'Master – Departemen',
-        'master.jabatan'      => 'Master – Jabatan',
-        'master.wilker'       => 'Master – Wilayah Kerja',
-        'master.jenis-dokumen'=> 'Master – Jenis Dokumen',
-        'master.tte'          => 'Master – TTE',
-
-        // Manajemen Pengguna
-        'users'               => 'Manajemen – Pengguna',
-        'users.akses'         => 'Manajemen – Hak Akses',
-
-        // Data Transaksi
-        'data.submission'     => 'Dokumen – Pengajuan Surat',
-
-         // Settings
-        'settings.smtp'     => 'SMTP Konfigurasi',
+        'master.perusahaan'    => 'Master – Perusahaan',
+        'master.departemen'    => 'Master – Departemen',
+        'master.jabatan'       => 'Master – Jabatan',
+        'master.wilker'        => 'Master – Wilayah Kerja',
+        'master.jenis-dokumen' => 'Master – Jenis Dokumen',
+        'master.tte'           => 'Master – TTE',
+        'users'                => 'Manajemen – Pengguna',
+        'users.akses'          => 'Manajemen – Hak Akses',
+        'data.submission'      => 'Dokumen – Pengajuan Surat',
+        'settings.smtp'        => 'SMTP Konfigurasi',
     ];
 
-    /**
-     * Tipe akses yang bisa dikonfigurasi per menu.
-     */
     public static array $accessTypes = [
         'index_access'        => 'Lihat',
         'create_access'       => 'Tambah',
@@ -59,18 +45,18 @@ class UsersController extends Controller
     //  CRUD PENGGUNA
     // ─────────────────────────────────────────
 
-    /**
-     * Daftar semua pengguna.
-     */
     public function index(Request $request): View
     {
         $this->authorize_access('users', 'index_access');
 
-        $query = User::with(['perusahaan', 'departemen'])
-            ->orderBy('nrk');
+        $query = User::with(['perusahaan', 'departemen'])->orderBy('nrk');
 
         if ($request->filled('search')) {
-            $query->where('nrk', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('nrk', 'like', '%' . $request->search . '%')
+                  ->orWhere('nama_karyawan', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
         }
 
         if ($request->filled('perusahaan')) {
@@ -83,9 +69,6 @@ class UsersController extends Controller
         return view('users.index', compact('users', 'perusahaan'));
     }
 
-    /**
-     * Form tambah pengguna.
-     */
     public function create(): View
     {
         $this->authorize_access('users', 'create_access');
@@ -93,15 +76,13 @@ class UsersController extends Controller
         return view('users.create', $this->formData());
     }
 
-    /**
-     * Simpan pengguna baru.
-     */
     public function store(Request $request): RedirectResponse
     {
         $this->authorize_access('users', 'create_access');
 
         $request->validate([
             'nrk'           => ['required', 'string', 'max:50', 'unique:users,nrk'],
+            'email'         => ['nullable', 'email', 'max:150', 'unique:users,email'],
             'nama_karyawan' => ['required', 'string', 'max:100'],
             'password'      => ['required', 'string', 'min:8', 'confirmed'],
             'id_perusahaan' => ['required', 'exists:a01_perusahaan,id'],
@@ -113,6 +94,7 @@ class UsersController extends Controller
 
         User::create([
             'nrk'           => $request->nrk,
+            'email'         => $request->email ?: null,
             'nama_karyawan' => $request->nama_karyawan,
             'password'      => Hash::make($request->password),
             'id_perusahaan' => $request->id_perusahaan,
@@ -126,9 +108,6 @@ class UsersController extends Controller
             ->with('success', 'Pengguna berhasil ditambahkan.');
     }
 
-    /**
-     * Detail pengguna.
-     */
     public function show(User $user): View
     {
         $this->authorize_access('users', 'show_access');
@@ -140,9 +119,6 @@ class UsersController extends Controller
         return view('users.show', compact('user', 'menuList', 'accessTypes'));
     }
 
-    /**
-     * Form edit pengguna.
-     */
     public function edit(User $user): View
     {
         $this->authorize_access('users', 'update_access');
@@ -150,15 +126,13 @@ class UsersController extends Controller
         return view('users.edit', array_merge(['user' => $user], $this->formData()));
     }
 
-    /**
-     * Update data pengguna.
-     */
     public function update(Request $request, User $user): RedirectResponse
     {
         $this->authorize_access('users', 'update_access');
 
         $request->validate([
             'nrk'           => ['required', 'string', 'max:50', 'unique:users,nrk,' . $user->id],
+            'email'         => ['nullable', 'email', 'max:150', 'unique:users,email,' . $user->id],
             'nama_karyawan' => ['required', 'string', 'max:100'],
             'password'      => ['nullable', 'string', 'min:8', 'confirmed'],
             'id_perusahaan' => ['required', 'exists:a01_perusahaan,id'],
@@ -170,6 +144,7 @@ class UsersController extends Controller
 
         $data = [
             'nrk'           => $request->nrk,
+            'email'         => $request->email ?: null,
             'nama_karyawan' => $request->nama_karyawan,
             'id_perusahaan' => $request->id_perusahaan,
             'id_departemen' => $request->id_departemen,
@@ -188,9 +163,6 @@ class UsersController extends Controller
             ->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
-    /**
-     * Hapus pengguna.
-     */
     public function destroy(User $user): RedirectResponse
     {
         $this->authorize_access('users', 'delete_access');
@@ -210,16 +182,12 @@ class UsersController extends Controller
     //  HAK AKSES
     // ─────────────────────────────────────────
 
-    /**
-     * Form hak akses seorang pengguna.
-     */
     public function editAkses(User $user): View
     {
         $this->authorize_access('users.akses', 'update_access');
 
         $user->load('akses');
 
-        // Map akses ke array [menu => [tipe => value]]
         $aksesMap = [];
         foreach ($user->akses as $akses) {
             $aksesMap[$akses->menu_access] = $akses->toArray();
@@ -231,15 +199,11 @@ class UsersController extends Controller
         return view('users.akses', compact('user', 'aksesMap', 'menuList', 'accessTypes'));
     }
 
-    /**
-     * Simpan / update hak akses pengguna.
-     */
     public function updateAkses(Request $request, User $user): RedirectResponse
     {
         $this->authorize_access('users.akses', 'update_access');
 
         DB::transaction(function () use ($request, $user) {
-            // Hapus semua akses lama
             $user->akses()->delete();
 
             $aksesInput = $request->input('akses', []);
@@ -261,9 +225,6 @@ class UsersController extends Controller
             ->with('success', 'Hak akses pengguna berhasil disimpan.');
     }
 
-    /**
-     * Halaman daftar semua pengguna beserta ringkasan akses mereka.
-     */
     public function aksesIndex(): View
     {
         $this->authorize_access('users.akses', 'index_access');
@@ -279,10 +240,6 @@ class UsersController extends Controller
     //  HELPERS
     // ─────────────────────────────────────────
 
-    /**
-     * Cek akses pengguna yang sedang login.
-     * Admin selalu lolos. Non-admin dicek ke tabel users_access.
-     */
     private function authorize_access(string $menu, string $tipe): void
     {
         $user = auth()->user();
@@ -291,7 +248,6 @@ class UsersController extends Controller
             abort(403, 'Silakan login terlebih dahulu.');
         }
 
-        // Admin bypass semua akses
         if ($user->isAdmin()) {
             return;
         }
@@ -301,9 +257,6 @@ class UsersController extends Controller
         }
     }
 
-    /**
-     * Data form (dropdown).
-     */
     private function formData(): array
     {
         return [
@@ -314,14 +267,13 @@ class UsersController extends Controller
         ];
     }
 
-    /**
-     * Pesan validasi.
-     */
     private function messages(): array
     {
         return [
             'nrk.required'           => 'NRK wajib diisi.',
             'nrk.unique'             => 'NRK sudah terdaftar.',
+            'email.email'            => 'Format email tidak valid.',
+            'email.unique'           => 'Email sudah terdaftar oleh pengguna lain.',
             'nama_karyawan.required' => 'Nama karyawan wajib diisi.',
             'password.min'           => 'Password minimal 8 karakter.',
             'password.confirmed'     => 'Konfirmasi password tidak cocok.',
