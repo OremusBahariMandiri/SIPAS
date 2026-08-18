@@ -186,7 +186,6 @@ class ApprovalController extends Controller
         if ($request->filled('placements') && $tte) {
             foreach ($request->placements as $pl) {
                 if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
-
                 PengajuanTtePlacement::create([
                     'id_pengajuan' => $submission->id,
                     'id_tte'       => $tte->id,
@@ -213,12 +212,14 @@ class ApprovalController extends Controller
             'acted_at'     => now(),
         ]);
 
-        $notifSvc = new \App\Services\NotificationService();
-
         // ── Tahap Terusan ────────────────────────────────────────────────────
         if ($request->tahap === 'terusan') {
-            $approvedTerusan = PengajuanTerusan::find($request->id_ref);
 
+            // FIX: Ambil urutan SEBELUM update, untuk dikirim ke notifSvc
+            $terusan = PengajuanTerusan::find($request->id_ref);
+            $approvedUrutan = $terusan ? $terusan->urutan : 0;
+
+            // Update status terusan di DB DULU
             PengajuanTerusan::where('id', $request->id_ref)->update([
                 'status'      => 'approved',
                 'approved_by' => $user->id,
@@ -226,11 +227,10 @@ class ApprovalController extends Controller
             ]);
             $submission->update(['status' => 'in_review']);
 
-            // Kirim email ke terusan berikutnya atau ke final approver
-            if ($approvedTerusan) {
-                $submission->refresh();
-                $notifSvc->notifyOnTerusanApproved($submission, $approvedTerusan);
-            }
+            // FIX: Panggil notifikasi SETELAH DB diupdate, kirim urutan (int)
+            // bukan object terusan yang stale
+            (new \App\Services\NotificationService())
+                ->notifyOnTerusanApproved($submission, $approvedUrutan);
 
             return redirect()->route('data.approval.index')
                 ->with('success', 'Forwarding approval has been submitted.');
@@ -255,9 +255,8 @@ class ApprovalController extends Controller
                 }
             }
 
-            // Kirim notifikasi ke pengaju bahwa surat disetujui
-            $submission->refresh();
-            $notifSvc->notifyOnFinalApproved($submission);
+            // FIX: Kirim notifikasi approved ke pengaju
+            (new \App\Services\NotificationService())->notifyOnFinalApproved($submission);
 
             return redirect()->route('data.approval.index')
                 ->with('success', 'Submission has been fully approved and signed.');
@@ -300,8 +299,7 @@ class ApprovalController extends Controller
 
         $submission->update(['status' => 'rejected']);
 
-        // Kirim notifikasi penolakan ke pengaju
-        $submission->refresh();
+        // FIX: Kirim notifikasi reject ke pengaju
         (new \App\Services\NotificationService())->notifyOnRejected(
             $submission,
             $request->catatan,
