@@ -187,8 +187,6 @@ class NotificationService
         $users = \App\Models\User::where('id_departemen', $terusan->id_departemen)
             ->whereNotNull('email')
             ->where('email', '!=', '')
-            ->where('id', '!=', $submission->id_kepada)  // exclude final approver
-            ->where('id', '!=', $submission->id_user)    // exclude pengaju
             ->get();
 
         Log::info('NotificationService: sendToTerusan', [
