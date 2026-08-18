@@ -2,299 +2,372 @@
 @section('title', 'Submission Detail')
 @section('page-title', 'Document Submission')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/submission-detail.css') }}">
+@endpush
+
 @section('content')
-<div class="page-header">
-    <div class="page-header-row">
-        <a href="{{ route('data.submission.index') }}" class="btn-back">
-            <i class="bi bi-arrow-left"></i>
-        </a>
-        <div class="page-header-text">
-            <h1 class="page-title">Submission Detail</h1>
-            <p class="page-subtitle">{{ $submission->nomor_surat }} — {{ $submission->perihal }}</p>
-        </div>
+
+@php
+    $bannerMap = [
+        'draft'     => ['class' => 'sdv-banner-draft',   'icon' => 'bi-pencil-square',     'text' => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.'],
+        'waiting'   => ['class' => 'sdv-banner-waiting', 'icon' => 'bi-hourglass-split',   'text' => 'Waiting for the first approver to review.'],
+        'in_review' => ['class' => 'sdv-banner-review',  'icon' => 'bi-arrow-repeat',      'text' => 'Currently being reviewed by approvers.'],
+        'approved'  => ['class' => 'sdv-banner-success', 'icon' => 'bi-check-circle-fill', 'text' => 'This submission has been <strong>Approved</strong>.'],
+        'rejected'  => ['class' => 'sdv-banner-danger',  'icon' => 'bi-x-circle-fill',     'text' => 'This submission has been <strong>Rejected</strong>.'],
+    ];
+    $banner = $bannerMap[$submission->status] ?? $bannerMap['draft'];
+
+    $badgeMap = [
+        'draft'     => ['class' => 'sdv-badge-draft',   'label' => 'Draft'],
+        'waiting'   => ['class' => 'sdv-badge-waiting', 'label' => 'Waiting'],
+        'in_review' => ['class' => 'sdv-badge-review',  'label' => 'In Review'],
+        'approved'  => ['class' => 'sdv-badge-success', 'label' => 'Approved'],
+        'rejected'  => ['class' => 'sdv-badge-danger',  'label' => 'Rejected'],
+    ];
+    $badgeCurrent = $badgeMap[$submission->status] ?? $badgeMap['draft'];
+
+    $stepClass = [
+        'approved' => 'is-approved',
+        'rejected' => 'is-rejected',
+        'waiting'  => 'is-waiting',
+    ];
+    $stepBadge = [
+        'approved' => ['class' => 'sdv-badge-success', 'icon' => 'bi-check-circle-fill', 'label' => 'Approved'],
+        'rejected' => ['class' => 'sdv-badge-danger',  'icon' => 'bi-x-circle-fill',     'label' => 'Rejected'],
+        'waiting'  => ['class' => 'sdv-badge-waiting', 'icon' => 'bi-hourglass-split',   'label' => 'Pending'],
+    ];
+@endphp
+
+{{-- ── PAGE HEADER ── --}}
+<div class="sdv-header">
+    <a href="{{ route('data.submission.index') }}" class="sdv-back" title="Back">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div class="sdv-header-text">
+        <h1 class="sdv-header-title">Submission Detail</h1>
+        <p class="sdv-header-sub">{{ $submission->nomor_surat }} — {{ $submission->perihal }}</p>
     </div>
 </div>
 
-<div class="form-grid" style="align-items:start;">
+{{-- ── STATUS BANNER ── --}}
+<div class="sdv-status-banner {{ $banner['class'] }}">
+    <i class="bi {{ $banner['icon'] }}"></i>
+    <div>{!! $banner['text'] !!}</div>
+</div>
 
-    {{-- Kolom Kiri: Info Dokumen --}}
-    <div style="display:flex;flex-direction:column;gap:1rem;">
+{{-- ── TWO-COLUMN LAYOUT ── --}}
+<div class="sdv-layout">
 
-        {{-- Status Banner --}}
-        @php
-            $banners = [
-                'draft'     => ['class' => 'flash-muted',   'icon' => 'bi-pencil-square',      'text' => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.'],
-                'waiting'   => ['class' => 'flash-warning', 'icon' => 'bi-hourglass-split',    'text' => 'Waiting for the first approver to review.'],
-                'in_review' => ['class' => 'flash-info',    'icon' => 'bi-arrow-repeat',       'text' => 'Currently being reviewed by approvers.'],
-                'approved'  => ['class' => 'flash-success', 'icon' => 'bi-check-circle-fill',  'text' => 'This submission has been <strong>Approved</strong>.'],
-                'rejected'  => ['class' => 'flash-error',   'icon' => 'bi-x-circle-fill',      'text' => 'This submission has been <strong>Rejected</strong>.'],
-            ];
-            $banner = $banners[$submission->status] ?? $banners['draft'];
-        @endphp
-        <div class="{{ $banner['class'] }}" style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;border-radius:8px;font-size:.85rem;">
-            <i class="bi {{ $banner['icon'] }}" style="flex-shrink:0;"></i>
-            <div>{!! $banner['text'] !!}</div>
-        </div>
+    {{-- ════ KOLOM KIRI ════ --}}
+    <div>
 
-        {{-- Info Utama --}}
-        <div class="card card-body">
-            <div class="dt-card-title" style="margin-bottom:.75rem;">Document Information</div>
-            <table class="tbl-detail">
-                <tr>
-                    <th style="width:160px;">Letter Number</th>
-                    <td>{{ $submission->nomor_surat }}</td>
-                </tr>
-                <tr>
-                    <th>Subject</th>
-                    <td>{{ $submission->perihal }}</td>
-                </tr>
-                <tr>
-                    <th>Date & Time</th>
-                    <td>{{ $submission->tanggal_surat->format('d/m/Y H:i') }}</td>
-                </tr>
-                <tr>
-                    <th>Company</th>
-                    <td>{{ $submission->perusahaan->nama ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Document Type</th>
-                    <td>
-                        {{ $submission->jenisDokumen->jenis_dokumen ?? '-' }}
-                        @if($submission->jenisDokumen)
-                            <span class="td-muted" style="font-size:.8rem;">
-                                ({{ $submission->jenisDokumen->kode_dokumen }})
-                            </span>
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <th>To (Recipient)</th>
-                    <td>
-                        {{ $submission->kepada->nrk ?? '-' }}
-                        @if($submission->kepada?->jabatan)
-                            <span class="td-muted"> — {{ $submission->kepada->jabatan }}</span>
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <th>Submitted By</th>
-                    <td>
-                        {{ $submission->user->nrk ?? '-' }}
-                        @if($submission->user?->jabatan)
-                            <span class="td-muted"> — {{ $submission->user->jabatan }}</span>
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <th>Submitted At</th>
-                    <td>{{ $submission->created_at->format('d/m/Y H:i') }}</td>
-                </tr>
-                <tr>
-                    <th>Status</th>
-                    <td>
-                        @php
-                            $badges = [
-                                'draft'     => 'badge-muted',
-                                'waiting'   => 'badge-warning',
-                                'in_review' => 'badge-info',
-                                'approved'  => 'badge-success',
-                                'rejected'  => 'badge-danger',
-                            ];
-                            $labels = [
-                                'draft'     => 'Draft',
-                                'waiting'   => 'Waiting',
-                                'in_review' => 'In Review',
-                                'approved'  => 'Approved',
-                                'rejected'  => 'Rejected',
-                            ];
-                        @endphp
-                        <span class="badge {{ $badges[$submission->status] ?? 'badge-muted' }}">
-                            {{ $labels[$submission->status] ?? $submission->status }}
-                        </span>
-                    </td>
-                </tr>
-            </table>
-
-            {{-- Tombol Aksi --}}
-            @if($submission->isEditable())
-            <div class="form-actions" style="margin-top:1rem;">
-                <a href="{{ route('data.submission.edit', $submission) }}" class="btn-submit">
-                    <i class="bi bi-pencil"></i> Edit Draft
-                </a>
-                <button type="button" class="btn-danger" onclick="confirmDelete()">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
+        {{-- ── Document Information ── --}}
+        <div class="sdv-card">
+            <div class="sdv-card-head">
+                <h2 class="sdv-card-title">
+                    <i class="bi bi-file-text"></i> Document Information
+                </h2>
+                <span class="sdv-badge {{ $badgeCurrent['class'] }}">
+                    {{ $badgeCurrent['label'] }}
+                </span>
             </div>
-            @endif
+            <div class="sdv-card-body">
 
-            {{-- Download PDF --}}
-            @if($submission->file_signed)
-            <div style="margin-top:1rem;">
-                <a href="{{ route('data.submission.file', $submission) }}"
-                   target="_blank" class="btn-submit" style="display:inline-flex;align-items:center;gap:.4rem;">
-                    <i class="bi bi-file-earmark-pdf"></i> Download Signed Document
-                </a>
-            </div>
-            @elseif($submission->file_original)
-            <div style="margin-top:1rem;">
-                <a href="{{ route('data.submission.file', $submission) }}"
-                   target="_blank" class="btn-cancel" style="display:inline-flex;align-items:center;gap:.4rem;">
-                    <i class="bi bi-file-earmark-pdf"></i> View Original Document
-                </a>
-            </div>
-            @endif
-        </div>
+                <table class="sdv-info-table">
+                    <tr>
+                        <th>Letter No.</th>
+                        <td><strong>{{ $submission->nomor_surat }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Subject</th>
+                        <td>{{ $submission->perihal }}</td>
+                    </tr>
+                    <tr>
+                        <th>Letter Date</th>
+                        <td>{{ $submission->tanggal_surat->format('d M Y, H:i') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Company</th>
+                        <td>{{ $submission->perusahaan->nama ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Document Type</th>
+                        <td>
+                            {{ $submission->jenisDokumen->jenis_dokumen ?? '-' }}
+                            @if($submission->jenisDokumen)
+                                <span class="sdv-info-sub">{{ $submission->jenisDokumen->kategori_dokumen }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Recipient</th>
+                        <td>
+                            {{ $submission->kepada->nama_karyawan ?? '-' }}
+                            @if($submission->kepada?->jabatan)
+                                <span class="sdv-info-sub">{{ $submission->kepada->jabatan }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Submitted By</th>
+                        <td>
+                            {{ $submission->user->nama_karyawan ?? '-' }}
+                            @if($submission->user?->jabatan)
+                                <span class="sdv-info-sub">{{ $submission->user->jabatan }}</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Submitted At</th>
+                        <td>{{ $submission->created_at->format('d M Y, H:i') }}</td>
+                    </tr>
+                </table>
 
-        {{-- Forwarding (Terusan) --}}
+                {{-- Action Buttons --}}
+                @if($submission->isEditable() || $submission->file_signed || $submission->file_original)
+                <div class="sdv-actions">
+                    @if($submission->isEditable())
+                        <a href="{{ route('data.submission.edit', $submission) }}" class="sdv-btn sdv-btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Draft
+                        </a>
+                        <button type="button" class="sdv-btn sdv-btn-danger" onclick="sdvOpenModal()">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    @endif
+
+                    @if($submission->file_signed)
+                        <a href="{{ route('data.submission.file', $submission) }}" target="_blank" class="sdv-btn sdv-btn-dl">
+                            <i class="bi bi-file-earmark-pdf-fill"></i> Download Signed
+                        </a>
+                    @elseif($submission->file_original)
+                        <a href="{{ route('data.submission.file', $submission) }}" target="_blank" class="sdv-btn sdv-btn-dl-ghost">
+                            <i class="bi bi-file-earmark-pdf"></i> View Original
+                        </a>
+                    @endif
+                </div>
+                @endif
+
+            </div>{{-- /sdv-card-body --}}
+        </div>{{-- /sdv-card --}}
+
+
+        {{-- ── Forwarding Approval ── --}}
         @if($submission->terusans->isNotEmpty())
-        <div class="card card-body">
-            <div class="dt-card-title" style="margin-bottom:.75rem;">Forwarding Approval</div>
-            <div style="display:flex;flex-direction:column;gap:.5rem;">
-                @foreach($submission->terusans as $terusan)
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem .75rem;background:var(--bg,#f2f7fa);border-radius:8px;border:1px solid var(--border,#bdd8ee);">
-                    <div style="display:flex;align-items:center;gap:.6rem;">
-                        <span style="width:22px;height:22px;background:var(--primary,#1e3a5f);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;">
-                            {{ $terusan->urutan }}
-                        </span>
-                        <div>
-                            <div style="font-size:.85rem;font-weight:600;">{{ $terusan->departemen->nama ?? '-' }}</div>
+        <div class="sdv-card">
+            <div class="sdv-card-head">
+                <h2 class="sdv-card-title">
+                    <i class="bi bi-signpost-split"></i> Forwarding Approval
+                </h2>
+                <span style="font-size:.75rem;color:var(--muted);">
+                    {{ $submission->terusans->count() }} stage(s)
+                </span>
+            </div>
+            <div class="sdv-card-body">
+                <div class="sdv-steps">
+                    @foreach($submission->terusans as $terusan)
+                    @php
+                        $sc = $stepClass[$terusan->status] ?? 'is-waiting';
+                        $sb = $stepBadge[$terusan->status] ?? $stepBadge['waiting'];
+                    @endphp
+                    <div class="sdv-step {{ $sc }}">
+                        <div class="sdv-step-num">{{ $terusan->urutan }}</div>
+                        <div class="sdv-step-body">
+                            <div class="sdv-step-name">{{ $terusan->departemen->nama ?? '-' }}</div>
                             @if($terusan->approvedBy)
-                            <div style="font-size:.75rem;color:var(--muted);">
-                                by {{ $terusan->approvedBy->nrk }} · {{ $terusan->approved_at?->format('d/m/Y H:i') }}
+                            <div class="sdv-step-meta">
+                                <i class="bi bi-person-check"></i>
+                                {{ $terusan->approvedBy->nama_karyawan }}
+                                @if($terusan->approvedBy->jabatan)
+                                    <span>·</span> {{ $terusan->approvedBy->jabatan }}
+                                @endif
+                                <span>·</span>
+                                <i class="bi bi-clock"></i>
+                                {{ $terusan->approved_at?->format('d/m/Y H:i') }}
                             </div>
                             @endif
                             @if($terusan->catatan)
-                            <div style="font-size:.75rem;color:var(--muted);font-style:italic;">
-                                "{{ $terusan->catatan }}"
+                            <div class="sdv-step-note">"{{ $terusan->catatan }}"</div>
+                            @endif
+                        </div>
+                        <div class="sdv-step-right">
+                            @if($terusan->require_tte)
+                                <span class="sdv-badge sdv-badge-info" style="font-size:.68rem;">
+                                    <i class="bi bi-shield-check"></i> TTE
+                                </span>
+                            @endif
+                            <span class="sdv-badge {{ $sb['class'] }}">
+                                <i class="bi {{ $sb['icon'] }}"></i> {{ $sb['label'] }}
+                            </span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+
+    </div>{{-- /kolom kiri --}}
+
+
+    {{-- ════ KOLOM KANAN ════ --}}
+    <div>
+
+        {{-- ── Approval Timeline ── --}}
+        <div class="sdv-card">
+            <div class="sdv-card-head">
+                <h2 class="sdv-card-title">
+                    <i class="bi bi-clock-history"></i> Approval Timeline
+                </h2>
+            </div>
+            <div class="sdv-card-body">
+                @if($submission->approvals->isEmpty())
+                <div class="sdv-timeline-empty">
+                    <i class="bi bi-hourglass"></i>
+                    <p>No approval activity yet.</p>
+                </div>
+                @else
+                <div class="sdv-timeline">
+                    @foreach($submission->approvals as $log)
+                    <div class="sdv-tl-item">
+                        <div class="sdv-tl-dot {{ $log->aksi === 'approve' ? 'dot-approve' : 'dot-reject' }}"></div>
+                        <div class="sdv-tl-actor">
+                            {{ $log->approver->nama_karyawan ?? '-' }}
+                            @if($log->approver?->jabatan)
+                                <span class="sdv-tl-stage">· {{ $log->approver->jabatan }}</span>
+                            @endif
+                            <span class="sdv-tl-stage">
+                                — {{ $log->tahap === 'kepada' ? 'Final Approval' : 'Forwarding' }}
+                            </span>
+                        </div>
+                        <div class="sdv-tl-meta">
+                            @if($log->aksi === 'approve')
+                                <span class="sdv-badge sdv-badge-success">
+                                    <i class="bi bi-check-lg"></i> Approved
+                                </span>
+                            @else
+                                <span class="sdv-badge sdv-badge-danger">
+                                    <i class="bi bi-x-lg"></i> Rejected
+                                </span>
+                            @endif
+                            <span class="sdv-tl-time">
+                                <i class="bi bi-clock"></i>
+                                {{ $log->acted_at->format('d/m/Y H:i') }}
+                            </span>
+                        </div>
+                        @if($log->catatan)
+                        <div class="sdv-tl-note">"{{ $log->catatan }}"</div>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+        </div>{{-- /sdv-card timeline --}}
+
+
+        {{-- ── Digital Signatures (TTE) ── --}}
+        @if($submission->ttePlacements->isNotEmpty())
+        <div class="sdv-card">
+            <div class="sdv-card-head">
+                <h2 class="sdv-card-title">
+                    <i class="bi bi-shield-check"></i> Digital Signatures (TTE)
+                </h2>
+                <span class="sdv-badge {{ $submission->ttePlacements->every(fn($p) => $p->isSigned()) ? 'sdv-badge-success' : 'sdv-badge-muted' }}">
+                    {{ $submission->ttePlacements->filter(fn($p) => $p->isSigned())->count() }}
+                    /
+                    {{ $submission->ttePlacements->count() }} signed
+                </span>
+            </div>
+            <div class="sdv-card-body">
+                <div class="sdv-tte-list">
+                    @foreach($submission->ttePlacements as $placement)
+                    @php $signed = $placement->isSigned(); @endphp
+                    <div class="sdv-tte-item">
+                        <div class="sdv-tte-icon {{ $signed ? 'signed' : 'unsigned' }}">
+                            <i class="bi {{ $signed ? 'bi-patch-check-fill' : 'bi-patch-check' }}"></i>
+                        </div>
+                        <div class="sdv-tte-body">
+                            <div class="sdv-tte-name">
+                                {{ $placement->tte->user->nama_karyawan ?? '-' }}
+                            </div>
+                            @if($placement->tte->user?->jabatan)
+                            <div class="sdv-tte-meta" style="margin-bottom:.1rem;">
+                                <i class="bi bi-person-badge"></i>
+                                {{ $placement->tte->user->jabatan }}
+                            </div>
+                            @endif
+                            <div class="sdv-tte-meta">
+                                <i class="bi bi-layers"></i>
+                                {{ $placement->tahap === 'kepada' ? 'Final' : 'Forwarding' }}
+                                <span>·</span>
+                                <i class="bi bi-file-earmark"></i>
+                                Page {{ $placement->halaman }}
+                            </div>
+                            @if($signed)
+                            <div class="sdv-tte-meta" style="margin-top:.15rem;">
+                                <i class="bi bi-check-circle-fill" style="color:#16A34A;"></i>
+                                <span class="sdv-tte-signed-at">
+                                    Signed {{ $placement->signed_at->format('d/m/Y H:i') }}
+                                </span>
+                            </div>
+                            @else
+                            <div class="sdv-tte-meta" style="margin-top:.15rem;">
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>Pending signature</span>
                             </div>
                             @endif
                         </div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:.4rem;">
-                        @if($terusan->require_tte)
-                            <span class="badge badge-info" style="font-size:.7rem;"><i class="bi bi-shield-check"></i> TTE</span>
-                        @endif
-                        @if($terusan->status === 'approved')
-                            <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Approved</span>
-                        @elseif($terusan->status === 'rejected')
-                            <span class="badge badge-danger"><i class="bi bi-x-circle-fill"></i> Rejected</span>
-                        @else
-                            <span class="badge badge-warning"><i class="bi bi-hourglass-split"></i> Waiting</span>
-                        @endif
-                    </div>
+                    @endforeach
                 </div>
-                @endforeach
             </div>
         </div>
         @endif
 
-    </div>
+    </div>{{-- /kolom kanan --}}
 
-    {{-- Kolom Kanan: Timeline Approval --}}
-    <div style="display:flex;flex-direction:column;gap:1rem;">
+</div>{{-- /sdv-layout --}}
 
-        <div class="card card-body">
-            <div class="dt-card-title" style="margin-bottom:.75rem;">Approval Timeline</div>
 
-            @if($submission->approvals->isEmpty())
-            <div style="text-align:center;padding:2rem;color:var(--muted);">
-                <i class="bi bi-clock-history" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
-                <div style="font-size:.85rem;">No approval activity yet.</div>
-            </div>
-            @else
-            <div style="position:relative;padding-left:1.5rem;">
-                {{-- Garis vertikal --}}
-                <div style="position:absolute;left:.45rem;top:.5rem;bottom:.5rem;width:2px;background:var(--border,#bdd8ee);"></div>
-
-                @foreach($submission->approvals as $log)
-                <div style="position:relative;margin-bottom:1.25rem;">
-                    {{-- Dot --}}
-                    <div style="position:absolute;left:-1.5rem;top:.2rem;width:10px;height:10px;border-radius:50%;
-                        background:{{ $log->aksi === 'approve' ? '#16a34a' : '#dc2626' }};
-                        border:2px solid #fff;box-shadow:0 0 0 2px {{ $log->aksi === 'approve' ? '#86efac' : '#fca5a5' }};">
-                    </div>
-
-                    <div style="font-size:.82rem;font-weight:600;color:var(--text);">
-                        {{ $log->approver->nrk ?? '-' }}
-                        <span style="font-weight:400;color:var(--muted);">
-                            — {{ $log->tahap === 'kepada' ? 'Final Approval' : 'Forwarding' }}
-                        </span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:.4rem;margin-top:.2rem;">
-                        @if($log->aksi === 'approve')
-                            <span class="badge badge-success" style="font-size:.7rem;"><i class="bi bi-check-lg"></i> Approved</span>
-                        @else
-                            <span class="badge badge-danger" style="font-size:.7rem;"><i class="bi bi-x-lg"></i> Rejected</span>
-                        @endif
-                        <span style="font-size:.75rem;color:var(--muted);">{{ $log->acted_at->format('d/m/Y H:i') }}</span>
-                    </div>
-                    @if($log->catatan)
-                    <div style="margin-top:.3rem;font-size:.78rem;color:var(--muted);font-style:italic;background:var(--bg);padding:.4rem .6rem;border-radius:6px;">
-                        "{{ $log->catatan }}"
-                    </div>
-                    @endif
-                </div>
-                @endforeach
-            </div>
-            @endif
-        </div>
-
-        {{-- TTE Placements --}}
-        @if($submission->ttePlacements->isNotEmpty())
-        <div class="card card-body">
-            <div class="dt-card-title" style="margin-bottom:.75rem;">Digital Signatures (TTE)</div>
-            <div style="display:flex;flex-direction:column;gap:.5rem;">
-                @foreach($submission->ttePlacements as $placement)
-                <div style="padding:.6rem .75rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);font-size:.82rem;">
-                    <div style="font-weight:600;">
-                        {{ $placement->tte->user->nrk ?? '-' }}
-                        <span style="font-weight:400;color:var(--muted);">
-                            — {{ $placement->tahap === 'kepada' ? 'Final' : 'Forwarding' }}
-                        </span>
-                    </div>
-                    <div style="color:var(--muted);font-size:.75rem;margin-top:.2rem;">
-                        Page {{ $placement->halaman }} · Position ({{ $placement->pos_x }}, {{ $placement->pos_y }})
-                        @if($placement->isSigned())
-                            · <span style="color:#16a34a;">Signed {{ $placement->signed_at->format('d/m/Y H:i') }}</span>
-                        @else
-                            · <span style="color:var(--muted);">Pending</span>
-                        @endif
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-    </div>
-
-</div>
-
-{{-- Modal Delete --}}
-<div class="modal-backdrop-custom" id="modalHapus">
-    <div class="modal-box">
-        <div class="modal-icon"><i class="bi bi-trash"></i></div>
-        <div class="modal-title">Delete Submission?</div>
-        <p class="modal-desc">This draft will be permanently deleted and cannot be recovered.</p>
-        <div class="modal-actions">
-            <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+{{-- ── DELETE MODAL ── --}}
+<div class="sdv-modal-bd" id="sdvModalDel">
+    <div class="sdv-modal-box">
+        <div class="sdv-modal-icon"><i class="bi bi-trash"></i></div>
+        <div class="sdv-modal-title">Delete Submission?</div>
+        <p class="sdv-modal-desc">
+            Draft <strong>"{{ $submission->nomor_surat }}"</strong> will be permanently deleted
+            and cannot be recovered.
+        </p>
+        <div class="sdv-modal-acts">
+            <button type="button" class="sdv-btn sdv-btn-ghost" onclick="sdvCloseModal()">
+                Cancel
+            </button>
             <form action="{{ route('data.submission.destroy', $submission) }}" method="POST">
                 @csrf @method('DELETE')
-                <button type="submit" class="btn-danger">
+                <button type="submit" class="sdv-btn sdv-btn-danger">
                     <i class="bi bi-trash"></i> Yes, Delete
                 </button>
             </form>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
 <script>
-function confirmDelete() { document.getElementById('modalHapus').classList.add('show'); }
-function closeModal()    { document.getElementById('modalHapus').classList.remove('show'); }
-document.getElementById('modalHapus').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-});
+(function () {
+    const modal = document.getElementById('sdvModalDel');
+
+    window.sdvOpenModal  = () => modal.classList.add('show');
+    window.sdvCloseModal = () => modal.classList.remove('show');
+
+    // Close on backdrop click
+    modal.addEventListener('click', e => { if (e.target === modal) sdvCloseModal(); });
+
+    // Close on Escape
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') sdvCloseModal(); });
+})();
 </script>
 @endpush

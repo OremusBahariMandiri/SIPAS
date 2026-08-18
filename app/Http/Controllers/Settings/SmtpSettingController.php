@@ -34,15 +34,20 @@ class SmtpSettingController extends Controller
             'from_name'    => ['required', 'string', 'max:100'],
             // Password wajib hanya saat pertama kali simpan
             'password'     => $existing
-                                ? ['nullable', 'string', 'min:4']
-                                : ['required', 'string', 'min:4'],
+                ? ['nullable', 'string', 'min:4']
+                : ['required', 'string', 'min:4'],
         ];
 
         $request->validate($rules, $this->messages());
 
         $data = $request->only([
-            'mailer', 'host', 'port', 'encryption',
-            'username', 'from_address', 'from_name',
+            'mailer',
+            'host',
+            'port',
+            'encryption',
+            'username',
+            'from_address',
+            'from_name',
         ]);
 
         // Hanya update password jika diisi
@@ -81,11 +86,23 @@ class SmtpSettingController extends Controller
 
         try {
             Mail::raw(
-                'Ini adalah email tes dari ' . config('app.name') . '. '
-                . 'Konfigurasi SMTP Anda berfungsi dengan baik.',
-                fn ($msg) => $msg
+                'Halo,
+
+            Ada dokumen yang perlu Anda setujui melalui aplikasi ' . config('app.name') . '.
+
+            Dokumen: Surat Permohonan Pengajuan
+            Nomor Dokumen: DOC/001/VIII/2026
+            Pengaju: Ansar Nur Jamas
+            Tanggal Pengajuan: 18 Agustus 2026
+
+            Mohon segera melakukan pemeriksaan dan persetujuan terhadap dokumen tersebut melalui aplikasi.
+
+            Terima kasih.
+
+            ' . config('app.name'),
+                fn($msg) => $msg
                     ->to($request->test_email)
-                    ->subject('[TES] ' . config('app.name') . ' — SMTP Test')
+                    ->subject('[PERLU PERSETUJUAN] Dokumen Menunggu Persetujuan — ' . config('app.name'))
             );
 
             $setting->update([
@@ -94,7 +111,6 @@ class SmtpSettingController extends Controller
             ]);
 
             return back()->with('success', 'Email tes berhasil dikirim ke ' . $request->test_email . '.');
-
         } catch (\Exception $e) {
             $setting->update([
                 'tested_at'   => now(),
