@@ -4,11 +4,16 @@ namespace App\Services;
 
 use App\Models\Data\PengajuanSurat;
 use App\Models\Data\PengajuanTtePlacement;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use setasign\Fpdi\Tcpdf\Fpdi;
 
 class TteService
 {
+    // =========================================================================
+    // GENERATE QR CODE PNG (dengan logo perusahaan di tengah)
+    // =========================================================================
+
     public function generateQrCode(PengajuanTtePlacement $placement): string
     {
         $verifyUrl = url('/verify/tte/' . $placement->qr_token);
@@ -61,29 +66,13 @@ class TteService
                 $bgSize  = $logoSize + ($padding * 2);
 
                 $white = imagecolorallocate($qrImage, 255, 255, 255);
-
-                imagefilledrectangle(
-                    $qrImage,
-                    $bgX,
-                    $bgY,
-                    $bgX + $bgSize,
-                    $bgY + $bgSize,
-                    $white
-                );
-
+                imagefilledrectangle($qrImage, $bgX, $bgY, $bgX + $bgSize, $bgY + $bgSize, $white);
                 imagecopyresampled(
-                    $qrImage,
-                    $logoImage,
-                    $logoX,
-                    $logoY,
-                    0,
-                    0,
-                    $logoSize,
-                    $logoSize,
-                    imagesx($logoImage),
-                    imagesy($logoImage)
+                    $qrImage, $logoImage,
+                    $logoX, $logoY, 0, 0,
+                    $logoSize, $logoSize,
+                    imagesx($logoImage), imagesy($logoImage)
                 );
-
                 imagedestroy($logoImage);
             }
         }
@@ -96,23 +85,51 @@ class TteService
         return $pngData;
     }
 
-    public function injectTteToPdf(PengajuanSurat $pengajuan): string
+    // =========================================================================
+    // INJECT STAGE — inject placement dari tahap & id_ref tertentu.
+    //
+    // Digunakan setelah setiap approve agar file_current selalu up-to-date.
+    //
+    // Alur:
+    //   1. Baca PDF sumber: file_current (jika ada) → file_original (fallback)
+    //   2. Inject hanya placement yang dikirim ($placements)
+    //   3. Simpan sebagai file_current yang baru
+    //   4. Hapus file_current lama (jika bukan file_original)
+    //   5. Update kolom file_current di DB
+    //   6. Tandai placement yang diinjeksi dengan signed_at
+    // =========================================================================
+
+    /**
+     * @param  PengajuanSurat                                $pengajuan
+     * @param  \Illuminate\Database\Eloquent\Collection      $placements  Subset placement yang akan diinjeksi sekarang
+     * @return string  Path relatif file_current yang baru
+     */
+    public function injectStageTteToPdf(PengajuanSurat $pengajuan, $placements): string
     {
-        $sourcePath = storage_path('app/' . $pengajuan->file_original);
+        // Tentukan PDF sumber: selalu pakai file_current jika sudah ada,
+        // sehingga QR dari tahap-tahap sebelumnya tetap terbawa.
+        $sourcePath = $pengajuan->file_current
+            ? storage_path('app/' . $pengajuan->file_current)
+            : storage_path('app/' . $pengajuan->file_original);
 
         if (!file_exists($sourcePath)) {
-            throw new \RuntimeException('Original PDF file not found: ' . $sourcePath);
+            throw new \RuntimeException('Source PDF not found: ' . $sourcePath);
         }
 
-        $signedFilename = Str::uuid() . '_signed.pdf';
-        $signedRelative = 'submissions/signed/' . $signedFilename;
-        $signedPath     = storage_path('app/' . $signedRelative);
+        // Kelompokkan placement per halaman untuk efisiensi
+        $byPage = $placements->groupBy('halaman');
 
-        $signedDir = dirname($signedPath);
+        // Buat path output baru
+        $newFilename = Str::uuid() . '_signed.pdf';
+        $newRelative = 'submissions/signed/' . $newFilename;
+        $newPath     = storage_path('app/' . $newRelative);
+
+        $signedDir = dirname($newPath);
         if (!is_dir($signedDir)) {
             mkdir($signedDir, 0755, true);
         }
 
+        // ── Proses PDF dengan FPDI ──────────────────────────────────────────
         $pdf = new Fpdi();
         $pdf->SetAutoPageBreak(false);
         $pdf->setPrintHeader(false);
@@ -123,69 +140,26 @@ class TteService
         for ($pageNo = 1; $pageNo <= $totalPages; $pageNo++) {
             $templateId  = $pdf->importPage($pageNo);
             $size        = $pdf->getTemplateSize($templateId);
-
-            /*
-             * $size['width']  — lebar halaman dalam mm  (dikembalikan FPDI)
-             * $size['height'] — tinggi halaman dalam mm (dikembalikan FPDI)
-             *
-             * Konversi mm → PDF points untuk verifikasi / debug:
-             *   1 mm = 1 / 0.352778 pt ≈ 2.8346 pt
-             *
-             * Frontend mengirim koordinat dalam PDF points (origin kiri-bawah).
-             * Backend mengonversinya ke mm untuk TCPDF/FPDI (origin kiri-atas).
-             */
             $orientation = ($size['width'] > $size['height']) ? 'L' : 'P';
 
             $pdf->AddPage($orientation, [$size['width'], $size['height']]);
             $pdf->useTemplate($templateId, 0, 0, $size['width'], $size['height']);
 
-            $placements = $pengajuan->ttePlacements->where('halaman', $pageNo);
+            // Inject hanya placement di halaman ini
+            $pagePlacements = $byPage->get($pageNo, collect());
 
-            foreach ($placements as $placement) {
-                /*
-                 * ═══════════════════════════════════════════════════════
-                 * KONVERSI KOORDINAT
-                 * ═══════════════════════════════════════════════════════
-                 *
-                 * Frontend mengirim (sudah dalam PDF points, origin kiri-bawah):
-                 *   pos_x   = tepi KIRI  QR dari tepi kiri halaman   (PDF points)
-                 *   pos_y   = tepi BAWAH QR dari tepi bawah halaman  (PDF points)
-                 *   lebar   = lebar QR   (PDF points)
-                 *   tinggi  = tinggi QR  (PDF points)
-                 *
-                 * TCPDF/FPDI menggunakan mm dengan origin kiri-ATAS.
-                 *
-                 * Langkah konversi:
-                 *   1. PDF points → mm  : kalikan dengan PT_TO_MM (0.352778)
-                 *   2. Balik sumbu Y    : yMm = pageHeightMm - pos_y_mm - qrHeightMm
-                 *      (mengubah "jarak dari bawah" menjadi "jarak dari atas")
-                 * ═══════════════════════════════════════════════════════
-                 */
-                $ptToMm     = 0.352778; /* 1 PDF point = 0.352778 mm */
-
+            foreach ($pagePlacements as $placement) {
+                $ptToMm     = 0.352778;
                 $qrWidthMm  = $placement->lebar  * $ptToMm;
                 $qrHeightMm = $placement->tinggi * $ptToMm;
+                $xMm        = $placement->pos_x  * $ptToMm;
+                $yMm        = (float) $size['height']
+                              - ($placement->pos_y * $ptToMm)
+                              - $qrHeightMm;
 
-                /* X: tepi kiri QR dari tepi kiri halaman, dalam mm */
-                $xMm = $placement->pos_x * $ptToMm;
-
-                /*
-                 * Y: balik dari origin bawah (PDF) ke origin atas (TCPDF).
-                 *
-                 * $size['height']            = tinggi halaman dalam mm (dari FPDI)
-                 * $placement->pos_y * $ptToMm = jarak tepi bawah QR dari bawah halaman, dalam mm
-                 * $qrHeightMm                = tinggi QR dalam mm
-                 *
-                 * Hasil: jarak tepi ATAS QR dari tepi atas halaman, dalam mm.
-                 */
-                $yMm = (float)$size['height'] - ($placement->pos_y * $ptToMm) - $qrHeightMm;
-
-                /*
-                 * Clamp agar QR tidak melampaui batas halaman.
-                 * Diperlukan jika user menaruh tanda tangan di tepi ekstrem.
-                 */
-                $xMm = max(0.0, min((float)$size['width']  - $qrWidthMm,  $xMm));
-                $yMm = max(0.0, min((float)$size['height'] - $qrHeightMm, $yMm));
+                // Clamp agar tidak keluar halaman
+                $xMm = max(0.0, min((float) $size['width']  - $qrWidthMm,  $xMm));
+                $yMm = max(0.0, min((float) $size['height'] - $qrHeightMm, $yMm));
 
                 $qrPng = $this->generateQrCode($placement);
                 $tmpQr = tempnam(sys_get_temp_dir(), 'tte_') . '.png';
@@ -193,17 +167,48 @@ class TteService
 
                 $pdf->Image($tmpQr, $xMm, $yMm, $qrWidthMm, $qrHeightMm, 'PNG');
 
-                $placement->update(['signed_at' => now()]);
                 @unlink($tmpQr);
             }
         }
 
-        $pdf->Output($signedPath, 'F');
+        $pdf->Output($newPath, 'F');
 
-        if (!file_exists($signedPath) || filesize($signedPath) === 0) {
+        if (!file_exists($newPath) || filesize($newPath) === 0) {
             throw new \RuntimeException('Signed PDF was not created or is empty.');
         }
 
-        return $signedRelative;
+        // ── Hapus file_current lama (bukan file_original) ──────────────────
+        $oldCurrent = $pengajuan->file_current;
+        if ($oldCurrent && $oldCurrent !== $pengajuan->file_original) {
+            Storage::disk('local')->delete($oldCurrent);
+        }
+
+        // ── Tandai placement sebagai sudah diinjeksi ────────────────────────
+        foreach ($placements as $placement) {
+            $placement->update(['signed_at' => now()]);
+        }
+
+        // ── Update DB ───────────────────────────────────────────────────────
+        $pengajuan->update(['file_current' => $newRelative]);
+
+        return $newRelative;
+    }
+
+    // =========================================================================
+    // INJECT FINAL — inject SEMUA placement yang belum ditandatangani.
+    // Tetap dipertahankan untuk backward-compatibility / emergency re-inject.
+    // =========================================================================
+
+    public function injectTteToPdf(PengajuanSurat $pengajuan): string
+    {
+        $unsignedPlacements = $pengajuan->ttePlacements
+            ->whereNull('signed_at');
+
+        if ($unsignedPlacements->isEmpty()) {
+            // Tidak ada yang perlu diinjeksi — kembalikan file_current yang ada
+            return $pengajuan->file_current ?? $pengajuan->file_original;
+        }
+
+        return $this->injectStageTteToPdf($pengajuan, $unsignedPlacements);
     }
 }

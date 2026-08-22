@@ -19,9 +19,13 @@ class PengajuanSurat extends Model
         'id_kepada',
         'nomor_surat',
         'id_jenis_dokumen',
+        'id_sifat_surat',
         'perihal',
         'file_original',
+        'file_current',
         'file_signed',
+        'require_tte_pengaju',
+        'require_tte_kepada',
         'status',
         'id_user',
     ];
@@ -37,6 +41,11 @@ class PengajuanSurat extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function sifatSurat(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\DataMaster\SifatSurat::class, 'id_sifat_surat');
     }
 
     public function perusahaan(): BelongsTo

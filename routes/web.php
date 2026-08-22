@@ -10,6 +10,7 @@ use App\Http\Controllers\DataMaster\TteController;
 use App\Http\Controllers\DataMaster\WilayahKerjaController;
 use App\Http\Controllers\Data\SubmissionController;
 use App\Http\Controllers\Data\ApprovalController;
+use App\Http\Controllers\DataMaster\SifatSuratController;
 use App\Http\Controllers\Settings\SmtpSettingController;
 
 /*
@@ -175,10 +176,27 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:master.jenis-dokumen,update_access')->name('jenis-dokumen.update');
         Route::delete('jenis-dokumen/{jenisDokumen}',   [JenisDokumenController::class, 'destroy'])
             ->middleware('akses:master.jenis-dokumen,delete_access')->name('jenis-dokumen.destroy');
+
+        Route::get('sifat-surat',                   [SifatSuratController::class, 'index'])
+            ->middleware('akses:master.sifat-surat,index_access')->name('sifat-surat.index');
+        Route::get('sifat-surat/create',             [SifatSuratController::class, 'create'])
+            ->middleware('akses:master.sifat-surat,create_access')->name('sifat-surat.create');
+        Route::post('sifat-surat',                   [SifatSuratController::class, 'store'])
+            ->middleware('akses:master.sifat-surat,create_access')->name('sifat-surat.store');
+        Route::get('sifat-surat/{sifatSurat}/edit',  [SifatSuratController::class, 'edit'])
+            ->middleware('akses:master.sifat-surat,update_access')->name('sifat-surat.edit');
+        Route::put('sifat-surat/{sifatSurat}',       [SifatSuratController::class, 'update'])
+            ->middleware('akses:master.sifat-surat,update_access')->name('sifat-surat.update');
+        Route::delete('sifat-surat/{sifatSurat}',    [SifatSuratController::class, 'destroy'])
+            ->middleware('akses:master.sifat-surat,delete_access')->name('sifat-surat.destroy');
     });
 
     // ── Data Transaksi ──────────────────────────────────────────
     Route::prefix('data')->name('data.')->group(function () {
+        Route::post('submission/temp-upload',       [SubmissionController::class, 'tempUpload'])
+            ->middleware('akses:data.submission,create_access')->name('submission.tempUpload');
+        Route::get('submission/temp-preview/{key}', [SubmissionController::class, 'tempPreview'])
+            ->middleware('akses:data.submission,create_access')->name('submission.tempPreview');
 
         // Submission (Pengajuan Surat)
         Route::get('submission',                    [SubmissionController::class, 'index'])
@@ -195,6 +213,23 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:data.submission,update_access')->name('submission.update');
         Route::delete('submission/{submission}',    [SubmissionController::class, 'destroy'])
             ->middleware('akses:data.submission,delete_access')->name('submission.destroy');
+
+        // Serve PDF — original (dokumen asli yang diupload)
+        Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
+            $path = storage_path('app/' . $submission->file_original);
+            abort_unless(file_exists($path), 404);
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.file');
+
+        // Serve PDF — progresif (file_current: sudah berisi QR semua tahap sebelumnya)
+        Route::get('submission/{submission}/current-file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
+            $path = storage_path('app/' . ($submission->file_current ?? $submission->file_original));
+            abort_unless(file_exists($path), 404);
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.currentFile');
+
 
         // Serve PDF file
         // Serve PDF file — hapus prefix 'data.' dari name
