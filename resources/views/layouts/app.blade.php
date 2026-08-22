@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', config('app.name', 'SIPAS'))</title>
+    <title>@yield('title', config('SIPAS'))</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -691,8 +691,8 @@
     <aside class="sidebar" id="sidebar">
 
         <a href="{{ url('/home') }}" class="sidebar-brand">
-            <div class="sidebar-brand-icon"><i class="bi bi-grid-fill"></i></div>
-            <span class="sidebar-brand-name">{{ config('app.name', 'SIPAS') }}</span>
+            <div class="sidebar-brand-icon"><i class="bi bi-envelope-fill"></i></div>
+            <span class="sidebar-brand-name">{{ ('SIPAS') }}</span>
         </a>
 
         <nav class="sidebar-nav">
@@ -715,7 +715,8 @@
                     Auth::user()->hasAccess('master.departemen', 'index_access') ||
                     Auth::user()->hasAccess('master.jabatan', 'index_access') ||
                     Auth::user()->hasAccess('master.wilker', 'index_access') ||
-                    Auth::user()->hasAccess('master.jenis-dokumen', 'index_access');
+                    Auth::user()->hasAccess('master.jenis-dokumen', 'index_access')||
+                    Auth::user()->hasAccess('master.sifat-surat', 'index_access');
                 $masterActive = Request::is('master/*') && !Request::is('master/tte*');
             @endphp
 
@@ -772,6 +773,13 @@
                         <a href="{{ route('master.jenis-dokumen.index') }}"
                             class="nav-item {{ Request::is('master/jenis-dokumen*') ? 'active' : '' }}">
                             <span class="nav-item-label">Jenis Dokumen</span>
+                        </a>
+                    @endif
+
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.sifat-surat', 'index_access'))
+                        <a href="{{ route('master.sifat-surat.index') }}"
+                            class="nav-item {{ Request::is('master/sifat-surat*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Sifat Surat</span>
                         </a>
                     @endif
 
@@ -920,30 +928,23 @@
                 <i class="bi bi-layout-sidebar" id="toggleIcon"></i>
             </button>
             <div class="navbar-breadcrumb">
-                {{ config('app.name') }} / <span>@yield('page-title', 'Dashboard')</span>
+                {{ ('SIPAS') }} / <span>@yield('page-title', 'Dashboard')</span>
             </div>
         </div>
 
         <div class="navbar-right">
 
-            {{-- Notif badge approval --}}
-            <a href="{{ route('data.approval.index') }}" class="btn-notif" title="Approval Inbox">
-                <i class="bi bi-bell"></i>
-                @if ($pendingApproval > 0)
-                    <span class="notif-badge"></span>
-                @endif
-            </a>
 
             <div class="navbar-user">
                 <button class="navbar-user-btn" id="btnUserDropdown">
-                    <div class="navbar-avatar">{{ strtoupper(substr(Auth::user()->nrk, 0, 2)) }}</div>
-                    <span class="navbar-user-name">{{ Auth::user()->nrk }}</span>
+                    <div class="navbar-avatar">{{ strtoupper(substr(Auth::user()->nama_karyawan, 0, 2)) }}</div>
+                    <span class="navbar-user-name">{{ Auth::user()->nama_karyawan }}</span>
                     <i class="bi bi-chevron-down chevron"></i>
                 </button>
 
                 <div class="user-dropdown" id="userDropdown">
                     <div class="dropdown-header">
-                        <div class="dropdown-header-name">{{ Auth::user()->nrk }}</div>
+                        <div class="dropdown-header-name">{{ Auth::user()->nama_karyawan }}</div>
                         <div class="dropdown-header-nrk">
                             {{ Auth::user()->isAdmin() ? 'Administrator' : Auth::user()->jabatan ?? 'User' }}
                         </div>

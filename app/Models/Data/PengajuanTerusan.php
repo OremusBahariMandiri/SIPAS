@@ -16,6 +16,7 @@ class PengajuanTerusan extends Model
         'id_departemen',
         'urutan',
         'require_tte',
+        'require_tte_count',
         'status',
         'approved_by',
         'approved_at',
