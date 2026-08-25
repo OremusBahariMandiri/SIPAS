@@ -48,10 +48,10 @@ class SifatSuratController extends Controller
         $this->authorizeAccess($this->menu, 'create_access');
 
         $request->validate([
-            'kode'        => ['required', 'string', 'max:20', 'unique:a07_sifat_surat,kode'],
-            'nama'        => ['required', 'string', 'max:100'],
-            'keterangan'  => ['nullable', 'string', 'max:255'],
-            'status'      => ['required', 'in:1,0'],
+            'kode'       => ['required', 'string', 'max:20', 'unique:a07_sifat_surat,kode'],
+            'nama'       => ['required', 'string', 'max:100'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+            'status'     => ['required', 'in:1,0'],
         ], $this->messages());
 
         SifatSurat::create([
@@ -62,7 +62,7 @@ class SifatSuratController extends Controller
         ]);
 
         return redirect()->route('master.sifat-surat.index')
-            ->with('success', 'Sifat surat berhasil ditambahkan.');
+            ->with('success', 'Letter classification successfully added.');
     }
 
     public function edit(SifatSurat $sifatSurat): View
@@ -91,7 +91,7 @@ class SifatSuratController extends Controller
         ]);
 
         return redirect()->route('master.sifat-surat.index')
-            ->with('success', 'Data sifat surat berhasil diperbarui.');
+            ->with('success', 'Letter classification data successfully updated.');
     }
 
     public function destroy(SifatSurat $sifatSurat): RedirectResponse
@@ -99,13 +99,13 @@ class SifatSuratController extends Controller
         $this->authorizeAccess($this->menu, 'delete_access');
 
         if ($sifatSurat->pengajuans()->exists()) {
-            return back()->with('error', 'Sifat surat tidak dapat dihapus karena masih digunakan pada pengajuan surat.');
+            return back()->with('error', 'Letter classification cannot be deleted because it is still used in letter submissions.');
         }
 
         $sifatSurat->delete();
 
         return redirect()->route('master.sifat-surat.index')
-            ->with('success', 'Sifat surat berhasil dihapus.');
+            ->with('success', 'Letter classification successfully deleted.');
     }
 
     // ─── Helpers ─────────────────────────────────────────────
@@ -114,20 +114,20 @@ class SifatSuratController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) {
-            abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+            abort(403, 'You do not have permission to access this page.');
         }
     }
 
     private function messages(): array
     {
         return [
-            'kode.required'   => 'Kode sifat surat wajib diisi.',
-            'kode.unique'     => 'Kode sifat surat sudah terdaftar.',
-            'nama.required'   => 'Nama sifat surat wajib diisi.',
-            'status.required' => 'Status wajib dipilih.',
+            'kode.required'   => 'Letter classification code is required.',
+            'kode.unique'     => 'Letter classification code is already registered.',
+            'nama.required'   => 'Letter classification name is required.',
+            'status.required' => 'Status is required.',
         ];
     }
 }

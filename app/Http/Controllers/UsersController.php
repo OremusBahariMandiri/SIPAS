@@ -49,13 +49,16 @@ class UsersController extends Controller
     {
         $this->authorize_access('users', 'index_access');
 
+        $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+            ? (int) $request->get('per_page') : 15;
+
         $query = User::with(['perusahaan', 'departemen'])->orderBy('nrk');
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('nrk', 'like', '%' . $request->search . '%')
-                  ->orWhere('nama_karyawan', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
+                    ->orWhere('nama_karyawan', 'like', '%' . $request->search . '%')
+                    ->orWhere('email', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -63,7 +66,11 @@ class UsersController extends Controller
             $query->where('id_perusahaan', $request->perusahaan);
         }
 
-        $users      = $query->paginate(15)->withQueryString();
+        if ($request->filled('role')) {
+            $query->where('is_admin', $request->role === 'admin' ? 1 : 0);
+        }
+
+        $users      = $query->paginate($perPage)->withQueryString();
         $perusahaan = Perusahaan::aktif()->orderBy('nama')->get();
 
         return view('users.index', compact('users', 'perusahaan'));
@@ -105,7 +112,7 @@ class UsersController extends Controller
         ]);
 
         return redirect()->route('users.index')
-            ->with('success', 'Pengguna berhasil ditambahkan.');
+            ->with('success', 'User has been added successfully.');
     }
 
     public function show(User $user): View
@@ -160,7 +167,7 @@ class UsersController extends Controller
         $user->update($data);
 
         return redirect()->route('users.index')
-            ->with('success', 'Data pengguna berhasil diperbarui.');
+            ->with('success', 'User data has been updated successfully.');
     }
 
     public function destroy(User $user): RedirectResponse
@@ -168,14 +175,35 @@ class UsersController extends Controller
         $this->authorize_access('users', 'delete_access');
 
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'Tidak dapat menghapus akun sendiri.');
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        $related = [];
+
+        if ($user->pengajuanSurats()->exists()) {
+            $related[] = 'Letter submissions (' . $user->pengajuanSurats()->count() . ')';
+        }
+
+        if ($user->pengajuanTerusans()->exists()) {
+            $related[] = 'Forwarding approvals (' . $user->pengajuanTerusans()->count() . ')';
+        }
+
+        if ($user->tteList()->exists()) {
+            $related[] = 'Electronic signatures (' . $user->tteList()->count() . ')';
+        }
+
+        if (!empty($related)) {
+            return back()->with('error_related', [
+                'user'  => $user->nama_karyawan,
+                'items' => $related,
+            ]);
         }
 
         $user->akses()->delete();
         $user->delete();
 
         return redirect()->route('users.index')
-            ->with('success', 'Pengguna berhasil dihapus.');
+            ->with('success', 'User "' . $user->nama_karyawan . '" has been deleted successfully.');
     }
 
     // ─────────────────────────────────────────
@@ -222,7 +250,7 @@ class UsersController extends Controller
         });
 
         return redirect()->route('users.index')
-            ->with('success', 'Hak akses pengguna berhasil disimpan.');
+            ->with('success', 'Access rights for "' . $user->nama_karyawan . '" have been saved successfully.');
     }
 
     public function aksesIndex(): View
@@ -245,7 +273,7 @@ class UsersController extends Controller
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Silakan login terlebih dahulu.');
+            abort(403, 'Please log in to continue.');
         }
 
         if ($user->isAdmin()) {
@@ -253,7 +281,7 @@ class UsersController extends Controller
         }
 
         if (!$user->hasAccess($menu, $tipe)) {
-            abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+            abort(403, 'You do not have permission to access this page.');
         }
     }
 
@@ -270,17 +298,17 @@ class UsersController extends Controller
     private function messages(): array
     {
         return [
-            'nrk.required'           => 'NRK wajib diisi.',
-            'nrk.unique'             => 'NRK sudah terdaftar.',
-            'email.email'            => 'Format email tidak valid.',
-            'email.unique'           => 'Email sudah terdaftar oleh pengguna lain.',
-            'nama_karyawan.required' => 'Nama karyawan wajib diisi.',
-            'password.min'           => 'Password minimal 8 karakter.',
-            'password.confirmed'     => 'Konfirmasi password tidak cocok.',
-            'id_perusahaan.required' => 'Perusahaan wajib dipilih.',
-            'id_departemen.required' => 'Departemen wajib dipilih.',
-            'jabatan.required'       => 'Jabatan wajib dipilih.',
-            'wilker.required'        => 'Wilayah kerja wajib dipilih.',
+            'nrk.required'           => 'NRK is required.',
+            'nrk.unique'             => 'This NRK is already registered.',
+            'email.email'            => 'Please enter a valid email address.',
+            'email.unique'           => 'This email is already used by another user.',
+            'nama_karyawan.required' => 'Employee name is required.',
+            'password.min'           => 'Password must be at least 8 characters.',
+            'password.confirmed'     => 'Password confirmation does not match.',
+            'id_perusahaan.required' => 'Please select a company.',
+            'id_departemen.required' => 'Please select a department.',
+            'jabatan.required'       => 'Please select a position.',
+            'wilker.required'        => 'Please select a work area.',
         ];
     }
 }

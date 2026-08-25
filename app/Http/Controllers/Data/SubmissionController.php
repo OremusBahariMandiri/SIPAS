@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Data\PengajuanSurat;
 use App\Models\Data\PengajuanTerusan;
 use App\Models\Data\PengajuanTtePlacement;
+use App\Models\Data\PengajuanApproval;
 use App\Models\DataMaster\JenisDokumen;
 use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Perusahaan;
@@ -31,6 +32,9 @@ class SubmissionController extends Controller
     {
         $this->authorizeAccess($this->menu, 'index_access');
 
+        $user    = auth()->user();
+        $isAdmin = $user->isAdmin();
+
         $sortable = ['nomor_surat', 'perihal', 'tanggal_surat', 'created_at'];
         $sort     = in_array($request->get('sort'), $sortable) ? $request->get('sort') : 'created_at';
         $dir      = $request->get('dir') === 'asc' ? 'asc' : 'desc';
@@ -38,20 +42,18 @@ class SubmissionController extends Controller
         $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
             ? (int) $request->get('per_page') : 15;
 
-        $query = PengajuanSurat::with(['perusahaan', 'jenisDokumen', 'kepada', 'sifatSurat'])
-            ->byUser(auth()->id())
+        $query = PengajuanSurat::with(['perusahaan', 'jenisDokumen', 'kepada', 'sifatSurat', 'user'])
             ->orderBy($sort, $dir);
+
+        if (!$isAdmin) {
+            $query->byUser($user->id);
+        }
 
         if ($request->filled('status')) {
             $query->byStatus($request->status);
         }
         if ($request->filled('perusahaan')) {
             $query->where('id_perusahaan', $request->perusahaan);
-        }
-        if ($request->filled('departemen')) {
-            $query->whereHas('jenisDokumen', function ($q) use ($request) {
-                $q->where('id_departemen', $request->departemen);
-            });
         }
         if ($request->filled('date_from')) {
             $query->whereDate('tanggal_surat', '>=', $request->date_from);
@@ -63,7 +65,7 @@ class SubmissionController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('nomor_surat', 'like', "%{$s}%")
-                  ->orWhere('perihal',   'like', "%{$s}%");
+                    ->orWhere('perihal', 'like', "%{$s}%");
             });
         }
         if ($request->filled('dok_type')) {
@@ -74,9 +76,12 @@ class SubmissionController extends Controller
 
         $items          = $query->paginate($perPage)->withQueryString();
         $perusahaanList = Perusahaan::where('status', 1)->orderBy('nama')->get();
-        $departemenList = Departemen::aktif()->orderBy('nama')->get();
 
-        return view('data.submission.index', compact('items', 'perusahaanList', 'departemenList'));
+        return view('data.submission.index', compact(
+            'items',
+            'perusahaanList',
+            'isAdmin'
+        ));
     }
 
     // =========================================================================
@@ -89,18 +94,27 @@ class SubmissionController extends Controller
 
         $user        = auth()->user();
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
-        $kepadas     = User::where('id', '!=', $user->id)->orderBy('nrk')->get();
-        $jenisDoks   = JenisDokumen::with('departemen')
-                        ->byDepartemen($user->id_departemen)
-                        ->orderBy('jenis_dokumen')
-                        ->get();
-        $departemens = Departemen::aktif()->orderBy('nama')->get();
+
+        $kepadas = User::where('id', '!=', $user->id)
+            ->where('is_admin', '!=', 1)
+            ->orderBy('nrk')
+            ->get();
+
+        $jenisDoks = JenisDokumen::with('departemen')
+            ->byDepartemen($user->id_departemen)
+            ->orderBy('jenis_dokumen')
+            ->get();
+
         $sifatSurats = SifatSurat::aktif()->orderBy('nama')->get();
         $tteMap      = $this->buildTteMap($user, $perusahaans);
 
         return view('data.submission.create', compact(
-            'perusahaans', 'kepadas', 'jenisDoks',
-            'departemens', 'user', 'sifatSurats', 'tteMap'
+            'perusahaans',
+            'kepadas',
+            'jenisDoks',
+            'user',
+            'sifatSurats',
+            'tteMap'
         ));
     }
 
@@ -173,58 +187,76 @@ class SubmissionController extends Controller
             && file_exists(storage_path('app/' . session('tmp_pdf_' . $request->tmp_key)));
 
         if ($isDraft) {
-            // Draft: hanya nomor_surat yang wajib
             $request->validate([
-                'nomor_surat'                      => ['required', 'string', 'max:100'],
-                'tanggal_surat'                    => ['nullable', 'date'],
-                'id_perusahaan'                    => ['nullable', 'exists:a01_perusahaan,id'],
-                'id_kepada'                        => ['nullable', 'exists:users,id'],
-                'id_jenis_dokumen'                 => ['nullable', 'exists:a06_jenis_dokumen,id'],
-                'id_sifat_surat'                   => ['nullable', 'exists:a07_sifat_surat,id'],
-                'perihal'                          => ['nullable', 'string', 'max:255'],
-                'file_dokumen'                     => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
-                'require_tte_kepada'               => ['nullable', 'integer', 'min:0', 'max:10'],
-                'terusan'                          => ['nullable', 'array'],
-                'terusan.*.id_departemen'          => ['nullable', 'exists:a02_departemen,id'],
-                'terusan.*.require_tte'            => ['nullable', 'boolean'],
-                'terusan.*.require_tte_count'      => ['nullable', 'integer', 'min:0', 'max:10'],
-                'pengaju_placements'               => ['nullable', 'array'],
-                'pengaju_placements.*.halaman'     => ['nullable', 'integer', 'min:1'],
-                'pengaju_placements.*.pos_x'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.pos_y'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.lebar'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.tinggi'      => ['nullable', 'numeric'],
+                'nomor_surat'                  => ['required', 'string', 'max:100'],
+                'tanggal_surat'                => ['nullable', 'date'],
+                'id_perusahaan'                => ['nullable', 'exists:a01_perusahaan,id'],
+                'id_kepada'                    => ['nullable', 'exists:users,id'],
+                'id_jenis_dokumen'             => ['nullable', 'exists:a06_jenis_dokumen,id'],
+                'id_sifat_surat'               => ['nullable', 'exists:a07_sifat_surat,id'],
+                'perihal'                      => ['nullable', 'string', 'max:255'],
+                'file_dokumen'                 => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+                'require_tte_kepada'           => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan'                      => ['nullable', 'array'],
+                'terusan.*.id_user'            => ['nullable', 'exists:users,id'],
+                'terusan.*.require_tte'        => ['nullable', 'boolean'],
+                'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'pengaju_placements'           => ['nullable', 'array'],
+                'pengaju_placements.*.halaman' => ['nullable', 'integer', 'min:1'],
+                'pengaju_placements.*.pos_x'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.pos_y'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.lebar'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.tinggi'  => ['nullable', 'numeric'],
             ], $this->messages());
         } else {
-            // Submit: semua field wajib
             $fileRule = $hasTmpFile
                 ? ['nullable', 'file', 'mimes:pdf', 'max:10240']
                 : ['required', 'file', 'mimes:pdf', 'max:10240'];
 
             $request->validate([
-                'tanggal_surat'                    => ['required', 'date'],
-                'id_perusahaan'                    => ['required', 'exists:a01_perusahaan,id'],
-                'id_kepada'                        => ['required', 'exists:users,id'],
-                'nomor_surat'                      => ['required', 'string', 'max:100'],
-                'id_jenis_dokumen'                 => ['required', 'exists:a06_jenis_dokumen,id'],
-                'id_sifat_surat'                   => ['required', 'exists:a07_sifat_surat,id'],
-                'perihal'                          => ['required', 'string', 'max:255'],
-                'file_dokumen'                     => $fileRule,
-                'require_tte_kepada'               => ['nullable', 'integer', 'min:0', 'max:10'],
-                'terusan'                          => ['nullable', 'array'],
-                'terusan.*.id_departemen'          => ['required_with:terusan', 'exists:a02_departemen,id'],
-                'terusan.*.require_tte'            => ['nullable', 'boolean'],
-                'terusan.*.require_tte_count'      => ['nullable', 'integer', 'min:0', 'max:10'],
-                'pengaju_placements'               => ['nullable', 'array'],
-                'pengaju_placements.*.halaman'     => ['required_with:pengaju_placements', 'integer', 'min:1'],
-                'pengaju_placements.*.pos_x'       => ['required_with:pengaju_placements', 'numeric'],
-                'pengaju_placements.*.pos_y'       => ['required_with:pengaju_placements', 'numeric'],
-                'pengaju_placements.*.lebar'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.tinggi'      => ['nullable', 'numeric'],
+                'tanggal_surat'                => ['required', 'date'],
+                'id_perusahaan'                => ['required', 'exists:a01_perusahaan,id'],
+                'id_kepada'                    => ['required', 'exists:users,id'],
+                'nomor_surat'                  => ['required', 'string', 'max:100'],
+                'id_jenis_dokumen'             => ['required', 'exists:a06_jenis_dokumen,id'],
+                'id_sifat_surat'               => ['required', 'exists:a07_sifat_surat,id'],
+                'perihal'                      => ['required', 'string', 'max:255'],
+                'file_dokumen'                 => $fileRule,
+                'require_tte_kepada'           => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan'                      => ['nullable', 'array'],
+                'terusan.*.id_user'            => ['required_with:terusan', 'exists:users,id'],
+                'terusan.*.require_tte'        => ['nullable', 'boolean'],
+                'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'pengaju_placements'           => ['nullable', 'array'],
+                'pengaju_placements.*.halaman' => ['required_with:pengaju_placements', 'integer', 'min:1'],
+                'pengaju_placements.*.pos_x'   => ['required_with:pengaju_placements', 'numeric'],
+                'pengaju_placements.*.pos_y'   => ['required_with:pengaju_placements', 'numeric'],
+                'pengaju_placements.*.lebar'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.tinggi'  => ['nullable', 'numeric'],
             ], $this->messages());
         }
 
-        // Tentukan path file final
+        // Validasi CC
+        if ($request->filled('terusan') && $request->filled('id_kepada')) {
+            $ccUsers = collect($request->terusan)
+                ->pluck('id_user')
+                ->filter()
+                ->values();
+
+            if ($ccUsers->contains((string) $request->id_kepada)) {
+                return back()->withInput()->withErrors([
+                    'terusan' => 'Carbon Copy (CC) user cannot be the same as the recipient (final approver).',
+                ]);
+            }
+
+            if ($ccUsers->unique()->count() !== $ccUsers->count()) {
+                return back()->withInput()->withErrors([
+                    'terusan' => 'Each Carbon Copy (CC) user must be unique.',
+                ]);
+            }
+        }
+
+        // ── Simpan file ──────────────────────────────────────────────────────
         if ($request->hasFile('file_dokumen')) {
             $filename = Str::uuid() . '.pdf';
             $path     = $request->file('file_dokumen')
@@ -239,6 +271,7 @@ class SubmissionController extends Controller
             $path = null;
         }
 
+        // ── Buat pengajuan ───────────────────────────────────────────────────
         $ttePengajuCount = count($request->input('pengaju_placements', []));
 
         $pengajuan = PengajuanSurat::create([
@@ -257,14 +290,22 @@ class SubmissionController extends Controller
             'require_tte_kepada'  => (int) $request->input('require_tte_kepada', 1),
         ]);
 
-        // Simpan terusan
+        // ── Simpan terusan ───────────────────────────────────────────────────
         if ($request->filled('terusan')) {
             foreach ($request->terusan as $urutan => $t) {
-                if (empty($t['id_departemen'])) continue;
+                if (empty($t['id_user'])) continue;
+
+                $targetUser = User::where('id', $t['id_user'])
+                    ->where('is_admin', '!=', 1)
+                    ->first();
+
+                if (!$targetUser) continue;
+
                 $requireTte = isset($t['require_tte']) ? 1 : 0;
+
                 PengajuanTerusan::create([
                     'id_pengajuan'      => $pengajuan->id,
-                    'id_departemen'     => $t['id_departemen'],
+                    'id_user'           => $targetUser->id,
                     'urutan'            => $urutan + 1,
                     'require_tte'       => $requireTte,
                     'require_tte_count' => $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0,
@@ -273,7 +314,7 @@ class SubmissionController extends Controller
             }
         }
 
-        // Simpan TTE placement pengaju, lalu inject ke PDF
+        // ── TTE Pengaju ──────────────────────────────────────────────────────
         if ($path && $request->filled('pengaju_placements')) {
             $user = auth()->user();
             $tte  = $user->tteForPerusahaan($request->id_perusahaan);
@@ -318,7 +359,7 @@ class SubmissionController extends Controller
             }
         }
 
-        // Bersihkan tmp file
+        // ── Bersihkan tmp file ───────────────────────────────────────────────
         if ($request->filled('tmp_key')) {
             $tmpKey  = $request->tmp_key;
             $tmpPath = session('tmp_pdf_' . $tmpKey);
@@ -329,6 +370,7 @@ class SubmissionController extends Controller
             }
         }
 
+        // ── Notifikasi ───────────────────────────────────────────────────────
         if (!$isDraft) {
             (new \App\Services\NotificationService())->notifyOnSubmit($pengajuan);
         }
@@ -350,9 +392,13 @@ class SubmissionController extends Controller
         $this->authorizeOwner($submission);
 
         $submission->load([
-            'perusahaan', 'jenisDokumen', 'sifatSurat',
-            'kepada', 'user',
-            'terusans.departemen', 'terusans.approvedBy',
+            'perusahaan',
+            'jenisDokumen',
+            'sifatSurat',
+            'kepada',
+            'user',
+            'terusans.user',
+            'terusans.approvedBy',
             'approvals.approver',
             'ttePlacements.tte',
         ]);
@@ -376,20 +422,31 @@ class SubmissionController extends Controller
 
         $user        = auth()->user();
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
-        $kepadas     = User::where('id', '!=', $user->id)->orderBy('nrk')->get();
-        $jenisDoks   = JenisDokumen::with('departemen')
-                        ->byDepartemen($user->id_departemen)
-                        ->orderBy('jenis_dokumen')
-                        ->get();
-        $departemens = Departemen::aktif()->orderBy('nama')->get();
+
+        // Exclude diri sendiri dan admin — sama persis dengan create()
+        $kepadas = User::where('id', '!=', $user->id)
+            ->where('is_admin', '!=', 1)
+            ->orderBy('nrk')
+            ->get();
+
+        $jenisDoks = JenisDokumen::with('departemen')
+            ->byDepartemen($user->id_departemen)
+            ->orderBy('jenis_dokumen')
+            ->get();
+
         $sifatSurats = SifatSurat::aktif()->orderBy('nama')->get();
         $tteMap      = $this->buildTteMap($user, $perusahaans);
 
-        $submission->load('terusans');
+        // Load terusan beserta relasi user-nya untuk di-restore di blade
+        $submission->load('terusans.user');
 
         return view('data.submission.edit', compact(
-            'submission', 'perusahaans', 'kepadas',
-            'jenisDoks', 'departemens', 'sifatSurats', 'tteMap'
+            'submission',
+            'perusahaans',
+            'kepadas',
+            'jenisDoks',
+            'sifatSurats',
+            'tteMap'
         ));
     }
 
@@ -409,35 +466,38 @@ class SubmissionController extends Controller
 
         $isDraft = $request->action !== 'submit';
 
+        // Simpan status awal SEBELUM update untuk keperluan pesan akhir
+        $statusBefore = $submission->status;
+
         $hasTmpFile = $request->filled('tmp_key')
             && session('tmp_pdf_' . $request->tmp_key)
             && file_exists(storage_path('app/' . session('tmp_pdf_' . $request->tmp_key)));
 
         if ($isDraft) {
-            // Draft: hanya nomor_surat yang wajib
             $request->validate([
-                'nomor_surat'                      => ['required', 'string', 'max:100'],
-                'tanggal_surat'                    => ['nullable', 'date'],
-                'id_perusahaan'                    => ['nullable', 'exists:a01_perusahaan,id'],
-                'id_kepada'                        => ['nullable', 'exists:users,id'],
-                'id_jenis_dokumen'                 => ['nullable', 'exists:a06_jenis_dokumen,id'],
-                'id_sifat_surat'                   => ['nullable', 'exists:a07_sifat_surat,id'],
-                'perihal'                          => ['nullable', 'string', 'max:255'],
-                'file_dokumen'                     => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
-                'require_tte_kepada'               => ['nullable', 'integer', 'min:0', 'max:10'],
-                'terusan'                          => ['nullable', 'array'],
-                'terusan.*.id_departemen'          => ['nullable', 'exists:a02_departemen,id'],
-                'terusan.*.require_tte'            => ['nullable', 'boolean'],
-                'terusan.*.require_tte_count'      => ['nullable', 'integer', 'min:0', 'max:10'],
-                'pengaju_placements'               => ['nullable', 'array'],
-                'pengaju_placements.*.halaman'     => ['nullable', 'integer', 'min:1'],
-                'pengaju_placements.*.pos_x'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.pos_y'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.lebar'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.tinggi'      => ['nullable', 'numeric'],
+                'nomor_surat'                  => ['required', 'string', 'max:100'],
+                'tanggal_surat'                => ['nullable', 'date'],
+                'id_perusahaan'                => ['nullable', 'exists:a01_perusahaan,id'],
+                'id_kepada'                    => ['nullable', 'exists:users,id'],
+                'id_jenis_dokumen'             => ['nullable', 'exists:a06_jenis_dokumen,id'],
+                'id_sifat_surat'               => ['nullable', 'exists:a07_sifat_surat,id'],
+                'perihal'                      => ['nullable', 'string', 'max:255'],
+                'file_dokumen'                 => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+                'require_tte_kepada'           => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan'                      => ['nullable', 'array'],
+                'terusan.*.id_user'            => ['nullable', 'exists:users,id'],
+                'terusan.*.require_tte'        => ['nullable', 'boolean'],
+                'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'pengaju_placements'           => ['nullable', 'array'],
+                'pengaju_placements.*.halaman' => ['nullable', 'integer', 'min:1'],
+                'pengaju_placements.*.pos_x'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.pos_y'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.lebar'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.tinggi'  => ['nullable', 'numeric'],
             ], $this->messages());
         } else {
-            // Submit / resubmit: semua field wajib
+            // Untuk submit: jika rejected wajib upload file baru,
+            // jika draft biasa cukup gunakan file yang sudah ada
             if ($submission->status === 'rejected') {
                 $fileRule = ($request->hasFile('file_dokumen') || $hasTmpFile)
                     ? ['nullable', 'file', 'mimes:pdf', 'max:10240']
@@ -447,30 +507,51 @@ class SubmissionController extends Controller
             }
 
             $request->validate([
-                'tanggal_surat'                    => ['required', 'date'],
-                'id_perusahaan'                    => ['required', 'exists:a01_perusahaan,id'],
-                'id_kepada'                        => ['required', 'exists:users,id'],
-                'nomor_surat'                      => ['required', 'string', 'max:100'],
-                'id_jenis_dokumen'                 => ['required', 'exists:a06_jenis_dokumen,id'],
-                'id_sifat_surat'                   => ['required', 'exists:a07_sifat_surat,id'],
-                'perihal'                          => ['required', 'string', 'max:255'],
-                'file_dokumen'                     => $fileRule,
-                'require_tte_kepada'               => ['nullable', 'integer', 'min:0', 'max:10'],
-                'terusan'                          => ['nullable', 'array'],
-                'terusan.*.id_departemen'          => ['required_with:terusan', 'exists:a02_departemen,id'],
-                'terusan.*.require_tte'            => ['nullable', 'boolean'],
-                'terusan.*.require_tte_count'      => ['nullable', 'integer', 'min:0', 'max:10'],
-                'pengaju_placements'               => ['nullable', 'array'],
-                'pengaju_placements.*.halaman'     => ['required_with:pengaju_placements', 'integer', 'min:1'],
-                'pengaju_placements.*.pos_x'       => ['required_with:pengaju_placements', 'numeric'],
-                'pengaju_placements.*.pos_y'       => ['required_with:pengaju_placements', 'numeric'],
-                'pengaju_placements.*.lebar'       => ['nullable', 'numeric'],
-                'pengaju_placements.*.tinggi'      => ['nullable', 'numeric'],
+                'tanggal_surat'                => ['required', 'date'],
+                'id_perusahaan'                => ['required', 'exists:a01_perusahaan,id'],
+                'id_kepada'                    => ['required', 'exists:users,id'],
+                'nomor_surat'                  => ['required', 'string', 'max:100'],
+                'id_jenis_dokumen'             => ['required', 'exists:a06_jenis_dokumen,id'],
+                'id_sifat_surat'               => ['required', 'exists:a07_sifat_surat,id'],
+                'perihal'                      => ['required', 'string', 'max:255'],
+                'file_dokumen'                 => $fileRule,
+                'require_tte_kepada'           => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan'                      => ['nullable', 'array'],
+                'terusan.*.id_user'            => ['required_with:terusan', 'exists:users,id'],
+                'terusan.*.require_tte'        => ['nullable', 'boolean'],
+                'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'pengaju_placements'           => ['nullable', 'array'],
+                'pengaju_placements.*.halaman' => ['required_with:pengaju_placements', 'integer', 'min:1'],
+                'pengaju_placements.*.pos_x'   => ['required_with:pengaju_placements', 'numeric'],
+                'pengaju_placements.*.pos_y'   => ['required_with:pengaju_placements', 'numeric'],
+                'pengaju_placements.*.lebar'   => ['nullable', 'numeric'],
+                'pengaju_placements.*.tinggi'  => ['nullable', 'numeric'],
             ], array_merge($this->messages(), [
                 'file_dokumen.required' => 'A new document file is required when resubmitting a rejected submission.',
             ]));
         }
 
+        // Validasi CC
+        if ($request->filled('terusan') && $request->filled('id_kepada')) {
+            $ccUsers = collect($request->terusan)
+                ->pluck('id_user')
+                ->filter()
+                ->values();
+
+            if ($ccUsers->contains((string) $request->id_kepada)) {
+                return back()->withInput()->withErrors([
+                    'terusan' => 'Carbon Copy (CC) user cannot be the same as the recipient (final approver).',
+                ]);
+            }
+
+            if ($ccUsers->unique()->count() !== $ccUsers->count()) {
+                return back()->withInput()->withErrors([
+                    'terusan' => 'Each Carbon Copy (CC) user must be unique.',
+                ]);
+            }
+        }
+
+        // ── Siapkan data update ──────────────────────────────────────────────
         $data = [
             'tanggal_surat'       => $request->tanggal_surat,
             'id_perusahaan'       => $request->id_perusahaan,
@@ -484,19 +565,23 @@ class SubmissionController extends Controller
             'require_tte_kepada'  => (int) $request->input('require_tte_kepada', 1),
         ];
 
+        // Reset rejection_reason saat resubmit
         if (!$isDraft && $submission->status === 'rejected') {
             $data['rejection_reason'] = null;
         }
 
-        // Ganti file jika ada upload baru atau tmp baru
+        // ── Ganti file jika ada upload baru ─────────────────────────────────
         if ($request->hasFile('file_dokumen') || $hasTmpFile) {
-            Storage::disk('local')->delete($submission->file_original);
-
+            // Hapus file lama
+            if ($submission->file_original) {
+                Storage::disk('local')->delete($submission->file_original);
+            }
             if ($submission->file_current) {
                 Storage::disk('local')->delete($submission->file_current);
             }
 
             $filename = Str::uuid() . '.pdf';
+
             if ($request->hasFile('file_dokumen')) {
                 $data['file_original'] = $request->file('file_dokumen')
                     ->storeAs('submissions/original', $filename, 'local');
@@ -506,20 +591,30 @@ class SubmissionController extends Controller
                 Storage::disk('local')->copy($tmpPath, $destPath);
                 $data['file_original'] = $destPath;
             }
+
             $data['file_current'] = null;
         }
 
         $submission->update($data);
 
-        // Reset terusan
+        // ── Rebuild terusan ──────────────────────────────────────────────────
         $submission->terusans()->delete();
+
         if ($request->filled('terusan')) {
             foreach ($request->terusan as $urutan => $t) {
-                if (empty($t['id_departemen'])) continue;
+                if (empty($t['id_user'])) continue;
+
+                $targetUser = User::where('id', $t['id_user'])
+                    ->where('is_admin', '!=', 1)
+                    ->first();
+
+                if (!$targetUser) continue;
+
                 $requireTte = isset($t['require_tte']) ? 1 : 0;
+
                 PengajuanTerusan::create([
                     'id_pengajuan'      => $submission->id,
-                    'id_departemen'     => $t['id_departemen'],
+                    'id_user'           => $targetUser->id,
                     'urutan'            => $urutan + 1,
                     'require_tte'       => $requireTte,
                     'require_tte_count' => $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0,
@@ -528,9 +623,10 @@ class SubmissionController extends Controller
             }
         }
 
-        // Reset & simpan ulang TTE placement pengaju
+        // ── Rebuild TTE placements pengaju ───────────────────────────────────
         $submission->ttePlacements()->where('tahap', 'pengaju')->delete();
 
+        // Gunakan file_original dari $data jika baru diupload, fallback ke existing
         $currentFilePath = $data['file_original'] ?? $submission->file_original;
 
         if ($currentFilePath && $request->filled('pengaju_placements')) {
@@ -577,7 +673,7 @@ class SubmissionController extends Controller
             }
         }
 
-        // Bersihkan tmp file
+        // ── Bersihkan tmp file ───────────────────────────────────────────────
         if ($request->filled('tmp_key')) {
             $tmpPath = session('tmp_pdf_' . $request->tmp_key);
             if ($tmpPath) {
@@ -587,15 +683,19 @@ class SubmissionController extends Controller
             }
         }
 
+        // ── Notifikasi ───────────────────────────────────────────────────────
         if (!$isDraft) {
             $submission->refresh();
             (new \App\Services\NotificationService())->notifyOnSubmit($submission);
         }
 
+        // ── Pesan sukses ─────────────────────────────────────────────────────
+        // Gunakan $statusBefore (disimpan sebelum update) bukan wasChanged()
+        // karena refresh() akan mereset dirty state model
         $msg = match (true) {
-            !$isDraft && $submission->wasChanged('status') => 'Submission has been resubmitted successfully.',
-            !$isDraft                                      => 'Submission has been sent successfully.',
-            default                                        => 'Draft has been updated.',
+            !$isDraft && $statusBefore === 'rejected' => 'Submission has been resubmitted successfully.',
+            !$isDraft                                 => 'Submission has been sent successfully.',
+            default                                   => 'Draft has been updated.',
         };
 
         return redirect()->route('data.submission.index')->with('success', $msg);
@@ -607,19 +707,33 @@ class SubmissionController extends Controller
 
     public function destroy(PengajuanSurat $submission): RedirectResponse
     {
-        $this->authorizeAccess($this->menu, 'delete_access');
-        $this->authorizeOwner($submission);
+        $user    = auth()->user();
+        $isAdmin = $user->isAdmin();
 
-        if (!$submission->isEditable()) {
-            return back()->with('error', 'Only draft submissions can be deleted.');
+        if ($isAdmin) {
+            // Admin: bypass semua check
+        } else {
+            $this->authorizeAccess($this->menu, 'delete_access');
+            $this->authorizeOwner($submission);
+
+            if (!$submission->isEditable()) {
+                return back()->with('error', 'Only draft or rejected submissions can be deleted.');
+            }
         }
 
-        Storage::disk('local')->delete($submission->file_original);
-
+        if ($submission->file_original) {
+            Storage::disk('local')->delete($submission->file_original);
+        }
         if ($submission->file_current) {
             Storage::disk('local')->delete($submission->file_current);
         }
+        if ($submission->file_signed) {
+            Storage::disk('local')->delete($submission->file_signed);
+        }
 
+        $submission->ttePlacements()->delete();
+        $submission->terusans()->delete();
+        $submission->approvals()->delete();
         $submission->delete();
 
         return redirect()->route('data.submission.index')
@@ -668,17 +782,17 @@ class SubmissionController extends Controller
     private function messages(): array
     {
         return [
-            'tanggal_surat.required'    => 'Date & time is required.',
-            'id_perusahaan.required'    => 'Company is required.',
-            'id_kepada.required'        => 'Recipient is required.',
-            'nomor_surat.required'      => 'Letter number is required.',
-            'id_jenis_dokumen.required' => 'Document type is required.',
-            'id_sifat_surat.required'   => 'Sifat surat is required.',
-            'perihal.required'          => 'Subject is required.',
-            'file_dokumen.required'     => 'Document file is required.',
-            'file_dokumen.mimes'        => 'Document must be a PDF file.',
-            'file_dokumen.max'          => 'Document size must not exceed 10 MB.',
-            'require_tte_kepada.integer'=> 'TTE recipient count must be a number.',
+            'tanggal_surat.required'     => 'Date & time is required.',
+            'id_perusahaan.required'     => 'Company is required.',
+            'id_kepada.required'         => 'Recipient is required.',
+            'nomor_surat.required'       => 'Letter number is required.',
+            'id_jenis_dokumen.required'  => 'Document type is required.',
+            'id_sifat_surat.required'    => 'Sifat surat is required.',
+            'perihal.required'           => 'Subject is required.',
+            'file_dokumen.required'      => 'Document file is required.',
+            'file_dokumen.mimes'         => 'Document must be a PDF file.',
+            'file_dokumen.max'           => 'Document size must not exceed 10 MB.',
+            'require_tte_kepada.integer' => 'TTE recipient count must be a number.',
         ];
     }
 }

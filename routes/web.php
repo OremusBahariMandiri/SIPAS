@@ -31,6 +31,13 @@ Route::get('/verify/tte/{token}', [App\Http\Controllers\VerifyTteController::cla
 
 Route::middleware(['auth'])->group(function () {
 
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('profile', [App\Http\Controllers\ProfileController::class, 'edit'])
+            ->name('profile.edit');
+        Route::put('profile', [App\Http\Controllers\ProfileController::class, 'update'])
+            ->name('profile.update');
+    });
+
     // ── Manajemen Pengguna ──────────────────────────────────────
     Route::prefix('users')->name('users.')->group(function () {
 
@@ -245,6 +252,7 @@ Route::middleware(['auth'])->group(function () {
         })->name('submission.file'); // ← was 'data.submission.file', sekarang cukup 'submission.file'
 
         // Approval
+
         Route::get('approval',                          [ApprovalController::class, 'index'])
             ->name('approval.index');
         Route::get('approval/{submission}/review',      [ApprovalController::class, 'review'])
@@ -253,6 +261,10 @@ Route::middleware(['auth'])->group(function () {
             ->name('approval.approve');
         Route::post('approval/{submission}/reject',     [ApprovalController::class, 'reject'])
             ->name('approval.reject');
+        Route::get('approval/{approval}/show', [ApprovalController::class, 'show'])
+            ->name('approval.show');
+        Route::get('approval/{approval}/file', [ApprovalController::class, 'showFile'])
+            ->name('approval.showFile');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {

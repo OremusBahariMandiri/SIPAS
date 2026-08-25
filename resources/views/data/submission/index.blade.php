@@ -5,32 +5,27 @@
 @section('content')
 
 @php
-    /* ── Query params aktif ── */
-    $fSearch    = request('search', '');
-    $fStatus    = request('status', '');
-    $fPerusahaan= request('perusahaan', '');
-    $fDepartemen= request('departemen', '');
-    $fDateFrom  = request('date_from', '');
-    $fDateTo    = request('date_to', '');
-    $fDokType   = request('dok_type', '');
-    $perPageNow = request('per_page', 15);
-    $sortNow    = request('sort', 'created_at');
-    $dirNow     = request('dir', 'desc');
+    $fSearch     = request('search', '');
+    $fStatus     = request('status', '');
+    $fPerusahaan = request('perusahaan', '');
+    $fDateFrom   = request('date_from', '');
+    $fDateTo     = request('date_to', '');
+    $fDokType    = request('dok_type', '');
+    $perPageNow  = request('per_page', 15);
+    $sortNow     = request('sort', 'created_at');
+    $dirNow      = request('dir', 'desc');
 
-    /* Hitung berapa filter aktif */
     $activeFilters = collect([
-        'search'      => $fSearch,
-        'status'      => $fStatus,
-        'perusahaan'  => $fPerusahaan,
-        'departemen'  => $fDepartemen,
-        'date_from'   => $fDateFrom,
-        'date_to'     => $fDateTo,
-        'dok_type'    => $fDokType,
+        'search'     => $fSearch,
+        'status'     => $fStatus,
+        'perusahaan' => $fPerusahaan,
+        'date_from'  => $fDateFrom,
+        'date_to'    => $fDateTo,
+        'dok_type'   => $fDokType,
     ])->filter(fn($v) => $v !== '')->count();
 
     $hasFilter = $activeFilters > 0;
 
-    /* Badge & label status */
     $badges = [
         'draft'     => 'idx-badge-muted',
         'waiting'   => 'idx-badge-warning',
@@ -46,38 +41,26 @@
         'rejected'  => 'Rejected',
     ];
 
-    /* Helper hapus satu filter */
-    $removeFilter = function (string $key) use (
-        $fSearch, $fStatus, $fPerusahaan, $fDepartemen,
-        $fDateFrom, $fDateTo, $fDokType, $perPageNow
-    ) {
-        $params = array_filter([
-            'search'      => $fSearch,
-            'status'      => $fStatus,
-            'perusahaan'  => $fPerusahaan,
-            'departemen'  => $fDepartemen,
-            'date_from'   => $fDateFrom,
-            'date_to'     => $fDateTo,
-            'dok_type'    => $fDokType,
-            'per_page'    => $perPageNow,
-        ], fn($v) => $v !== '');
-        unset($params[$key]);
-        return route('data.submission.index', $params);
-    };
+    // colspan tabel: admin ada kolom tambahan "Submitted By"
+    $colspan = $isAdmin ? 9 : 8;
 @endphp
 
-{{-- ── PAGE HEADER ── --}}
+{{-- PAGE HEADER --}}
 <div class="idx-page-header">
-    <h1 class="idx-page-title">My Submissions</h1>
-    <p class="idx-page-subtitle">Manage your document submission requests.</p>
+    <h1 class="idx-page-title">
+        {{ $isAdmin ? 'All Submissions' : 'My Submissions' }}
+    </h1>
+    <p class="idx-page-subtitle">
+        {{ $isAdmin ? 'Manage all document submission requests.' : 'Manage your document submission requests.' }}
+    </p>
 </div>
 
 <div class="idx-card">
 
-    {{-- ════ CARD HEADER ════ --}}
+    {{-- CARD HEADER --}}
     <div class="idx-card-header">
         <span class="idx-card-title">
-            Submission List
+            {{ $isAdmin ? 'All Submissions' : 'Submission List' }}
             @if($items->total() > 0)
                 <span style="font-size:.75rem;font-weight:500;color:var(--muted);margin-left:.35rem;">
                     ({{ $items->total() }} total)
@@ -87,7 +70,6 @@
 
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
 
-            {{-- Tombol buka filter --}}
             <button type="button"
                     id="idxBtnOpenFilter"
                     class="idx-btn-filter {{ $hasFilter ? 'has-filter' : '' }}"
@@ -99,7 +81,6 @@
                 @endif
             </button>
 
-            {{-- Per-page --}}
             <select class="idx-filter-select" id="idxPerPage"
                     title="Rows per page" onchange="idxChangePerPage(this.value)">
                 @foreach([10,15,25,50] as $n)
@@ -109,7 +90,6 @@
                 @endforeach
             </select>
 
-            {{-- New button --}}
             @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('data.submission', 'create_access'))
             <a href="{{ route('data.submission.create') }}" class="idx-btn-new">
                 <i class="bi bi-plus-lg"></i> New Submission
@@ -119,7 +99,7 @@
         </div>
     </div>
 
-    {{-- ════ ACTIVE FILTER CHIPS ════ --}}
+    {{-- ACTIVE FILTER CHIPS --}}
     @if($hasFilter)
     <div class="idx-active-chips">
         <span class="idx-active-chips-label">
@@ -130,8 +110,7 @@
         <span class="idx-chip">
             <i class="bi bi-search" style="font-size:.68rem;"></i>
             "{{ Str::limit($fSearch, 24) }}"
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="search" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="search" title="Hapus">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -141,8 +120,7 @@
         <span class="idx-chip">
             <i class="bi bi-circle-fill" style="font-size:.45rem;"></i>
             {{ $labels[$fStatus] ?? $fStatus }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="status" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="status" title="Hapus">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -152,19 +130,7 @@
         <span class="idx-chip">
             <i class="bi bi-building" style="font-size:.68rem;"></i>
             {{ Str::limit($perusahaanList->find($fPerusahaan)?->nama ?? 'Perusahaan', 20) }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="perusahaan" title="Hapus">
-                <i class="bi bi-x"></i>
-            </button>
-        </span>
-        @endif
-
-        @if($fDepartemen)
-        <span class="idx-chip">
-            <i class="bi bi-diagram-3" style="font-size:.68rem;"></i>
-            {{ Str::limit($departemenList->find($fDepartemen)?->nama ?? 'Departemen', 20) }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="departemen" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="perusahaan" title="Hapus">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -176,8 +142,7 @@
             {{ $fDateFrom ? \Carbon\Carbon::parse($fDateFrom)->format('d/m/Y') : '…' }}
             –
             {{ $fDateTo ? \Carbon\Carbon::parse($fDateTo)->format('d/m/Y') : '…' }}
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="date_from,date_to" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="date_from,date_to" title="Hapus">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -187,8 +152,7 @@
         <span class="idx-chip">
             <i class="bi bi-file-earmark" style="font-size:.68rem;"></i>
             "{{ Str::limit($fDokType, 20) }}"
-            <button type="button" class="idx-chip-remove"
-                    data-remove-filter="dok_type" title="Hapus">
+            <button type="button" class="idx-chip-remove" data-remove-filter="dok_type" title="Hapus">
                 <i class="bi bi-x"></i>
             </button>
         </span>
@@ -202,12 +166,15 @@
     </div>
     @endif
 
-    {{-- ════ DESKTOP TABLE ════ --}}
+    {{-- DESKTOP TABLE --}}
     <div class="idx-table-wrap">
         <table class="idx-tbl" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:44px;">#</th>
+                    @if($isAdmin)
+                    <th>Submitted By</th>
+                    @endif
                     <th class="idx-sortable" data-col="nomor_surat">
                         Letter No. <i class="bi bi-chevron-expand idx-sort-icon"></i>
                     </th>
@@ -227,11 +194,19 @@
                 @forelse($items as $item)
                 <tr>
                     <td class="idx-no">{{ $items->firstItem() + $loop->index }}</td>
+                    @if($isAdmin)
+                    <td class="idx-td-muted" style="font-size:.8rem;">
+                        {{ $item->user->nrk ?? '-' }}
+                        @if($item->user->nama_karyawan ?? null)
+                            <br><span style="font-size:.72rem;">{{ $item->user->nama_karyawan }}</span>
+                        @endif
+                    </td>
+                    @endif
                     <td><strong style="font-size:.83rem;">{{ $item->nomor_surat }}</strong></td>
                     <td>{{ $item->perihal }}</td>
                     <td class="idx-td-muted">{{ $item->jenisDokumen->jenis_dokumen ?? '-' }}</td>
                     <td class="idx-td-muted">{{ $item->kepada->nrk ?? '-' }}</td>
-                    <td class="idx-td-muted">{{ $item->tanggal_surat->format('d/m/Y') }}</td>
+                    <td class="idx-td-muted">{{ $item->tanggal_surat?->format('d/m/Y') ?? '-' }}</td>
                     <td>
                         <span class="idx-badge {{ $badges[$item->status] ?? 'idx-badge-muted' }}">
                             {{ $labels[$item->status] ?? $item->status }}
@@ -248,6 +223,8 @@
                                class="idx-btn-action idx-btn-edit" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @endif
+                            @if($item->isEditable() || $isAdmin)
                             <button type="button"
                                     class="idx-btn-action idx-btn-del" title="Delete"
                                     onclick="idxConfirmDelete('{{ $item->id }}','{{ addslashes($item->nomor_surat) }}')">
@@ -259,7 +236,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8">
+                    <td colspan="{{ $colspan }}">
                         <div class="idx-empty">
                             <i class="bi bi-inbox"></i>
                             <div class="idx-empty-title">
@@ -282,12 +259,12 @@
         </table>
     </div>
 
-    {{-- ════ MOBILE CARD LIST ════ --}}
+    {{-- MOBILE CARD LIST --}}
     <div class="idx-mob-list">
         @forelse($items as $item)
         <div class="idx-mob-card">
             <div class="idx-mc-top">
-                <span class="idx-mc-subject">{{ $item->perihal }}</span>
+                <span class="idx-mc-subject">{{ $item->perihal ?: '-' }}</span>
                 <span class="idx-badge {{ $badges[$item->status] ?? 'idx-badge-muted' }}">
                     {{ $labels[$item->status] ?? $item->status }}
                 </span>
@@ -302,11 +279,18 @@
                 <span class="idx-mc-meta-item">
                     <i class="bi bi-person"></i> {{ $item->kepada->nrk ?? '-' }}
                 </span>
+                @if($isAdmin)
+                <span class="idx-mc-meta-item">
+                    <i class="bi bi-person-fill"></i>
+                    By: {{ $item->user->nrk ?? '-' }}
+                    {{ $item->user->nama_karyawan ? '— ' . $item->user->nama_karyawan : '' }}
+                </span>
+                @endif
             </div>
             <div class="idx-mc-footer">
                 <span class="idx-mc-date">
                     <i class="bi bi-calendar3"></i>
-                    {{ $item->tanggal_surat->format('d/m/Y') }}
+                    {{ $item->tanggal_surat?->format('d/m/Y') ?? '-' }}
                 </span>
                 <div class="idx-actions">
                     <a href="{{ route('data.submission.show', $item) }}"
@@ -318,6 +302,8 @@
                        class="idx-btn-action idx-btn-edit" title="Edit">
                         <i class="bi bi-pencil"></i>
                     </a>
+                    @endif
+                    @if($item->isEditable() || $isAdmin)
                     <button type="button"
                             class="idx-btn-action idx-btn-del" title="Delete"
                             onclick="idxConfirmDelete('{{ $item->id }}','{{ addslashes($item->nomor_surat) }}')">
@@ -345,7 +331,7 @@
         @endforelse
     </div>
 
-    {{-- ════ PAGINATION ════ --}}
+    {{-- PAGINATION --}}
     @if($items->hasPages())
     <div class="idx-pagination-wrap">
         <span class="idx-pag-info">
@@ -385,14 +371,10 @@
 
 </div>{{-- /idx-card --}}
 
-
-{{-- ════════════════════════════════════════════════════
-     FILTER MODAL
-════════════════════════════════════════════════════ --}}
+{{-- FILTER MODAL --}}
 <div class="idx-fm-backdrop" id="idxFmBackdrop">
     <div class="idx-fm-panel" id="idxFmPanel">
 
-        {{-- Header --}}
         <div class="idx-fm-header">
             <span class="idx-fm-title">
                 <i class="bi bi-sliders"></i> Filter Submissions
@@ -402,7 +384,6 @@
             </button>
         </div>
 
-        {{-- Form filter --}}
         <form method="GET" action="{{ route('data.submission.index') }}" id="idxFmForm">
             <input type="hidden" name="per_page" value="{{ $perPageNow }}">
             <input type="hidden" name="sort"     value="{{ $sortNow }}">
@@ -411,7 +392,6 @@
 
             <div class="idx-fm-body">
 
-                {{-- 1. Perusahaan --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label" for="fm_perusahaan">
                         <i class="bi bi-building"></i> Perusahaan
@@ -419,31 +399,14 @@
                     <select name="perusahaan" id="fm_perusahaan" class="idx-fm-select2-single">
                         <option value="">— Semua Perusahaan —</option>
                         @foreach($perusahaanList as $p)
-                        <option value="{{ $p->id }}"
-                            {{ $fPerusahaan == $p->id ? 'selected' : '' }}>
+                        <option value="{{ $p->id }}" {{ $fPerusahaan == $p->id ? 'selected' : '' }}>
                             {{ $p->nama }}
                         </option>
                         @endforeach
                     </select>
                 </div>
 
-                {{-- 2. Departemen --}}
-                <div class="idx-fm-group">
-                    <label class="idx-fm-label" for="fm_departemen">
-                        <i class="bi bi-diagram-3"></i> Departemen
-                    </label>
-                    <select name="departemen" id="fm_departemen" class="idx-fm-select2-single">
-                        <option value="">— Semua Departemen —</option>
-                        @foreach($departemenList as $d)
-                        <option value="{{ $d->id }}"
-                            {{ $fDepartemen == $d->id ? 'selected' : '' }}>
-                            {{ $d->nama }}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
 
-                {{-- 3. Status --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label" for="fm_status">
                         <i class="bi bi-circle-half"></i> Status
@@ -460,7 +423,6 @@
 
                 <div class="idx-fm-divider"></div>
 
-                {{-- 4. Rentang Tanggal --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label">
                         <i class="bi bi-calendar-range"></i> Rentang Tanggal Surat
@@ -478,7 +440,6 @@
 
                 <div class="idx-fm-divider"></div>
 
-                {{-- 5. Subject --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label" for="fm_search">
                         <i class="bi bi-text-left"></i> Subject / Nomor Surat
@@ -489,7 +450,6 @@
                            autocomplete="off">
                 </div>
 
-                {{-- 5b. Tipe Dokumen --}}
                 <div class="idx-fm-group">
                     <label class="idx-fm-label" for="fm_dok_type">
                         <i class="bi bi-file-earmark-text"></i> Tipe Dokumen
@@ -500,9 +460,8 @@
                            autocomplete="off">
                 </div>
 
-            </div>{{-- /idx-fm-body --}}
+            </div>
 
-            {{-- Footer --}}
             <div class="idx-fm-footer">
                 <a href="{{ route('data.submission.index') }}" class="idx-fm-btn-reset">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
@@ -512,13 +471,12 @@
                 </button>
             </div>
 
-        </form>{{-- /idxFmForm --}}
+        </form>
 
-    </div>{{-- /idx-fm-panel --}}
-</div>{{-- /idx-fm-backdrop --}}
+    </div>
+</div>
 
-
-{{-- ── MODAL HAPUS ── --}}
+{{-- MODAL HAPUS --}}
 <div class="idx-modal-backdrop" id="idxModalDel">
     <div class="idx-modal-box">
         <div class="idx-modal-icon"><i class="bi bi-trash"></i></div>
@@ -545,9 +503,7 @@
 <script>
 (function () {
 
-    /* ══════════════════════════════════════
-       1. FILTER MODAL — open / close
-    ══════════════════════════════════════ */
+    /* FILTER MODAL */
     const backdrop = document.getElementById('idxFmBackdrop');
     const panel    = document.getElementById('idxFmPanel');
     let   s2Inited = false;
@@ -566,9 +522,7 @@
     document.getElementById('idxFmClose')?.addEventListener('click', idxFmClose);
     backdrop?.addEventListener('click', e => { if (e.target === backdrop) idxFmClose(); });
 
-    /* ══════════════════════════════════════
-       2. SELECT2
-    ══════════════════════════════════════ */
+    /* SELECT2 */
     function initSelect2() {
         $('.idx-fm-select2-single').each(function () {
             $(this).select2({
@@ -585,7 +539,7 @@
         });
     }
 
-    /* Validasi tanggal */
+    /* Date validation */
     const dateFrom = document.getElementById('fm_date_from');
     const dateTo   = document.getElementById('fm_date_to');
     dateFrom?.addEventListener('change', function () {
@@ -597,9 +551,7 @@
     });
     if (dateFrom?.value) dateTo.min = dateFrom.value;
 
-    /* ══════════════════════════════════════
-       3. PER-PAGE
-    ══════════════════════════════════════ */
+    /* PER-PAGE */
     window.idxChangePerPage = function (val) {
         const url = new URL(window.location.href);
         url.searchParams.set('per_page', val);
@@ -607,9 +559,7 @@
         window.location = url.toString();
     };
 
-    /* ══════════════════════════════════════
-       4. COLUMN SORT
-    ══════════════════════════════════════ */
+    /* SORT */
     document.querySelectorAll('.idx-sortable').forEach(th => {
         th.addEventListener('click', function () {
             const col    = this.dataset.col;
@@ -622,7 +572,6 @@
             window.location = url.toString();
         });
     });
-    // Tandai header aktif
     const _url = new URL(window.location.href);
     const _sc  = _url.searchParams.get('sort');
     const _sd  = _url.searchParams.get('dir');
@@ -635,9 +584,7 @@
         }
     }
 
-    /* ══════════════════════════════════════
-       5. CHIP REMOVE — hapus satu filter
-    ══════════════════════════════════════ */
+    /* CHIP REMOVE */
     document.querySelectorAll('[data-remove-filter]').forEach(btn => {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
@@ -649,9 +596,7 @@
         });
     });
 
-    /* ══════════════════════════════════════
-       6. MODAL DELETE
-    ══════════════════════════════════════ */
+    /* MODAL DELETE */
     window.idxConfirmDelete = function (id, no) {
         document.getElementById('idxModalDesc').textContent =
             `Submission "${no}" will be permanently deleted.`;
@@ -665,7 +610,6 @@
         if (e.target === this) idxCloseModal();
     });
 
-    /* Escape global */
     document.addEventListener('keydown', e => {
         if (e.key !== 'Escape') return;
         if (backdrop.classList.contains('show')) idxFmClose();

@@ -79,23 +79,11 @@
             display: flex;
             align-items: center;
             gap: .65rem;
-            padding: 0 1.1rem;
             border-bottom: 1px solid var(--sb-border);
             text-decoration: none;
             flex-shrink: 0;
             overflow: hidden;
             white-space: nowrap;
-        }
-
-        .sidebar-brand-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--sb-active);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
         }
 
         .sidebar-brand-icon i {
@@ -104,10 +92,9 @@
         }
 
         .sidebar-brand-name {
-            font-size: .95rem;
-            font-weight: 700;
-            color: var(--sb-text-hv);
-            letter-spacing: -.2px;
+            height: 36px;
+            width: auto;
+            object-fit: contain;
             transition: opacity .2s, width .2s;
             overflow: hidden;
         }
@@ -680,6 +667,136 @@
                 margin-left: 64px;
             }
         }
+
+        /* ── FLASH ALERTS ── */
+        .flash-alert {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .75rem 1rem;
+            border-radius: 9px;
+            margin-bottom: 1rem;
+            font-size: .85rem;
+            font-weight: 500;
+            animation: flashIn .22s ease;
+            transition: opacity .2s, transform .2s;
+        }
+
+        .flash-alert.flash-success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+
+        .flash-alert.flash-error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        .flash-alert.flash-warning {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+
+        .flash-alert.flash-info {
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            color: #1e40af;
+        }
+
+        .flash-icon {
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .flash-alert.flash-success .flash-icon {
+            color: #16a34a;
+        }
+
+        .flash-alert.flash-error .flash-icon {
+            color: #dc2626;
+        }
+
+        .flash-alert.flash-warning .flash-icon {
+            color: #d97706;
+        }
+
+        .flash-alert.flash-info .flash-icon {
+            color: #2563eb;
+        }
+
+        .flash-msg {
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        .flash-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: .8rem;
+            padding: .2rem .3rem;
+            border-radius: 5px;
+            line-height: 1;
+            flex-shrink: 0;
+            opacity: .55;
+            transition: opacity .15s, background .15s;
+        }
+
+        .flash-close:hover {
+            opacity: 1;
+        }
+
+        .flash-alert.flash-success .flash-close {
+            color: #166534;
+        }
+
+        .flash-alert.flash-success .flash-close:hover {
+            background: #bbf7d0;
+        }
+
+        .flash-alert.flash-error .flash-close {
+            color: #991b1b;
+        }
+
+        .flash-alert.flash-error .flash-close:hover {
+            background: #fecaca;
+        }
+
+        .flash-alert.flash-warning .flash-close {
+            color: #92400e;
+        }
+
+        .flash-alert.flash-warning .flash-close:hover {
+            background: #fde68a;
+        }
+
+        .flash-alert.flash-info .flash-close {
+            color: #1e40af;
+        }
+
+        .flash-alert.flash-info .flash-close:hover {
+            background: #bfdbfe;
+        }
+
+        .flash-alert.hiding {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        @keyframes flashIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 
     @stack('styles')
@@ -689,12 +806,11 @@
 
     {{-- ═══════════════════ SIDEBAR ═══════════════════ --}}
     <aside class="sidebar" id="sidebar">
-
-        <a href="{{ url('/home') }}" class="sidebar-brand">
-            <div class="sidebar-brand-icon"><i class="bi bi-envelope-fill"></i></div>
-            <span class="sidebar-brand-name">{{ ('SIPAS') }}</span>
+        <a href="{{ url('/home') }}" class="sidebar-brand" style="justify-content:flex-start;">
+            <img src="{{ asset('images/sipas-logo.png') }}" alt="SIPAS"
+                style="width:140px;height:auto;object-fit:contain; margin-left:10px;
+                border-radius:10px;">
         </a>
-
         <nav class="sidebar-nav">
 
             {{-- Dashboard --}}
@@ -715,7 +831,7 @@
                     Auth::user()->hasAccess('master.departemen', 'index_access') ||
                     Auth::user()->hasAccess('master.jabatan', 'index_access') ||
                     Auth::user()->hasAccess('master.wilker', 'index_access') ||
-                    Auth::user()->hasAccess('master.jenis-dokumen', 'index_access')||
+                    Auth::user()->hasAccess('master.jenis-dokumen', 'index_access') ||
                     Auth::user()->hasAccess('master.sifat-surat', 'index_access');
                 $masterActive = Request::is('master/*') && !Request::is('master/tte*');
             @endphp
@@ -744,42 +860,42 @@
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.perusahaan', 'index_access'))
                         <a href="{{ route('master.perusahaan.index') }}"
                             class="nav-item {{ Request::is('master/perusahaan*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Perusahaan</span>
+                            <span class="nav-item-label">Company</span>
                         </a>
                     @endif
 
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.departemen', 'index_access'))
                         <a href="{{ route('master.departemen.index') }}"
                             class="nav-item {{ Request::is('master/departemen*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Departemen</span>
+                            <span class="nav-item-label">Departement</span>
                         </a>
                     @endif
 
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jabatan', 'index_access'))
                         <a href="{{ route('master.jabatan.index') }}"
                             class="nav-item {{ Request::is('master/jabatan*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Jabatan</span>
+                            <span class="nav-item-label">Position</span>
                         </a>
                     @endif
 
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.wilker', 'index_access'))
                         <a href="{{ route('master.wilker.index') }}"
                             class="nav-item {{ Request::is('master/wilayah-kerja*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Wilayah Kerja</span>
+                            <span class="nav-item-label">Work Area</span>
                         </a>
                     @endif
 
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jenis-dokumen', 'index_access'))
                         <a href="{{ route('master.jenis-dokumen.index') }}"
                             class="nav-item {{ Request::is('master/jenis-dokumen*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Jenis Dokumen</span>
+                            <span class="nav-item-label">Document Type</span>
                         </a>
                     @endif
 
                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.sifat-surat', 'index_access'))
                         <a href="{{ route('master.sifat-surat.index') }}"
                             class="nav-item {{ Request::is('master/sifat-surat*') ? 'active' : '' }}">
-                            <span class="nav-item-label">Sifat Surat</span>
+                            <span class="nav-item-label">Letter Classification</span>
                         </a>
                     @endif
 
@@ -821,7 +937,7 @@
                 $pendingApproval = 0;
                 if (Auth::check()) {
                     $user = Auth::user();
-                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_departemen', $user->id_departemen)
+                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_user', $user->id_user)
                         ->where('status', 'waiting')
                         ->whereHas('pengajuan', fn($q) => $q->whereIn('status', ['waiting', 'in_review']))
                         ->count();
@@ -867,7 +983,7 @@
 
             {{-- ── Settings ── --}}
             @php
-                $showSettings = Auth::user()->isAdmin() || Auth::user()->hasAccess('settings.smtp', 'index_access');
+                $showSettings = true; // Profile always accessible for all logged-in users
                 $settingsActive = Request::is('settings/*');
             @endphp
 
@@ -892,9 +1008,13 @@
                         </a>
                     @endif
 
+                    <a href="{{ route('settings.profile.edit') }}"
+                        class="nav-item {{ Request::is('settings/profile*') ? 'active' : '' }}">
+                        <span class="nav-item-label">Profile</span>
+                    </a>
+
                 </div>
             @endif
-
         </nav>
 
         <div class="sidebar-footer">
@@ -928,7 +1048,7 @@
                 <i class="bi bi-layout-sidebar" id="toggleIcon"></i>
             </button>
             <div class="navbar-breadcrumb">
-                {{ ('SIPAS') }} / <span>@yield('page-title', 'Dashboard')</span>
+                {{ 'SIPAS' }} / <span>@yield('page-title', 'Dashboard')</span>
             </div>
         </div>
 
@@ -949,8 +1069,9 @@
                             {{ Auth::user()->isAdmin() ? 'Administrator' : Auth::user()->jabatan ?? 'User' }}
                         </div>
                     </div>
-                    <a href="#" class="dropdown-item"><i class="bi bi-person"></i> My Profile</a>
-                    <a href="#" class="dropdown-item"><i class="bi bi-gear"></i> Settings</a>
+                    <a href="{{ route('settings.profile.edit') }}" class="dropdown-item">
+                        <i class="bi bi-person"></i> My Profile
+                    </a>
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="dropdown-item danger">
@@ -966,18 +1087,61 @@
     <main class="main-wrapper">
 
         @if (session('success'))
-            <div class="flash-success"
-                style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#166534;">
-                <i class="bi bi-check-circle-fill" style="color:#16a34a;flex-shrink:0;"></i>
-                {{ session('success') }}
+            <div class="flash-alert flash-success" role="alert">
+                <i class="bi bi-check-circle-fill flash-icon"></i>
+                <span class="flash-msg">{{ session('success') }}</span>
+                <button class="flash-close" onclick="dismissFlash(this)" title="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
         @endif
 
         @if (session('error'))
-            <div class="flash-error"
-                style="display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;margin-bottom:1rem;font-size:.85rem;color:#991b1b;">
-                <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
-                {{ session('error') }}
+            <div class="flash-alert flash-error" role="alert">
+                <i class="bi bi-exclamation-circle-fill flash-icon"></i>
+                <span class="flash-msg">{{ session('error') }}</span>
+                <button class="flash-close" onclick="dismissFlash(this)" title="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        @endif
+
+        @if (session('warning'))
+            <div class="flash-alert flash-warning" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flash-icon"></i>
+                <span class="flash-msg">{{ session('warning') }}</span>
+                <button class="flash-close" onclick="dismissFlash(this)" title="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        @endif
+
+        @if (session('info'))
+            <div class="flash-alert flash-info" role="alert">
+                <i class="bi bi-info-circle-fill flash-icon"></i>
+                <span class="flash-msg">{{ session('info') }}</span>
+                <button class="flash-close" onclick="dismissFlash(this)" title="Tutup">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        @endif
+
+        @if (session('error_related'))
+            @php $err = session('error_related'); @endphp
+            <div class="flash-alert flash-error" role="alert" style="align-items:flex-start;">
+                <i class="bi bi-exclamation-triangle-fill flash-icon" style="margin-top:2px;"></i>
+                <span class="flash-msg">
+                    <strong>Cannot delete user "{{ $err['user'] }}".</strong><br>
+                    This user has related data that must be removed or reassigned first:
+                    <ul style="margin:.35rem 0 0 1.1rem;padding:0;">
+                        @foreach ($err['items'] as $item)
+                            <li>{{ $item }}</li>
+                        @endforeach
+                    </ul>
+                </span>
+                <button class="flash-close" onclick="dismissFlash(this)" title="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
         @endif
 
@@ -1062,6 +1226,19 @@
             userDropdown.classList.toggle('show');
         });
         document.addEventListener('click', () => userDropdown?.classList.remove('show'));
+
+        // ── Flash alert: close & auto-dismiss ──
+        function dismissFlash(btn) {
+            const el = btn.closest('.flash-alert');
+            el.classList.add('hiding');
+            setTimeout(() => el.remove(), 210);
+        }
+
+        document.querySelectorAll('.flash-alert').forEach(el => {
+            setTimeout(() => {
+                if (el.isConnected) dismissFlash(el.querySelector('.flash-close'));
+            }, 5000); // auto-dismiss setelah 5 detik
+        });
 
         init();
     </script>

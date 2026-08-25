@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\DataMaster\Perusahaan;
 use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Tte;
+use App\Models\Data\PengajuanSurat;
+use App\Models\Data\PengajuanTerusan;
 
 class User extends Authenticatable
 {
@@ -61,6 +63,21 @@ class User extends Authenticatable
     public function ttes(): HasMany
     {
         return $this->hasMany(Tte::class, 'id_user');
+    }
+
+    public function tteList(): HasMany
+    {
+        return $this->hasMany(Tte::class, 'id_user');
+    }
+
+    public function pengajuanSurats(): HasMany
+    {
+        return $this->hasMany(PengajuanSurat::class, 'id_user');
+    }
+
+    public function pengajuanTerusans(): HasMany
+    {
+        return $this->hasMany(PengajuanTerusan::class, 'id_user');
     }
 
     // ── Helpers ──────────────────────────────────────────────

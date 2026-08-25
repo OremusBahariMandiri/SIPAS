@@ -22,7 +22,7 @@ class TteController extends Controller
         $this->authorizeAccess($this->menu, 'index_access');
 
         $query = Tte::with(['user', 'perusahaan', 'createdBy'])
-        ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc');
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -31,14 +31,14 @@ class TteController extends Controller
                     'user',
                     fn($q) =>
                     $q->where('nrk', 'like', "%{$s}%")
+                        ->orWhere('nama_karyawan', 'like', "%{$s}%")  // ← tambah
                         ->orWhere('jabatan', 'like', "%{$s}%")
-                )
-                    ->orWhereHas(
-                        'perusahaan',
-                        fn($q) =>
-                        $q->where('nama', 'like', "%{$s}%")
-                            ->orWhere('singkatan', 'like', "%{$s}%")
-                    );
+                )->orWhereHas(
+                    'perusahaan',
+                    fn($q) =>
+                    $q->where('nama', 'like', "%{$s}%")
+                        ->orWhere('singkatan', 'like', "%{$s}%")
+                );
             });
         }
 
@@ -51,9 +51,17 @@ class TteController extends Controller
             };
         }
 
-        $items = $query->paginate(15)->withQueryString();
+        if ($request->filled('perusahaan')) {
+            $query->where('id_perusahaan', $request->perusahaan);
+        }
 
-        return view('master.tte.index', compact('items'));
+        $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+            ? (int) $request->get('per_page') : 15;
+
+        $items         = $query->paginate($perPage)->withQueryString();
+        $perusahaanList = \App\Models\DataMaster\Perusahaan::where('status', 1)->orderBy('nama')->get();
+
+        return view('master.tte.index', compact('items', 'perusahaanList'));
     }
 
     public function create(Request $request): View

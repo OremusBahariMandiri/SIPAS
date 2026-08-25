@@ -62,7 +62,7 @@ class DepartemenController extends Controller
         ]);
 
         return redirect()->route('master.departemen.index')
-            ->with('success', 'Departemen berhasil ditambahkan.');
+            ->with('success', 'Department successfully added.');
     }
 
     public function edit(Departemen $departemen): View
@@ -91,7 +91,7 @@ class DepartemenController extends Controller
         ]);
 
         return redirect()->route('master.departemen.index')
-            ->with('success', 'Data departemen berhasil diperbarui.');
+            ->with('success', 'Department data successfully updated.');
     }
 
     public function destroy(Departemen $departemen): RedirectResponse
@@ -99,13 +99,13 @@ class DepartemenController extends Controller
         $this->authorizeAccess($this->menu, 'delete_access');
 
         if ($departemen->users()->exists()) {
-            return back()->with('error', 'Departemen tidak dapat dihapus karena masih memiliki pengguna terdaftar.');
+            return back()->with('error', 'Department cannot be deleted because it still has registered users.');
         }
 
         $departemen->delete();
 
         return redirect()->route('master.departemen.index')
-            ->with('success', 'Departemen berhasil dihapus.');
+            ->with('success', 'Department successfully deleted.');
     }
 
     // ─── Helpers ─────────────────────────────────────────────
@@ -114,18 +114,18 @@ class DepartemenController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
-        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
     }
 
     private function messages(): array
     {
         return [
-            'kode.required'   => 'Kode departemen wajib diisi.',
-            'kode.unique'     => 'Kode departemen sudah terdaftar.',
-            'nama.required'   => 'Nama departemen wajib diisi.',
-            'status.required' => 'Status wajib dipilih.',
+            'kode.required'   => 'Department code is required.',
+            'kode.unique'     => 'Department code is already registered.',
+            'nama.required'   => 'Department name is required.',
+            'status.required' => 'Status is required.',
         ];
     }
 }
