@@ -1,215 +1,216 @@
 @extends('layouts.app')
-@section('title', 'Edit Pengguna')
-@section('page-title', 'Edit Pengguna')
+@section('title', 'Edit User')
+@section('page-title', 'Edit User')
 
 @section('content')
-<div class="page-header">
-    <div class="page-header-row">
-        <a href="{{ route('users.index') }}" class="btn-back">
+    <div class="sdv-header" style="align-items:center;">
+        <a href="{{ route('users.index') }}" class="sdv-back" title="Back">
             <i class="bi bi-arrow-left"></i>
         </a>
-        <div class="page-header-text">
-            <h1 class="page-title">Edit Pengguna</h1>
-            <p class="page-subtitle">Perbarui data pengguna <strong>{{ $user->nrk }}</strong>.</p>
-        </div>
+        <h1 class="sdv-header-title" style="margin:0;">Edit User</h1>
     </div>
-</div>
 
-<div>
-    <div class="card" style="padding:1.5rem;">
+    <div>
+        <div class="card" style="padding:1.5rem;">
 
-        @if($errors->any())
-        <div class="flash-error">
-            <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
-            <div>
-                <strong>Terdapat kesalahan:</strong>
-                <ul style="margin:.25rem 0 0 1rem;padding:0;">
-                    @foreach($errors->all() as $e)
-                        <li style="font-size:.82rem;">{{ $e }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-        @endif
-
-        <form action="{{ route('users.update', $user) }}" method="POST">
-            @csrf
-            @method('PUT')
-
-            <div class="form-grid">
-
-                {{-- NRK --}}
-                <div class="form-group">
-                    <label class="form-label">NRK <span class="req">*</span></label>
-                    <input type="text" name="nrk" value="{{ old('nrk', $user->nrk) }}"
-                        class="form-control @error('nrk') is-invalid @enderror"
-                        placeholder="Nomor Registrasi Karyawan">
-                    @error('nrk')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Email --}}
-                <div class="form-group">
-                    <label class="form-label">
-                        Email
-                        <span class="label-hint">(untuk notifikasi)</span>
-                    </label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}"
-                        class="form-control @error('email') is-invalid @enderror"
-                        placeholder="contoh@email.com">
-                    @error('email')<div class="invalid-msg">{{ $message }}</div>@enderror
-                    <small class="form-hint">
-                        <i class="bi bi-info-circle"></i>
-                        Email dipakai untuk notifikasi approval. Opsional, tapi disarankan diisi.
-                    </small>
-                </div>
-
-                {{-- Nama Karyawan --}}
-                <div class="form-group form-span-2">
-                    <label class="form-label">Nama Karyawan <span class="req">*</span></label>
-                    <input type="text" name="nama_karyawan"
-                        value="{{ old('nama_karyawan', $user->nama_karyawan) }}"
-                        class="form-control @error('nama_karyawan') is-invalid @enderror"
-                        placeholder="Nama lengkap karyawan">
-                    @error('nama_karyawan')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Password --}}
-                <div class="form-group">
-                    <label class="form-label">
-                        Password
-                        <span class="label-hint">(kosongkan jika tidak diubah)</span>
-                    </label>
-                    <div class="pw-wrap">
-                        <input type="password" name="password" id="inputPassword"
-                            class="form-control @error('password') is-invalid @enderror"
-                            placeholder="Minimal 8 karakter">
-                        <button type="button" class="btn-toggle-pw"
-                                onclick="togglePw('inputPassword','iconPw1')">
-                            <i class="bi bi-eye" id="iconPw1"></i>
-                        </button>
-                    </div>
-                    @error('password')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Konfirmasi Password --}}
-                <div class="form-group">
-                    <label class="form-label">Konfirmasi Password</label>
-                    <div class="pw-wrap">
-                        <input type="password" name="password_confirmation" id="inputPasswordConf"
-                            class="form-control" placeholder="Ulangi password baru">
-                        <button type="button" class="btn-toggle-pw"
-                                onclick="togglePw('inputPasswordConf','iconPw2')">
-                            <i class="bi bi-eye" id="iconPw2"></i>
-                        </button>
+            @if ($errors->any())
+                <div class="flash-error">
+                    <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
+                    <div>
+                        <strong>There is an error:</strong>
+                        <ul style="margin:.25rem 0 0 1rem;padding:0;">
+                            @foreach ($errors->all() as $e)
+                                <li style="font-size:.82rem;">{{ $e }}</li>
+                            @endforeach
+                        </ul>
                     </div>
                 </div>
+            @endif
 
-                {{-- Perusahaan --}}
-                <div class="form-group">
-                    <label class="form-label">Perusahaan <span class="req">*</span></label>
-                    <select name="id_perusahaan"
-                            class="form-control @error('id_perusahaan') is-invalid @enderror">
-                        <option value="">— Pilih Perusahaan —</option>
-                        @foreach($perusahaan as $p)
-                        <option value="{{ $p->id }}"
-                            {{ old('id_perusahaan', $user->id_perusahaan) == $p->id ? 'selected' : '' }}>
-                            {{ $p->nama }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('id_perusahaan')<div class="invalid-msg">{{ $message }}</div>@enderror
+            <form action="{{ route('users.update', $user) }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="form-grid">
+
+                    {{-- NRK --}}
+                    <div class="form-group">
+                        <label class="form-label">NRK <span class="req">*</span></label>
+                        <input type="text" name="nrk" value="{{ old('nrk', $user->nrk) }}"
+                            class="form-control @error('nrk') is-invalid @enderror">
+                        @error('nrk')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Email --}}
+                    <div class="form-group">
+                        <label class="form-label">
+                            Email
+                            <span class="label-hint">(for notifications)</span>
+                        </label>
+                        <input type="email" name="email" value="{{ old('email', $user->email) }}"
+                            class="form-control @error('email') is-invalid @enderror">
+                        @error('email')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                        <small class="form-hint">
+                            <i class="bi bi-info-circle"></i>
+                            Email is used for approval notifications. Optional, but recommended.
+                        </small>
+                    </div>
+
+                    {{-- Nama Karyawan --}}
+                    <div class="form-group form-span-2">
+                        <label class="form-label">Employee Name <span class="req">*</span></label>
+                        <input type="text" name="nama_karyawan" value="{{ old('nama_karyawan', $user->nama_karyawan) }}"
+                            class="form-control @error('nama_karyawan') is-invalid @enderror">
+                        @error('nama_karyawan')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Password --}}
+                    <div class="form-group">
+                        <label class="form-label">
+                            Password
+                            <span class="label-hint">(leave blank if not changing)</span>
+                        </label>
+                        <div class="pw-wrap">
+                            <input type="password" name="password" id="inputPassword"
+                                class="form-control @error('password') is-invalid @enderror"
+                                placeholder="Minimum 8 characters">
+                            <button type="button" class="btn-toggle-pw" onclick="togglePw('inputPassword','iconPw1')">
+                                <i class="bi bi-eye" id="iconPw1"></i>
+                            </button>
+                        </div>
+                        @error('password')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Konfirmasi Password --}}
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password</label>
+                        <div class="pw-wrap">
+                            <input type="password" name="password_confirmation" id="inputPasswordConf" class="form-control"
+                                placeholder="Re-enter new password">
+                            <button type="button" class="btn-toggle-pw" onclick="togglePw('inputPasswordConf','iconPw2')">
+                                <i class="bi bi-eye" id="iconPw2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Perusahaan --}}
+                    <div class="form-group">
+                        <label class="form-label">Company <span class="req">*</span></label>
+                        <select name="id_perusahaan" class="form-control @error('id_perusahaan') is-invalid @enderror">
+                            <option value="">— Select Company —</option>
+                            @foreach ($perusahaan as $p)
+                                <option value="{{ $p->id }}"
+                                    {{ old('id_perusahaan', $user->id_perusahaan) == $p->id ? 'selected' : '' }}>
+                                    {{ $p->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('id_perusahaan')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Departemen --}}
+                    <div class="form-group">
+                        <label class="form-label">Department <span class="req">*</span></label>
+                        <select name="id_departemen" class="form-control @error('id_departemen') is-invalid @enderror">
+                            <option value="">— Select Department —</option>
+                            @foreach ($departemen as $d)
+                                <option value="{{ $d->id }}"
+                                    {{ old('id_departemen', $user->id_departemen) == $d->id ? 'selected' : '' }}>
+                                    {{ $d->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('id_departemen')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Jabatan --}}
+                    <div class="form-group">
+                        <label class="form-label">Position <span class="req">*</span></label>
+                        <select name="jabatan" class="form-control @error('jabatan') is-invalid @enderror">
+                            <option value="">— Select Position —</option>
+                            @foreach ($jabatan as $j)
+                                <option value="{{ $j->nama }}"
+                                    {{ old('jabatan', $user->jabatan) == $j->nama ? 'selected' : '' }}>
+                                    {{ $j->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('jabatan')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Wilayah Kerja --}}
+                    <div class="form-group">
+                        <label class="form-label">Work Area <span class="req">*</span></label>
+                        <select name="wilker" class="form-control @error('wilker') is-invalid @enderror">
+                            <option value="">— Select Work Area —</option>
+                            @foreach ($wilayahKerja->unique('wilayah_kerja') as $w)
+                                <option value="{{ $w->wilayah_kerja }}"
+                                    {{ old('wilker', $user->wilker) == $w->wilayah_kerja ? 'selected' : '' }}>
+                                    {{ $w->wilayah_kerja }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('wilker')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Role (admin only) --}}
+                    @if (Auth::user()->isAdmin())
+                        <div class="form-group form-span-2">
+                            <label class="form-label">Role</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="is_admin" value="1"
+                                    {{ old('is_admin', $user->is_admin) ? 'checked' : '' }}>
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">Administrator</span>
+                            </label>
+                            <p class="toggle-hint">
+                                Administrators have full access to all features without restrictions.
+                            </p>
+                        </div>
+                    @endif
+
+                </div>{{-- /.form-grid --}}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        <i class="bi bi-check-lg"></i> Save Changes
+                    </button>
+                    <a href="{{ route('users.index') }}" class="btn-cancel">Cancel</a>
                 </div>
 
-                {{-- Departemen --}}
-                <div class="form-group">
-                    <label class="form-label">Departemen <span class="req">*</span></label>
-                    <select name="id_departemen"
-                            class="form-control @error('id_departemen') is-invalid @enderror">
-                        <option value="">— Pilih Departemen —</option>
-                        @foreach($departemen as $d)
-                        <option value="{{ $d->id }}"
-                            {{ old('id_departemen', $user->id_departemen) == $d->id ? 'selected' : '' }}>
-                            {{ $d->nama }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('id_departemen')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Jabatan --}}
-                <div class="form-group">
-                    <label class="form-label">Jabatan <span class="req">*</span></label>
-                    <select name="jabatan"
-                            class="form-control @error('jabatan') is-invalid @enderror">
-                        <option value="">— Pilih Jabatan —</option>
-                        @foreach($jabatan as $j)
-                        <option value="{{ $j->nama }}"
-                            {{ old('jabatan', $user->jabatan) == $j->nama ? 'selected' : '' }}>
-                            {{ $j->nama }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('jabatan')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Wilayah Kerja --}}
-                <div class="form-group">
-                    <label class="form-label">Wilayah Kerja <span class="req">*</span></label>
-                    <select name="wilker"
-                            class="form-control @error('wilker') is-invalid @enderror">
-                        <option value="">— Pilih Wilayah Kerja —</option>
-                        @foreach($wilayahKerja->unique('wilayah_kerja') as $w)
-                        <option value="{{ $w->wilayah_kerja }}"
-                            {{ old('wilker', $user->wilker) == $w->wilayah_kerja ? 'selected' : '' }}>
-                            {{ $w->wilayah_kerja }}
-                        </option>
-                        @endforeach
-                    </select>
-                    @error('wilker')<div class="invalid-msg">{{ $message }}</div>@enderror
-                </div>
-
-                {{-- Role (admin only) --}}
-                @if(Auth::user()->isAdmin())
-                <div class="form-group form-span-2">
-                    <label class="form-label">Role</label>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="is_admin" value="1"
-                               {{ old('is_admin', $user->is_admin) ? 'checked' : '' }}>
-                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                        <span class="toggle-label">Administrator</span>
-                    </label>
-                    <p class="toggle-hint">
-                        Administrator memiliki akses penuh ke seluruh fitur tanpa pembatasan.
-                    </p>
-                </div>
-                @endif
-
-            </div>{{-- /.form-grid --}}
-
-            <div class="form-actions">
-                <button type="submit" class="btn-submit">
-                    <i class="bi bi-check-lg"></i> Simpan Perubahan
-                </button>
-                <a href="{{ route('users.index') }}" class="btn-cancel">Batal</a>
-            </div>
-
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 @endsection
 
 @push('scripts')
-<script>
-function togglePw(inputId, iconId) {
-    const inp  = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        inp.type = 'password';
-        icon.className = 'bi bi-eye';
-    }
-}
-</script>
+    <script>
+        function togglePw(inputId, iconId) {
+            const inp = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                inp.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+    </script>
 @endpush

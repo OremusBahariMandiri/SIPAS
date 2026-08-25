@@ -4,14 +4,12 @@
 
 @section('content')
 
-    <div class="sdv-header">
+
+    <div class="sdv-header" style="align-items:center;">
         <a href="{{ route('data.submission.index') }}" class="sdv-back" title="Back">
             <i class="bi bi-arrow-left"></i>
         </a>
-        <div class="sdv-header-text">
-            <h1 class="sdv-header-title">New Submission</h1>
-            <p class="sdv-header-sub">Create a new document submission request.</p>
-        </div>
+        <h1 class="sdv-header-title" style="margin:0;">New Submission</h1>
     </div>
 
     <div class="sdv-card">
@@ -99,6 +97,10 @@
                                 </option>
                             @endforeach
                         </select>
+                        <small class="form-text text-muted">
+                            This recipient is designated as the <strong>final approver</strong> — the highest authority
+                            signature for this document.
+                        </small>
                         @error('id_kepada')
                             <div class="invalid-msg">{{ $message }}</div>
                         @enderror
@@ -216,12 +218,30 @@
                                 Uploading…
                             </span>
                         </div>
+
+                        {{-- ▸ TTE TOGGLE BUTTON — muncul setelah upload berhasil --}}
+                        <div id="ttePengajuToggleWrap" style="{{ old('tmp_key') ? '' : 'display:none;' }} margin-top:.75rem;">
+                            <button type="button" id="btnToggleTte" class="scf-btn-tte-toggle" onclick="toggleTtePengajuSection()">
+                                <span class="scf-btn-tte-toggle-icon" id="btnToggleTteIcon">
+                                    <i class="bi bi-pen-fill"></i>
+                                </span>
+                                <span class="scf-btn-tte-toggle-text" id="btnToggleTteText">Add My Signature (TTE)</span>
+                                <span class="scf-btn-tte-toggle-badge" id="btnToggleTteBadge" style="display:none;">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span id="btnToggleTteBadgeCount">0</span> placed
+                                </span>
+                                <i class="bi bi-chevron-down scf-btn-tte-toggle-chevron" id="btnToggleTteChevron"></i>
+                            </button>
+                        </div>
+
                     </div>
 
                 </div>{{-- /form-grid --}}
 
-                {{-- TTE PENGAJU SECTION --}}
-                <div class="scf-section" id="sectionTtePengaju" style="{{ old('tmp_key') ? '' : 'display:none;' }}">
+                {{-- ═══════════════════════════════════════════════════════════
+                     TTE PENGAJU SECTION
+                ═══════════════════════════════════════════════════════════ --}}
+                <div class="scf-section" id="sectionTtePengaju" style="display:none;">
                     <div class="scf-section-head">
                         <div style="display:flex;align-items:center;gap:.5rem;">
                             <i class="bi bi-pen-fill" style="color:var(--accent);"></i>
@@ -285,8 +305,7 @@
                                 <div id="pengajuPlaceWrapper"
                                     style="position:relative;display:inline-block;line-height:0;">
                                     <canvas id="pengajuPlaceCanvas"
-                                        style="display:block;
-                                               box-shadow:0 2px 12px rgba(0,0,0,.4);">
+                                        style="display:block;box-shadow:0 2px 12px rgba(0,0,0,.4);">
                                     </canvas>
                                     <div id="pengajuClickLayer"
                                         style="position:absolute;top:0;left:0;
@@ -325,9 +344,7 @@
                                     <div class="tte-float-bar" id="pengajuFloatIdle">
                                         <div class="tte-float-label" style="padding-left:.6rem;">
                                             <i class="bi bi-check-circle-fill" style="color:#22c55e;animation:none;"></i>
-                                            <span id="pengajuFloatIdleLabel">
-                                                1 signature placed
-                                            </span>
+                                            <span id="pengajuFloatIdleLabel">1 signature placed</span>
                                         </div>
                                         <div class="tte-float-divider"></div>
                                         <button type="button" class="tte-float-btn tte-float-btn-add"
@@ -346,7 +363,9 @@
 
                 </div>{{-- /sectionTtePengaju --}}
 
-                {{-- FORWARDING SECTION --}}
+                {{-- ═══════════════════════════════════════════════════════════
+                     FORWARDING SECTION
+                ═══════════════════════════════════════════════════════════ --}}
                 <div class="scf-section">
                     <div class="scf-section-head">
                         <label class="scf-toggle-wrap" for="chkTerusan">
@@ -356,16 +375,22 @@
                                     <span class="toggle-thumb"></span>
                                 </span>
                             </span>
-                            <span class="toggle-label">Add Forwarding Approval</span>
+                            <span class="toggle-label">Add Carbon Copy (CC)</span>
                         </label>
                         <span class="scf-section-hint">
-                            Route the document through one or more departments before final approval.
+                            Route the document through one or more users before final approval.
                         </span>
                     </div>
                     <div id="terusanSection" style="{{ old('terusan') ? '' : 'display:none;' }}">
+                        @error('terusan')
+                            <div class="flash-error" style="margin-bottom:.75rem;">
+                                <i class="bi bi-exclamation-circle-fill" style="flex-shrink:0;"></i>
+                                <div>{{ $message }}</div>
+                            </div>
+                        @enderror
                         <div id="terusanList"></div>
                         <button type="button" class="scf-btn-add" onclick="addTerusan()">
-                            <i class="bi bi-plus-lg"></i> Add Department
+                            <i class="bi bi-plus-lg"></i> Add User
                         </button>
                     </div>
                 </div>
@@ -395,8 +420,9 @@
         </div>
     </div>
 
-    {{-- SUBMIT CONFIRMATION MODAL --}}
-    {{-- pointer-events:none saat display:none agar tidak menangkap klik apapun --}}
+    {{-- ═══════════════════════════════════════════════════════════════════════
+         SUBMIT CONFIRMATION MODAL
+    ═══════════════════════════════════════════════════════════════════════ --}}
     <div id="submitModal"
         style="display:none;pointer-events:none;position:fixed;inset:0;z-index:9999;
             background:rgba(0,0,0,.5);align-items:center;justify-content:center;">
@@ -407,25 +433,82 @@
             <div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:1.25rem;">
                 <div
                     style="width:40px;height:40px;border-radius:50%;background:#FFF7ED;
-                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <i class="bi bi-send-fill" style="font-size:17px;color:#C2410C;"></i>
                 </div>
-                <div>
-                    <p
-                        style="font-size:.95rem;font-weight:700;color:var(--text);
-                           margin:0 0 .4rem;">
+                <div style="flex:1;min-width:0;">
+                    <p style="font-size:.95rem;font-weight:700;color:var(--text);margin:0 0 .75rem;">
                         Submit this document?
                     </p>
-                    <p style="font-size:.82rem;color:var(--muted);margin:0;line-height:1.6;">
+
+                    {{-- Ringkasan --}}
+                    <div
+                        style="background:var(--bg);border:1px solid var(--border);border-radius:9px;
+            padding:.65rem .85rem;margin-bottom:.75rem;display:flex;flex-direction:column;gap:.4rem;">
+
+                        {{-- Letter No. --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Letter No.</span>
+                            <span id="smryNomor" style="font-weight:600;color:var(--text);word-break:break-all;">—</span>
+                        </div>
+
+                        {{-- Subject --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Subject</span>
+                            <span id="smryPerihal"
+                                style="font-weight:600;color:var(--text);word-break:break-all;">—</span>
+                        </div>
+
+                        {{-- Date --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Date</span>
+                            <span id="smryTanggal" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        {{-- Company --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Company</span>
+                            <span id="smryPerusahaan" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        {{-- Document Type --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Doc. Type</span>
+                            <span id="smryJenis" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        {{-- Classification --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Classification</span>
+                            <span id="smrySifat" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        <div style="border-top:1px solid var(--border);margin:.2rem 0;"></div>
+
+                        {{-- Recipient --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Recipient</span>
+                            <span id="smryKepada" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        {{-- My TTE --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">My Signature</span>
+                            <span id="smryTte" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                        {{-- CC --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Carbon Copy</span>
+                            <span id="smryCc" style="font-weight:600;color:var(--text);">—</span>
+                        </div>
+
+                    </div>
+
+                    <p style="font-size:.79rem;color:var(--muted);margin:0;line-height:1.6;">
                         Once submitted, this document will be
-                        <strong style="color:var(--text);">locked</strong>
-                        and sent for approval.
-                        You <strong style="color:var(--text);">won't be able to edit</strong>
-                        it anymore.
-                    </p>
-                    <p style="font-size:.82rem;color:var(--muted);margin:.55rem 0 0;line-height:1.6;">
-                        Not ready yet? Use
-                        <strong style="color:var(--text);">Save as Draft</strong> instead.
+                        <strong style="color:var(--text);">locked</strong> and sent for approval.
+                        Not ready? Use <strong style="color:var(--text);">Save as Draft</strong> instead.
                     </p>
                 </div>
             </div>
@@ -442,15 +525,19 @@
         </div>
     </div>
 
-    {{-- TERUSAN ROW TEMPLATE --}}
+    {{-- ═══════════════════════════════════════════════════════════════════════
+         TERUSAN ROW TEMPLATE
+    ═══════════════════════════════════════════════════════════════════════ --}}
     <template id="tmplTerusan">
         <div class="scf-terusan-row">
             <div class="scf-terusan-num"></div>
             <div class="scf-terusan-body">
-                <select name="terusan[IDX][id_departemen]" class="scf-select2-terusan" required>
-                    <option value="">— Select Department —</option>
-                    @foreach ($departemens as $dep)
-                        <option value="{{ $dep->id }}">{{ $dep->nama }}</option>
+                <select name="terusan[IDX][id_user]" class="scf-select2-terusan" required>
+                    <option value="">— Select User —</option>
+                    @foreach ($kepadas as $k)
+                        <option value="{{ $k->id }}">
+                            {{ $k->nama_karyawan }} — {{ $k->jabatan }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -483,9 +570,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
         /* ════════════════════════════════════════════════
-           FORM GRID & BASIC CONTROLS
+           FILE UPLOAD
         ════════════════════════════════════════════════ */
-        
         .scf-file-wrap {
             position: relative;
         }
@@ -553,18 +639,85 @@
             flex-shrink: 0;
         }
 
-        .form-hint {
-            display: flex;
+        /* ════════════════════════════════════════════════
+           TTE TOGGLE BUTTON
+        ════════════════════════════════════════════════ */
+        .scf-btn-tte-toggle {
+            display: inline-flex;
             align-items: center;
-            gap: .3rem;
-            font-size: .74rem;
-            color: var(--muted);
-            margin-top: .35rem;
+            gap: .55rem;
+            padding: .55rem 1rem;
+            border-radius: 9px;
+            border: 1.5px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: .83rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+            width: 100%;
+            text-align: left;
         }
 
-        .form-hint i {
-            font-size: .76rem;
+        .scf-btn-tte-toggle:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .scf-btn-tte-toggle.is-open {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 245 158 11) / .1);
+        }
+
+        .scf-btn-tte-toggle-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .82rem;
             flex-shrink: 0;
+            transition: background .15s;
+        }
+
+        .scf-btn-tte-toggle.is-open .scf-btn-tte-toggle-icon {
+            background: rgba(255,255,255,.5);
+        }
+
+        .scf-btn-tte-toggle-text {
+            flex: 1;
+        }
+
+        .scf-btn-tte-toggle-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            font-size: .72rem;
+            font-weight: 700;
+            padding: .15rem .5rem;
+            border-radius: 20px;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+            white-space: nowrap;
+        }
+
+        .scf-btn-tte-toggle-chevron {
+            font-size: .78rem;
+            color: var(--muted);
+            transition: transform .2s ease;
+            flex-shrink: 0;
+        }
+
+        .scf-btn-tte-toggle.is-open .scf-btn-tte-toggle-chevron {
+            transform: rotate(180deg);
+            color: var(--accent);
         }
 
         /* ════════════════════════════════════════════════
@@ -838,22 +991,6 @@
         .scf-action-note i {
             font-size: .72rem;
             flex-shrink: 0;
-        }
-
-        @media (max-width:500px) {
-            .scf-btns {
-                flex-direction: column;
-            }
-
-            .scf-btns .sdv-btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .scf-tte-count-wrap {
-                flex-direction: column;
-                align-items: flex-start;
-            }
         }
 
         /* ════════════════════════════════════════════════
@@ -1276,6 +1413,22 @@
         .select2-results__options {
             max-height: 220px !important;
         }
+
+        @media (max-width: 500px) {
+            .scf-btns {
+                flex-direction: column;
+            }
+
+            .scf-btns .sdv-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .scf-tte-count-wrap {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 @endpush
 
@@ -1307,10 +1460,65 @@
                     escapeMarkup: m => m,
                 });
             }
+
             initSelect2('#id_perusahaan', '— Select Company —');
             initSelect2('#id_kepada', '— Select Recipient —');
             initSelect2('#id_jenis_dokumen', '— Select Document Type —');
             initSelect2('#id_sifat_surat', '— Select Classification —');
+
+            /* ══════════════════════════════════════════════════
+               TTE TOGGLE SECTION — buka/tutup canvas
+            ══════════════════════════════════════════════════ */
+            let tteSectionOpen = false;
+
+            window.toggleTtePengajuSection = function() {
+                tteSectionOpen = !tteSectionOpen;
+
+                const section   = document.getElementById('sectionTtePengaju');
+                const btn       = document.getElementById('btnToggleTte');
+                const chevron   = document.getElementById('btnToggleTteChevron');
+                const textEl    = document.getElementById('btnToggleTteText');
+
+                if (tteSectionOpen) {
+                    section.style.display = '';
+                    btn.classList.add('is-open');
+                    textEl.textContent = 'Hide My Signature (TTE)';
+
+                    // Inisialisasi TTE info & canvas kalau PDF sudah ada
+                    window.updateTtePengajuInfo($('#id_perusahaan').val());
+                    if (pengajuPdfDoc) {
+                        const canvasWrap = document.getElementById('ttePengajuCanvas');
+                        const perusahaanId = $('#id_perusahaan').val() || '';
+                        const tte = perusahaanId && TTE_MAP[perusahaanId];
+                        if (tte && tte.valid && canvasWrap) {
+                            canvasWrap.style.display = 'block';
+                            pengajuRenderPage(pengajuPlacePage);
+                        }
+                    }
+                } else {
+                    section.style.display = 'none';
+                    btn.classList.remove('is-open');
+                    textEl.textContent = 'Add My Signature (TTE)';
+                }
+            };
+
+            /* Helper: perbarui badge di tombol toggle */
+            window.refreshTteToggleBadge = function() {
+                const badge      = document.getElementById('btnToggleTteBadge');
+                const badgeCount = document.getElementById('btnToggleTteBadgeCount');
+                if (!badge || !badgeCount) return;
+
+                const placed = (typeof pengajuSlots !== 'undefined')
+                    ? pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length
+                    : 0;
+
+                if (placed > 0) {
+                    badgeCount.textContent = placed;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            };
 
             /* ══════════════════════════════════════════════════
                TTE PENGAJU INFO
@@ -1320,7 +1528,8 @@
                 if (!el) return;
 
                 if (!perusahaanId) {
-                    el.innerHTML = '<div class="scf-tte-info-none">' +
+                    el.innerHTML =
+                        '<div class="scf-tte-info-none">' +
                         '<i class="bi bi-info-circle"></i>' +
                         ' Select a company to check your TTE status.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
@@ -1329,22 +1538,26 @@
 
                 const tte = TTE_MAP[perusahaanId];
                 if (!tte) {
-                    el.innerHTML = '<div class="scf-tte-info-warn">' +
+                    el.innerHTML =
+                        '<div class="scf-tte-info-warn">' +
                         '<i class="bi bi-exclamation-triangle-fill"></i>' +
                         ' You have no TTE registered for this company. Contact admin.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
                 } else if (!tte.valid) {
-                    el.innerHTML = '<div class="scf-tte-info-warn">' +
+                    el.innerHTML =
+                        '<div class="scf-tte-info-warn">' +
                         '<i class="bi bi-exclamation-triangle-fill"></i>' +
                         ' TTE "<strong>' + tte.nama + '</strong>" is expired or inactive.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
                 } else {
                     const until = tte.valid_until ? ' &mdash; valid until ' + tte.valid_until : '';
-                    el.innerHTML = '<div class="scf-tte-info-ok">' +
+                    el.innerHTML =
+                        '<div class="scf-tte-info-ok">' +
                         '<i class="bi bi-shield-check-fill"></i>' +
                         ' TTE active: <strong>' + tte.nama + '</strong>' + until + '</div>';
 
-                    if (pengajuPdfDoc) {
+                    // Tampilkan canvas hanya jika section sedang terbuka
+                    if (pengajuPdfDoc && tteSectionOpen) {
                         document.getElementById('ttePengajuCanvas').style.display = 'block';
                         pengajuRenderPage(pengajuPlacePage);
                     }
@@ -1352,20 +1565,28 @@
             };
 
             $('#id_perusahaan').on('change', function() {
-                window.updateTtePengajuInfo($(this).val());
+                // Hanya update info TTE jika section sudah terbuka
+                if (tteSectionOpen) {
+                    window.updateTtePengajuInfo($(this).val());
+                }
+            });
+
+            $('#id_kepada').on('change', function() {
+                syncCcDisabledOptions();
             });
 
             /* ══════════════════════════════════════════════════
                FILE INPUT → AJAX TEMP UPLOAD
             ══════════════════════════════════════════════════ */
             document.getElementById('file_dokumen').addEventListener('change', function() {
-                const label = document.getElementById('scfFileName');
-                const lWrap = document.getElementById('scfFileLabel');
-                const icon = document.getElementById('scfFileIcon');
-                const prog = document.getElementById('uploadProgress');
-                const bar = document.getElementById('uploadProgressBar');
-                const txt = document.getElementById('uploadProgressText');
-                const section = document.getElementById('sectionTtePengaju');
+                const label      = document.getElementById('scfFileName');
+                const lWrap      = document.getElementById('scfFileLabel');
+                const icon       = document.getElementById('scfFileIcon');
+                const prog       = document.getElementById('uploadProgress');
+                const bar        = document.getElementById('uploadProgressBar');
+                const txt        = document.getElementById('uploadProgressText');
+                const toggleWrap = document.getElementById('ttePengajuToggleWrap');
+                const section    = document.getElementById('sectionTtePengaju');
 
                 const oldHint = document.getElementById('scfFileReplaceHint');
                 if (oldHint) oldHint.remove();
@@ -1374,7 +1595,14 @@
                     label.textContent = 'Click to upload or drag & drop';
                     if (icon) icon.className = 'bi bi-cloud-upload';
                     lWrap.classList.remove('has-file', 'uploading');
+                    // Sembunyikan toggle button dan tutup section TTE
+                    if (toggleWrap) toggleWrap.style.display = 'none';
                     section.style.display = 'none';
+                    tteSectionOpen = false;
+                    const btn = document.getElementById('btnToggleTte');
+                    if (btn) btn.classList.remove('is-open');
+                    const textEl = document.getElementById('btnToggleTteText');
+                    if (textEl) textEl.textContent = 'Add My Signature (TTE)';
                     return;
                 }
 
@@ -1386,6 +1614,15 @@
                 prog.style.display = 'block';
                 bar.style.width = '0%';
                 txt.textContent = 'Uploading…';
+
+                // Sembunyikan toggle saat sedang upload ulang
+                if (toggleWrap) toggleWrap.style.display = 'none';
+                section.style.display = 'none';
+                tteSectionOpen = false;
+                const btnTgl = document.getElementById('btnToggleTte');
+                if (btnTgl) btnTgl.classList.remove('is-open');
+                const textTgl = document.getElementById('btnToggleTteText');
+                if (textTgl) textTgl.textContent = 'Add My Signature (TTE)';
 
                 const fd = new FormData();
                 fd.append('file_dokumen', file);
@@ -1408,25 +1645,38 @@
 
                     if (xhr.status === 200) {
                         let res;
-                        try {
-                            res = JSON.parse(xhr.responseText);
-                        } catch (e) {
-                            return;
-                        }
+                        try { res = JSON.parse(xhr.responseText); } catch (e) { return; }
 
                         lWrap.classList.add('has-file');
                         if (icon) icon.className = 'bi bi-file-earmark-check';
                         document.getElementById('tmpKey').value = res.key;
 
-                        section.style.display = 'block';
-                        window.updateTtePengajuInfo($('#id_perusahaan').val());
+                        // Reset slot setelah upload file baru
+                        pengajuPdfDoc = null;
+                        pengajuSlots = [];
+                        pengajuSlotCounter = 0;
+                        pengajuActiveIdx = null;
+                        pengajuDraft = null;
+                        const gl = document.getElementById('pengajuGhostLayer');
+                        if (gl) gl.innerHTML = '';
+                        pengajuDraftGhostEl = null;
+                        document.getElementById('ttePengajuCanvas').style.display = 'none';
+                        document.getElementById('pengajuPlacementsInput').innerHTML = '';
+                        window.refreshTteToggleBadge();
+
+                        // Load PDF di background (belum tampilkan canvas)
                         pengajuLoadPdf(res.preview_url);
+
+                        // Tampilkan tombol toggle TTE
+                        if (toggleWrap) toggleWrap.style.display = '';
+
                     } else {
                         txt.textContent = 'Upload failed. Please try again.';
                         prog.style.display = 'block';
                         bar.style.width = '0%';
                         lWrap.classList.remove('has-file');
                         if (icon) icon.className = 'bi bi-cloud-upload';
+                        if (toggleWrap) toggleWrap.style.display = 'none';
                     }
                 });
 
@@ -1435,6 +1685,7 @@
                     lWrap.classList.remove('uploading');
                     if (icon) icon.className = 'bi bi-cloud-upload';
                     txt.textContent = 'Upload error.';
+                    if (toggleWrap) toggleWrap.style.display = 'none';
                 });
 
                 xhr.send(fd);
@@ -1455,9 +1706,9 @@
             /* ══════════════════════════════════════════════════
                SUBMIT MODAL
             ══════════════════════════════════════════════════ */
-            const modal = document.getElementById('submitModal');
+            const modal      = document.getElementById('submitModal');
             const formAction = document.getElementById('formAction');
-            const form = document.getElementById('scfForm');
+            const form       = document.getElementById('scfForm');
 
             function openModal() {
                 modal.style.display = 'flex';
@@ -1472,12 +1723,62 @@
                 document.body.style.overflow = '';
             }
 
-            document.getElementById('btnSubmitTrigger').addEventListener('click', openModal);
-            document.getElementById('submitModalNo').addEventListener('click', closeModal);
-            modal.addEventListener('click', e => {
-                if (e.target === modal) closeModal();
+            document.getElementById('btnSubmitTrigger').addEventListener('click', function() {
+
+                document.getElementById('smryNomor').textContent =
+                    document.getElementById('nomor_surat').value || '—';
+                document.getElementById('smryPerihal').textContent =
+                    document.getElementById('perihal').value || '—';
+
+                const tgl = document.getElementById('tanggal_surat').value;
+                document.getElementById('smryTanggal').textContent = tgl ?
+                    new Date(tgl).toLocaleString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    }) : '—';
+
+                const perusahaan = $('#id_perusahaan').select2('data');
+                document.getElementById('smryPerusahaan').textContent =
+                    (perusahaan && perusahaan[0] && perusahaan[0].id) ? perusahaan[0].text : '—';
+
+                const jenis = $('#id_jenis_dokumen').select2('data');
+                document.getElementById('smryJenis').textContent =
+                    (jenis && jenis[0] && jenis[0].id) ? jenis[0].text : '—';
+
+                const sifat = $('#id_sifat_surat').select2('data');
+                document.getElementById('smrySifat').textContent =
+                    (sifat && sifat[0] && sifat[0].id) ? sifat[0].text : '—';
+
+                const kepada = $('#id_kepada').select2('data');
+                document.getElementById('smryKepada').textContent =
+                    (kepada && kepada[0] && kepada[0].id) ? kepada[0].text : '—';
+
+                const placedCount = pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length;
+                const tteEl = document.getElementById('smryTte');
+                if (placedCount > 0) {
+                    tteEl.innerHTML =
+                        '<span style="color:#16A34A;">' +
+                        '<i class="bi bi-check-circle-fill"></i> Yes — ' +
+                        placedCount + ' signature' + (placedCount > 1 ? 's' : '') + ' placed' +
+                        '</span>';
+                } else {
+                    tteEl.innerHTML = '<span style="color:var(--muted);">No</span>';
+                }
+
+                const ccTexts = [];
+                document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
+                    const data = $(sel).select2('data');
+                    if (data && data[0] && data[0].id) ccTexts.push(data[0].text);
+                });
+                document.getElementById('smryCc').textContent =
+                    ccTexts.length > 0 ? ccTexts.join(', ') : 'None';
+
+                openModal();
             });
-            document.addEventListener('keydown', e => {
+
+            document.getElementById('submitModalNo').addEventListener('click', closeModal);
+            modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+            document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
             });
             document.getElementById('submitModalYes').addEventListener('click', function() {
@@ -1497,11 +1798,13 @@
             if (!el) return;
             el.value = Math.max(min, Math.min(10, (parseInt(el.value) || 0) + delta));
         };
+
         window.adjustTteCountEl = function(el, delta, min) {
             min = (min === undefined) ? 0 : min;
             if (!el) return;
             el.value = Math.max(min, Math.min(10, (parseInt(el.value) || 0) + delta));
         };
+
         window.toggleTteCount = function(chk) {
             const row = chk.closest('.scf-terusan-row');
             const mini = row ? row.querySelector('.scf-tte-count-mini') : null;
@@ -1518,22 +1821,23 @@
         ════════════════════════════════════════════════ */
         let terusanCount = 0;
 
-        window.addTerusan = function(deptId, requireTte, tteCount) {
-            deptId = deptId || null;
+        window.addTerusan = function(userId, requireTte, tteCount) {
+            userId     = userId     || null;
             requireTte = requireTte || false;
-            tteCount = tteCount || 1;
+            tteCount   = tteCount   || 1;
 
-            const idx = terusanCount;
-            const tmpl = document.getElementById('tmplTerusan').innerHTML
-                .replaceAll('IDX', idx);
+            const idx  = terusanCount;
+            const tmpl = document.getElementById('tmplTerusan').innerHTML.replaceAll('IDX', idx);
+
             const div = document.createElement('div');
             div.innerHTML = tmpl;
             const row = div.firstElementChild;
 
-            if (deptId) {
+            if (userId) {
                 const sel = row.querySelector('select');
-                if (sel) sel.value = deptId;
+                if (sel) sel.value = userId;
             }
+
             if (requireTte) {
                 const chk = row.querySelector('.scf-tte-chk');
                 if (chk) {
@@ -1549,17 +1853,45 @@
             terusanCount++;
             reorderTerusan();
 
-            $(row).find('.scf-select2-terusan').select2({
-                placeholder: '— Select Department —',
-                allowClear: true,
-                width: '100%',
-                language: {
-                    noResults: () =>
-                        '<span style="padding:.5rem .85rem;display:block;' +
-                        'font-size:.82rem;color:var(--muted);">No results found</span>',
-                },
-                escapeMarkup: m => m,
-            });
+            const $newSel   = $(row).find('.scf-select2-terusan');
+            const nativeSel = $newSel[0];
+
+            $newSel.select2({
+                    placeholder : '— Select User —',
+                    allowClear  : true,
+                    width       : '100%',
+                    language    : {
+                        noResults: () =>
+                            '<span style="padding:.5rem .85rem;display:block;' +
+                            'font-size:.82rem;color:var(--muted);">No results found</span>',
+                    },
+                    escapeMarkup  : m => m,
+                    templateResult: function(data) {
+                        if (!data.id) return $('<span>' + data.text + '</span>');
+                        const nativeOpt = Array.from(nativeSel.options)
+                            .find(function(o) { return o.value === String(data.id); });
+                        const isDisabled = nativeOpt && nativeOpt.disabled;
+                        if (isDisabled) {
+                            return $(
+                                '<span style="display:flex;align-items:center;' +
+                                'justify-content:space-between;gap:.5rem;' +
+                                'color:var(--muted);cursor:not-allowed;">' +
+                                '<span>' + data.text + '</span>' +
+                                '<span style="font-size:.68rem;font-weight:600;' +
+                                'padding:.1rem .45rem;border-radius:20px;' +
+                                'background:var(--bg);border:1px solid var(--border);' +
+                                'color:var(--muted);white-space:nowrap;">' +
+                                'Already assigned</span>' +
+                                '</span>'
+                            );
+                        }
+                        return $('<span>' + data.text + '</span>');
+                    },
+                })
+                .on('change', function() { syncCcDisabledOptions(); })
+                .on('select2:clear', function() { setTimeout(syncCcDisabledOptions, 0); });
+
+            syncCcDisabledOptions();
         };
 
         window.removeTerusan = function(btn) {
@@ -1568,6 +1900,7 @@
             if (sel.data('select2')) sel.select2('destroy');
             row.remove();
             reorderTerusan();
+            syncCcDisabledOptions();
         };
 
         function reorderTerusan() {
@@ -1576,17 +1909,83 @@
             });
         }
 
+        /* Restore terusan setelah validation error */
         @if (old('terusan'))
             document.getElementById('chkTerusan').checked = true;
             document.getElementById('terusanSection').style.display = '';
             @foreach (old('terusan', []) as $idx => $t)
                 addTerusan(
-                    '{{ $t['id_departemen'] ?? '' }}',
+                    '{{ $t['id_user'] ?? '' }}',
                     {{ isset($t['require_tte']) ? 'true' : 'false' }},
                     {{ (int) ($t['require_tte_count'] ?? 1) }}
                 );
             @endforeach
         @endif
+
+        function syncCcDisabledOptions() {
+            const recipientId = $('#id_kepada').val();
+
+            const selectedCcIds = [];
+            document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
+                const val = $(sel).val();
+                if (val) selectedCcIds.push(val);
+            });
+
+            document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
+                const $sel       = $(sel);
+                const currentVal = $sel.val();
+
+                Array.from(sel.options).forEach(function(opt) {
+                    if (!opt.value) return;
+                    const isRecipient = opt.value === recipientId;
+                    const isOtherCc   = selectedCcIds.includes(opt.value) && opt.value !== currentVal;
+                    opt.disabled = isRecipient || isOtherCc;
+                });
+
+                if ($sel.data('select2')) {
+                    $sel.select2('destroy');
+                    (function(nativeSel, $s) {
+                        $s.select2({
+                                placeholder  : '— Select User —',
+                                allowClear   : true,
+                                width        : '100%',
+                                language     : {
+                                    noResults: () =>
+                                        '<span style="padding:.5rem .85rem;display:block;' +
+                                        'font-size:.82rem;color:var(--muted);">No results found</span>',
+                                },
+                                escapeMarkup  : m => m,
+                                templateResult: function(data) {
+                                    if (!data.id) return $('<span>' + data.text + '</span>');
+                                    const nativeOpt = Array.from(nativeSel.options)
+                                        .find(function(o) { return o.value === String(data.id); });
+                                    const isDisabled = nativeOpt && nativeOpt.disabled;
+                                    if (isDisabled) {
+                                        return $(
+                                            '<span style="display:flex;align-items:center;' +
+                                            'justify-content:space-between;gap:.5rem;' +
+                                            'color:var(--muted);cursor:not-allowed;">' +
+                                            '<span>' + data.text + '</span>' +
+                                            '<span style="font-size:.68rem;font-weight:600;' +
+                                            'padding:.1rem .45rem;border-radius:20px;' +
+                                            'background:var(--bg);border:1px solid var(--border);' +
+                                            'color:var(--muted);white-space:nowrap;">' +
+                                            'Already assigned</span>' +
+                                            '</span>'
+                                        );
+                                    }
+                                    return $('<span>' + data.text + '</span>');
+                                },
+                            })
+                            .val(currentVal)
+                            .trigger('change.select2')
+                            .off('change.syncCc select2:clear.syncCc')
+                            .on('change.syncCc', function() { syncCcDisabledOptions(); })
+                            .on('select2:clear.syncCc', function() { setTimeout(syncCcDisabledOptions, 0); });
+                    })(sel, $sel);
+                }
+            });
+        }
 
         /* ════════════════════════════════════════════════
            PDF.js — TTE PENGAJU PLACEMENT
@@ -1595,92 +1994,84 @@
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         const PLACE_SCALE = 0.8;
-        const QR_PT = 40;
+        const QR_PT       = 40;
 
-        let pengajuPdfDoc = null;
-        let pengajuViewport = null;
-        let pengajuPlacePage = 1;
-        let pengajuPageNatW = 0;
-        let pengajuPageNatH = 0;
+        let pengajuPdfDoc      = null;
+        let pengajuViewport    = null;
+        let pengajuPlacePage   = 1;
+        let pengajuPageNatW    = 0;
+        let pengajuPageNatH    = 0;
 
-        let pengajuSlots = [];
+        let pengajuSlots       = [];
         let pengajuSlotCounter = 0;
-        let pengajuActiveIdx = null;
+        let pengajuActiveIdx   = null;
 
-        let pengajuDraft = null;
-        let pengajuDraftGhostEl = null;
+        let pengajuDraft         = null;
+        let pengajuDraftGhostEl  = null;
 
-        /* ════════════════════════════════════════════════
-           EVENT DELEGATION — slot card buttons
-           Dipasang SEKALI di container, tidak perlu
-           re-attach setiap render ulang.
-        ════════════════════════════════════════════════ */
+        /* ── Event delegation — slot card buttons ── */
         document.getElementById('pengajuSigSlots').addEventListener('click', function(e) {
-            /* Cari elemen bermakna terdekat dari titik klik */
-            const btnExit = e.target.closest('[data-action="slot-exit"]');
+            const btnExit     = e.target.closest('[data-action="slot-exit"]');
             const btnActivate = e.target.closest('[data-action="slot-activate"]');
-            const btnDelete = e.target.closest('[data-action="slot-delete"]');
+            const btnDelete   = e.target.closest('[data-action="slot-delete"]');
 
             if (btnExit) {
                 e.stopPropagation();
-                // Jika ada draft placement yang belum disimpan, simpan dulu (sama seperti floating Save)
-                if (pengajuDraft && pengajuActiveIdx !== null) {
-                    pengajuSaveFloat();
-                } else {
-                    pengajuExitTapMode();
-                }
+                if (pengajuDraft && pengajuActiveIdx !== null) pengajuSaveFloat();
+                else pengajuExitTapMode();
                 return;
             }
             if (btnActivate) {
                 e.stopPropagation();
-                const idx = parseInt(btnActivate.dataset.idx, 10);
-                pengajuActivateSlot(idx);
+                pengajuActivateSlot(parseInt(btnActivate.dataset.idx, 10));
                 return;
             }
             if (btnDelete) {
                 e.stopPropagation();
-                const id = parseInt(btnDelete.dataset.id, 10);
-                pengajuSlotDelete(id);
+                pengajuSlotDelete(parseInt(btnDelete.dataset.id, 10));
                 return;
             }
         });
 
-        /* ── Load PDF ── */
+        /* ── Load PDF (background, tidak langsung tampil canvas) ── */
         window.pengajuLoadPdf = function(url) {
-            pengajuPdfDoc = null;
-            pengajuPlacePage = 1;
-            pengajuSlots = [];
+            pengajuPdfDoc      = null;
+            pengajuPlacePage   = 1;
+            pengajuSlots       = [];
             pengajuSlotCounter = 0;
-            pengajuActiveIdx = null;
-            pengajuDraft = null;
+            pengajuActiveIdx   = null;
+            pengajuDraft       = null;
 
             const gl = document.getElementById('pengajuGhostLayer');
             if (gl) gl.innerHTML = '';
             pengajuDraftGhostEl = null;
 
+            // Jangan tampilkan canvas di sini — tunggu user buka section TTE
             const canvasWrap = document.getElementById('ttePengajuCanvas');
             if (canvasWrap) canvasWrap.style.display = 'none';
 
-            pdfjsLib.getDocument({
-                url: url
-            }).promise.then(function(doc) {
+            pdfjsLib.getDocument({ url }).promise.then(function(doc) {
                 pengajuPdfDoc = doc;
                 document.getElementById('pengajuPageCount').textContent = doc.numPages;
-                pengajuRenderPage(pengajuPlacePage);
-                pengajuSlotAdd();
 
-                var perusahaanId = '';
-                try {
-                    perusahaanId = $('#id_perusahaan').val() || '';
-                } catch (e) {}
+                // Buat satu slot default (tapi canvas belum ditampilkan)
+                pengajuSlots.push({
+                    id: pengajuSlotCounter++,
+                    page: null, pdfX: null, pdfY: null,
+                    cssX: null, cssY: null, ghostEl: null,
+                });
+                pengajuRenderSlotsUI();
 
-                var showCanvas = true;
-                if (perusahaanId && typeof TTE_MAP !== 'undefined') {
-                    var tte = TTE_MAP[perusahaanId];
-                    showCanvas = !!(tte && tte.valid);
+                // Tampilkan canvas HANYA jika section sudah terbuka oleh user
+                if (typeof tteSectionOpen !== 'undefined' && tteSectionOpen) {
+                    let perusahaanId = '';
+                    try { perusahaanId = $('#id_perusahaan').val() || ''; } catch(e) {}
+                    const tte = perusahaanId && TTE_MAP[perusahaanId];
+                    if (tte && tte.valid && canvasWrap) {
+                        canvasWrap.style.display = 'block';
+                        pengajuRenderPage(pengajuPlacePage);
+                    }
                 }
-
-                if (showCanvas && canvasWrap) canvasWrap.style.display = 'block';
             }).catch(function(err) {
                 console.error('PDF.js pengaju error:', err);
             });
@@ -1690,46 +2081,36 @@
         function pengajuRenderPage(num) {
             if (!pengajuPdfDoc) return;
             pengajuPdfDoc.getPage(num).then(function(page) {
-                const dpr = window.devicePixelRatio || 1;
-                const vp1 = page.getViewport({
-                    scale: 1
-                });
+                const dpr  = window.devicePixelRatio || 1;
+                const vp1  = page.getViewport({ scale: 1 });
                 pengajuPageNatW = vp1.width;
                 pengajuPageNatH = vp1.height;
 
-                pengajuViewport = page.getViewport({
-                    scale: PLACE_SCALE
-                });
+                pengajuViewport = page.getViewport({ scale: PLACE_SCALE });
                 const cssW = Math.floor(pengajuViewport.width);
                 const cssH = Math.floor(pengajuViewport.height);
 
                 const canvas = document.getElementById('pengajuPlaceCanvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = cssW * dpr;
-                canvas.height = cssH * dpr;
-                canvas.style.width = cssW + 'px';
+                const ctx    = canvas.getContext('2d');
+                canvas.width        = cssW * dpr;
+                canvas.height       = cssH * dpr;
+                canvas.style.width  = cssW + 'px';
                 canvas.style.height = cssH + 'px';
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
                 const wrapper = document.getElementById('pengajuPlaceWrapper');
-                wrapper.style.width = cssW + 'px';
+                wrapper.style.width  = cssW + 'px';
                 wrapper.style.height = cssH + 'px';
 
                 ['pengajuClickLayer', 'pengajuGhostLayer'].forEach(function(id) {
                     const el = document.getElementById(id);
-                    if (el) {
-                        el.style.width = cssW + 'px';
-                        el.style.height = cssH + 'px';
-                    }
+                    if (el) { el.style.width = cssW + 'px'; el.style.height = cssH + 'px'; }
                 });
 
                 const scroll = document.getElementById('pengajuPlacementScroll');
                 if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
-                page.render({
-                        canvasContext: ctx,
-                        viewport: pengajuViewport
-                    })
+                page.render({ canvasContext: ctx, viewport: pengajuViewport })
                     .promise.then(function() {
                         document.getElementById('pengajuPageNum').textContent = num;
                         pengajuRedrawGhosts();
@@ -1738,15 +2119,11 @@
         }
 
         window.pengajuPlacePrev = function() {
-            if (pengajuPlacePage > 1) {
-                pengajuPlacePage--;
-                pengajuRenderPage(pengajuPlacePage);
-            }
+            if (pengajuPlacePage > 1) { pengajuPlacePage--; pengajuRenderPage(pengajuPlacePage); }
         };
         window.pengajuPlaceNext = function() {
             if (pengajuPdfDoc && pengajuPlacePage < pengajuPdfDoc.numPages) {
-                pengajuPlacePage++;
-                pengajuRenderPage(pengajuPlacePage);
+                pengajuPlacePage++; pengajuRenderPage(pengajuPlacePage);
             }
         };
 
@@ -1754,37 +2131,28 @@
         window.pengajuSlotAdd = function() {
             pengajuSlots.push({
                 id: pengajuSlotCounter++,
-                page: null,
-                pdfX: null,
-                pdfY: null,
-                cssX: null,
-                cssY: null,
-                ghostEl: null,
+                page: null, pdfX: null, pdfY: null,
+                cssX: null, cssY: null, ghostEl: null,
             });
             pengajuRenderSlotsUI();
             pengajuActivateSlot(pengajuSlots.length - 1);
         };
 
         window.pengajuSlotDelete = function(id) {
-            const i = pengajuSlots.findIndex(function(s) {
-                return s.id === id;
-            });
+            const i = pengajuSlots.findIndex(function(s) { return s.id === id; });
             if (i === -1) return;
-            if (pengajuSlots[i].ghostEl && pengajuSlots[i].ghostEl.parentNode) {
+            if (pengajuSlots[i].ghostEl && pengajuSlots[i].ghostEl.parentNode)
                 pengajuSlots[i].ghostEl.parentNode.removeChild(pengajuSlots[i].ghostEl);
-            }
             if (pengajuActiveIdx === i) pengajuExitTapMode(false);
             else if (pengajuActiveIdx !== null && pengajuActiveIdx > i) pengajuActiveIdx--;
             pengajuSlots.splice(i, 1);
             pengajuRenderSlotsUI();
             pengajuSyncInputs();
+            window.refreshTteToggleBadge();
         };
 
         function pengajuActivateSlot(idx) {
-            if (pengajuActiveIdx === idx) {
-                pengajuExitTapMode();
-                return;
-            }
+            if (pengajuActiveIdx === idx) { pengajuExitTapMode(); return; }
             pengajuActiveIdx = idx;
             pengajuEnterTapMode();
         }
@@ -1805,24 +2173,21 @@
             if (bar) bar.style.display = 'none';
             pengajuHideFloatBar();
             pengajuRemoveDraftGhost();
-            if (rerender) {
-                pengajuRenderSlotsUI();
-                pengajuRefreshIdleBar();
-            }
+            if (rerender) { pengajuRenderSlotsUI(); pengajuRefreshIdleBar(); }
         };
 
         /* ── Placement handler ── */
         function pengajuHandlePlacement(clientX, clientY) {
             if (pengajuActiveIdx === null || !pengajuViewport || !pengajuPageNatH) return;
 
-            const wrapper = document.getElementById('pengajuPlaceWrapper');
+            const wrapper  = document.getElementById('pengajuPlaceWrapper');
             const wrapRect = wrapper.getBoundingClientRect();
-            const scroll = document.getElementById('pengajuPlacementScroll');
+            const scroll   = document.getElementById('pengajuPlacementScroll');
             const scrollLeft = scroll ? scroll.scrollLeft : 0;
-            const scrollTop = scroll ? scroll.scrollTop : 0;
+            const scrollTop  = scroll ? scroll.scrollTop  : 0;
 
             const cssX = (clientX - wrapRect.left) + scrollLeft;
-            const cssY = (clientY - wrapRect.top) + scrollTop;
+            const cssY = (clientY - wrapRect.top)  + scrollTop;
             const cssW = wrapRect.width;
             const cssH = wrapRect.height;
 
@@ -1848,28 +2213,30 @@
 
         /* ── Draft ghost ── */
         function pengajuDrawDraftGhost(cx, cy) {
-            const layer = document.getElementById('pengajuGhostLayer');
+            const layer    = document.getElementById('pengajuGhostLayer');
             const wrapRect = document.getElementById('pengajuPlaceWrapper').getBoundingClientRect();
-            const scaleX = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
-            const ghostPx = QR_PT * scaleX;
+            const scaleX   = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
+            const ghostPx  = QR_PT * scaleX;
             const x = Math.max(0, cx - ghostPx / 2);
             const y = Math.max(0, cy - ghostPx / 2);
 
             if (!pengajuDraftGhostEl) {
                 const el = document.createElement('div');
-                el.style.cssText = 'position:absolute;border-radius:6px;pointer-events:none;' +
+                el.style.cssText =
+                    'position:absolute;border-radius:6px;pointer-events:none;' +
                     'display:flex;align-items:center;justify-content:center;' +
                     'flex-direction:column;gap:2px;' +
                     'border:2px dashed #f59e0b;background:rgba(245,158,11,.2);color:#d97706;';
-                el.innerHTML = '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>' +
+                el.innerHTML =
+                    '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>' +
                     '<span style="font-size:.48rem;font-weight:700;pointer-events:none;">draft</span>';
                 layer.appendChild(el);
                 pengajuDraftGhostEl = el;
             }
-            pengajuDraftGhostEl.style.left = x + 'px';
-            pengajuDraftGhostEl.style.top = y + 'px';
-            pengajuDraftGhostEl.style.width = ghostPx + 'px';
-            pengajuDraftGhostEl.style.height = ghostPx + 'px';
+            pengajuDraftGhostEl.style.left    = x + 'px';
+            pengajuDraftGhostEl.style.top     = y + 'px';
+            pengajuDraftGhostEl.style.width   = ghostPx + 'px';
+            pengajuDraftGhostEl.style.height  = ghostPx + 'px';
             pengajuDraftGhostEl.style.display = 'flex';
         }
 
@@ -1880,16 +2247,16 @@
 
         /* ── Floating bar ── */
         function pengajuShowFloatBar(idx) {
-            const idle = document.getElementById('pengajuFloatIdle');
-            const bar = document.getElementById('pengajuFloatBar');
-            const label = document.getElementById('pengajuFloatSlotName');
+            const idle    = document.getElementById('pengajuFloatIdle');
+            const bar     = document.getElementById('pengajuFloatBar');
+            const label   = document.getElementById('pengajuFloatSlotName');
             const btnSave = document.getElementById('pengajuFloatSave');
-            const btnAdd = document.getElementById('pengajuFloatAdd');
+            const btnAdd  = document.getElementById('pengajuFloatAdd');
             if (idle) idle.classList.remove('visible');
             if (!bar) return;
-            if (label) label.textContent = 'TTD #' + (idx + 1);
-            if (btnSave) btnSave.disabled = true;
-            if (btnAdd) btnAdd.disabled = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
+            if (label)   label.textContent = 'TTD #' + (idx + 1);
+            if (btnSave) btnSave.disabled  = true;
+            if (btnAdd)  btnAdd.disabled   = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
             bar.classList.add('visible');
         }
 
@@ -1899,11 +2266,9 @@
         }
 
         function pengajuRefreshIdleBar() {
-            const placed = pengajuSlots.filter(function(s) {
-                return s.pdfX !== null;
-            }).length;
-            const idle = document.getElementById('pengajuFloatIdle');
-            const label = document.getElementById('pengajuFloatIdleLabel');
+            const placed = pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length;
+            const idle   = document.getElementById('pengajuFloatIdle');
+            const label  = document.getElementById('pengajuFloatIdleLabel');
             if (!idle) return;
             if (placed > 0 && pengajuActiveIdx === null) {
                 if (label) label.textContent = placed + ' signature' + (placed > 1 ? 's' : '') + ' placed';
@@ -1929,6 +2294,7 @@
             pengajuRenderSlotsUI();
             pengajuSyncInputs();
             pengajuRefreshIdleBar();
+            window.refreshTteToggleBadge(); // ← update badge di tombol toggle
         }
 
         function pengajuCancelFloat() {
@@ -1940,11 +2306,8 @@
         }
 
         function pengajuAddFromFloat() {
-            if (pengajuActiveIdx !== null && pengajuDraft) {
-                pengajuSaveFloat();
-            } else if (pengajuActiveIdx !== null) {
-                pengajuCancelFloat();
-            }
+            if (pengajuActiveIdx !== null && pengajuDraft) pengajuSaveFloat();
+            else if (pengajuActiveIdx !== null) pengajuCancelFloat();
             pengajuSlotAdd();
         }
 
@@ -1965,54 +2328,56 @@
                 pengajuHandlePlacement(e.clientX, e.clientY);
             }
         });
+
         document.getElementById('pengajuClickLayer').addEventListener('touchend', function(e) {
             if (pengajuActiveIdx === null) return;
             e.preventDefault();
             const touch = e.changedTouches[0];
             if (touch) pengajuHandlePlacement(touch.clientX, touch.clientY);
-        }, {
-            passive: false
-        });
+        }, { passive: false });
 
         /* ── Draw confirmed ghost ── */
         function pengajuDrawGhost(idx) {
-            const slot = pengajuSlots[idx];
+            const slot    = pengajuSlots[idx];
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect = wrapper.getBoundingClientRect();
-            const scaleX = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
+            const wRect   = wrapper.getBoundingClientRect();
+            const scaleX  = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
             const ghostPx = QR_PT * scaleX;
-            const x = Math.max(0, slot.cssX - ghostPx / 2);
-            const y = Math.max(0, slot.cssY - ghostPx / 2);
-            const visible = slot.page === pengajuPlacePage;
+            const x       = Math.max(0, slot.cssX - ghostPx / 2);
+            const y       = Math.max(0, slot.cssY - ghostPx / 2);
+            const visible  = slot.page === pengajuPlacePage;
             const isActive = pengajuActiveIdx === idx;
 
             if (!slot.ghostEl) {
                 const el = document.createElement('div');
-                el.style.cssText = 'position:absolute;border-radius:6px;pointer-events:none;' +
+                el.style.cssText =
+                    'position:absolute;border-radius:6px;pointer-events:none;' +
                     'display:flex;align-items:center;justify-content:center;' +
                     'flex-direction:column;gap:2px;';
-                el.innerHTML = '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>' +
+                el.innerHTML =
+                    '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>' +
                     '<span style="font-size:.5rem;font-weight:700;pointer-events:none;">' +
                     '#' + (idx + 1) + '</span>';
                 document.getElementById('pengajuGhostLayer').appendChild(el);
                 slot.ghostEl = el;
             }
-            slot.ghostEl.style.left = x + 'px';
-            slot.ghostEl.style.top = y + 'px';
-            slot.ghostEl.style.width = ghostPx + 'px';
-            slot.ghostEl.style.height = ghostPx + 'px';
-            slot.ghostEl.style.display = visible ? 'flex' : 'none';
-            slot.ghostEl.style.border = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
+
+            slot.ghostEl.style.left       = x + 'px';
+            slot.ghostEl.style.top        = y + 'px';
+            slot.ghostEl.style.width      = ghostPx + 'px';
+            slot.ghostEl.style.height     = ghostPx + 'px';
+            slot.ghostEl.style.display    = visible ? 'flex' : 'none';
+            slot.ghostEl.style.border     = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
             slot.ghostEl.style.background = isActive ? 'rgba(245,158,11,.2)' : 'rgba(37,99,235,.15)';
-            slot.ghostEl.style.color = isActive ? '#d97706' : '#1d4ed8';
+            slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
         }
 
         function pengajuRedrawGhosts() {
             if (!pengajuViewport || !pengajuPageNatH) return;
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect = wrapper.getBoundingClientRect();
-            const cssW = wRect.width;
-            const cssH = wRect.height;
+            const wRect   = wrapper.getBoundingClientRect();
+            const cssW    = wRect.width;
+            const cssH    = wRect.height;
 
             pengajuSlots.forEach(function(slot, idx) {
                 if (slot.pdfX === null) return;
@@ -2035,7 +2400,6 @@
                 const card = document.createElement('div');
                 card.className = 'rv-sig-slot' + (isActive ? ' active' : '');
 
-                /* Header */
                 const hdr = document.createElement('div');
                 hdr.className = 'rv-sig-slot-header';
 
@@ -2050,30 +2414,26 @@
                 hdr.appendChild(numEl);
                 hdr.appendChild(labelEl);
 
-                /* Delete button — data-action + data-id, tidak pakai onclick inline */
                 if (pengajuSlots.length > 1) {
                     const delBtn = document.createElement('button');
                     delBtn.type = 'button';
                     delBtn.className = 'rv-sig-del';
                     delBtn.title = 'Remove';
                     delBtn.dataset.action = 'slot-delete';
-                    delBtn.dataset.id = slot.id;
+                    delBtn.dataset.id     = slot.id;
                     delBtn.innerHTML = '<i class="bi bi-trash" style="pointer-events:none;"></i>';
                     hdr.appendChild(delBtn);
                 }
 
                 card.appendChild(hdr);
 
-                /* Meta */
                 const meta = document.createElement('div');
                 meta.className = 'rv-sig-meta' + (isPlaced ? ' placed' : '');
                 meta.innerHTML = isPlaced ?
-                    '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page +
-                    ' — placed' :
+                    '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page + ' — placed' :
                     '<i class="bi bi-circle" style="pointer-events:none;"></i> Not placed yet';
                 card.appendChild(meta);
 
-                /* Action row */
                 const row = document.createElement('div');
                 row.style.cssText = 'display:flex;gap:.5rem;margin-top:.55rem;';
 
@@ -2081,9 +2441,9 @@
                 btn.type = 'button';
 
                 if (isActive) {
-                    /* "Done placing" — data-action="slot-exit" */
                     btn.innerHTML = '<i class="bi bi-check-lg" style="pointer-events:none;"></i> Save placement';
-                    btn.style.cssText = 'flex:1;display:inline-flex;align-items:center;' +
+                    btn.style.cssText =
+                        'flex:1;display:inline-flex;align-items:center;' +
                         'justify-content:center;gap:.35rem;padding:.4rem .75rem;' +
                         'border-radius:8px;border:none;background:var(--accent);' +
                         'color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;';
@@ -2092,24 +2452,25 @@
                     const hint = document.createElement('div');
                     hint.className = 'rv-sig-hint';
                     hint.style.marginTop = '.4rem';
-                    hint.innerHTML = '<i class="bi bi-hand-index" style="pointer-events:none;"></i>' +
+                    hint.innerHTML =
+                        '<i class="bi bi-hand-index" style="pointer-events:none;"></i>' +
                         ' Click the canvas to place — click again to move';
 
                     row.appendChild(btn);
                     card.appendChild(row);
                     card.appendChild(hint);
                 } else {
-                    /* "Place on canvas" / "Reposition" — data-action="slot-activate" */
                     btn.innerHTML = isPlaced ?
                         '<i class="bi bi-arrows-move" style="pointer-events:none;"></i> Reposition' :
                         '<i class="bi bi-crosshair" style="pointer-events:none;"></i> Place on canvas';
-                    btn.style.cssText = 'flex:1;display:inline-flex;align-items:center;' +
+                    btn.style.cssText =
+                        'flex:1;display:inline-flex;align-items:center;' +
                         'justify-content:center;gap:.35rem;padding:.4rem .75rem;' +
                         'border-radius:8px;border:1px solid var(--border);' +
                         'background:var(--card);color:var(--muted);' +
                         'font-size:.78rem;font-weight:600;cursor:pointer;';
                     btn.dataset.action = 'slot-activate';
-                    btn.dataset.idx = idx;
+                    btn.dataset.idx    = idx;
 
                     row.appendChild(btn);
                     card.appendChild(row);
@@ -2118,14 +2479,14 @@
                 container.appendChild(card);
             });
 
-            /* Add-slot button state */
             const blockAdd = pengajuActiveIdx !== null &&
                 pengajuSlots[pengajuActiveIdx] &&
                 pengajuSlots[pengajuActiveIdx].pdfX === null;
+
             const addBtn = document.getElementById('btnPengajuAddSlot');
             if (addBtn) {
                 addBtn.disabled = blockAdd;
-                addBtn.title = blockAdd ? 'Place the current signature first' : '';
+                addBtn.title    = blockAdd ? 'Place the current signature first' : '';
             }
         }
 
@@ -2137,18 +2498,18 @@
             let i = 0;
             pengajuSlots.forEach(function(slot) {
                 if (slot.pdfX === null) return;
-                var fields = {
-                    ['pengaju_placements[' + i + '][halaman]']: slot.page,
-                    ['pengaju_placements[' + i + '][pos_x]']: slot.pdfX,
-                    ['pengaju_placements[' + i + '][pos_y]']: slot.pdfY,
-                    ['pengaju_placements[' + i + '][lebar]']: QR_PT,
-                    ['pengaju_placements[' + i + '][tinggi]']: QR_PT,
+                const fields = {
+                    ['pengaju_placements[' + i + '][halaman]'] : slot.page,
+                    ['pengaju_placements[' + i + '][pos_x]']   : slot.pdfX,
+                    ['pengaju_placements[' + i + '][pos_y]']   : slot.pdfY,
+                    ['pengaju_placements[' + i + '][lebar]']   : QR_PT,
+                    ['pengaju_placements[' + i + '][tinggi]']  : QR_PT,
                 };
-                Object.entries(fields).forEach(function(entry) {
-                    const inp = document.createElement('input');
-                    inp.type = 'hidden';
-                    inp.name = entry[0];
-                    inp.value = entry[1];
+                Object.entries(fields).forEach(function([name, value]) {
+                    const inp   = document.createElement('input');
+                    inp.type    = 'hidden';
+                    inp.name    = name;
+                    inp.value   = value;
                     container.appendChild(inp);
                 });
                 i++;
@@ -2160,23 +2521,24 @@
         ════════════════════════════════════════════════ */
         @if (old('tmp_key'))
             (function restoreValidationState() {
-                const OLD_TMP_KEY = @json(old('tmp_key'));
+                const OLD_TMP_KEY    = @json(old('tmp_key'));
                 const OLD_PERUSAHAAN = @json(old('id_perusahaan'));
                 const OLD_PREVIEW_URL =
                     '{{ route('data.submission.tempPreview', ['key' => old('tmp_key', '__PH__')]) }}'
                     .replace('__PH__', OLD_TMP_KEY);
 
                 function doRestore() {
-                    var section = document.getElementById('sectionTtePengaju');
-                    if (section) section.style.display = '';
+                    // Tampilkan tombol toggle TTE (karena file sudah ada)
+                    const toggleWrap = document.getElementById('ttePengajuToggleWrap');
+                    if (toggleWrap) toggleWrap.style.display = '';
 
-                    if (OLD_PERUSAHAAN && typeof window.updateTtePengajuInfo === 'function') {
-                        window.updateTtePengajuInfo(OLD_PERUSAHAAN);
-                    }
-
+                    // Load PDF di background (canvas belum terbuka)
                     if (typeof window.pengajuLoadPdf === 'function') {
                         window.pengajuLoadPdf(OLD_PREVIEW_URL);
                     }
+
+                    // Jangan buka section TTE secara otomatis —
+                    // biarkan user yang memutuskan apakah mau TTE atau tidak
                 }
 
                 if (document.readyState === 'loading') {

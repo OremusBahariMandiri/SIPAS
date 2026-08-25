@@ -5,90 +5,163 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/submission-detail.css') }}">
     <style>
-    /* ── Approval Flow Timeline ── */
-    .afl-wrap { position: relative; padding: .1rem 0; }
-    .afl-wrap::before {
-        content: '';
-        position: absolute;
-        left: 15px; top: 24px; bottom: 24px;
-        width: 2px;
-        background: var(--border);
-        z-index: 0;
-    }
-    .afl-step {
-        display: flex;
-        align-items: flex-start;
-        gap: .75rem;
-        position: relative;
-        z-index: 1;
-        padding: .45rem 0;
-    }
-    .afl-dot {
-        width: 30px; height: 30px;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-        font-size: .8rem;
-        border: 2px solid var(--border);
-        background: var(--card);
-    }
-    .afl-dot.approved { border-color: #16A34A; background: #f0fdf4; color: #16A34A; }
-    .afl-dot.rejected { border-color: #DC2626; background: #fef2f2; color: #DC2626; }
-    .afl-dot.active   { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
-    .afl-dot.pending  { border-color: var(--border); background: var(--bg); color: var(--muted); }
-    .afl-dot.skipped  { border-color: var(--border); background: var(--bg); color: var(--muted); }
+        /* ── Approval Flow Timeline ── */
+        .afl-wrap {
+            position: relative;
+            padding: .1rem 0;
+        }
 
-    .afl-body {
-        flex: 1;
-        padding: .3rem 0 .55rem;
-        border-bottom: 1px solid var(--border);
-    }
-    .afl-step:last-child .afl-body { border-bottom: none; }
+        .afl-wrap::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 24px;
+            bottom: 24px;
+            width: 2px;
+            background: var(--border);
+            z-index: 0;
+        }
 
-    .afl-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .5rem;
-        flex-wrap: wrap;
-    }
-    .afl-name {
-        font-size: .82rem;
-        font-weight: 600;
-        color: var(--text);
-    }
-    .afl-name.muted { color: var(--muted); font-weight: 500; }
+        .afl-step {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            position: relative;
+            z-index: 1;
+            padding: .45rem 0;
+        }
 
-    .afl-badge {
-        font-size: .67rem;
-        font-weight: 700;
-        padding: .18rem .5rem;
-        border-radius: 20px;
-        white-space: nowrap;
-    }
-    .afl-badge.approved { background: #f0fdf4; border: 1px solid #86efac; color: #14532d; }
-    .afl-badge.rejected { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-    .afl-badge.active   { background: var(--accent-light); border: 1px solid var(--accent); color: var(--accent); }
-    .afl-badge.pending  { background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
-    .afl-badge.skipped  { background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+        .afl-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: .8rem;
+            border: 2px solid var(--border);
+            background: var(--card);
+        }
 
-    .afl-sub {
-        font-size: .73rem;
-        color: var(--muted);
-        margin-top: .15rem;
-        display: flex;
-        align-items: center;
-        gap: .35rem;
-        flex-wrap: wrap;
-    }
-    .afl-sub i { font-size: .72rem; flex-shrink: 0; }
+        .afl-dot.approved {
+            border-color: #16A34A;
+            background: #f0fdf4;
+            color: #16A34A;
+        }
 
-    .afl-note {
-        margin-top: .3rem;
-        font-size: .72rem;
-        color: #991b1b;
-        font-style: italic;
-    }
+        .afl-dot.rejected {
+            border-color: #DC2626;
+            background: #fef2f2;
+            color: #DC2626;
+        }
+
+        .afl-dot.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .afl-dot.pending {
+            border-color: var(--border);
+            background: var(--bg);
+            color: var(--muted);
+        }
+
+        .afl-dot.skipped {
+            border-color: var(--border);
+            background: var(--bg);
+            color: var(--muted);
+        }
+
+        .afl-body {
+            flex: 1;
+            padding: .3rem 0 .55rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .afl-step:last-child .afl-body {
+            border-bottom: none;
+        }
+
+        .afl-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
+            flex-wrap: wrap;
+        }
+
+        .afl-name {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .afl-name.muted {
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .afl-badge {
+            font-size: .67rem;
+            font-weight: 700;
+            padding: .18rem .5rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .afl-badge.approved {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #14532d;
+        }
+
+        .afl-badge.rejected {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        .afl-badge.active {
+            background: var(--accent-light);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .afl-badge.pending {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .afl-badge.skipped {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .afl-sub {
+            font-size: .73rem;
+            color: var(--muted);
+            margin-top: .15rem;
+            display: flex;
+            align-items: center;
+            gap: .35rem;
+            flex-wrap: wrap;
+        }
+
+        .afl-sub i {
+            font-size: .72rem;
+            flex-shrink: 0;
+        }
+
+        .afl-note {
+            margin-top: .3rem;
+            font-size: .72rem;
+            color: #991b1b;
+            font-style: italic;
+        }
     </style>
 @endpush
 
@@ -96,28 +169,54 @@
 
     @php
         $bannerMap = [
-            'draft'     => ['class' => 'sdv-banner-draft',   'icon' => 'bi-pencil-square',     'text' => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.'],
-            'waiting'   => ['class' => 'sdv-banner-waiting', 'icon' => 'bi-hourglass-split',   'text' => 'Waiting for the first approver to review.'],
-            'in_review' => ['class' => 'sdv-banner-review',  'icon' => 'bi-arrow-repeat',      'text' => 'Currently being reviewed by approvers.'],
-            'approved'  => ['class' => 'sdv-banner-success', 'icon' => 'bi-check-circle-fill', 'text' => 'This submission has been <strong>Approved</strong>.'],
-            'rejected'  => ['class' => 'sdv-banner-danger',  'icon' => 'bi-x-circle-fill',     'text' => 'This submission has been <strong>Rejected</strong>.'],
+            'draft' => [
+                'class' => 'sdv-banner-draft',
+                'icon' => 'bi-pencil-square',
+                'text' => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.',
+            ],
+            'waiting' => [
+                'class' => 'sdv-banner-waiting',
+                'icon' => 'bi-hourglass-split',
+                'text' => 'Waiting for the first approver to review.',
+            ],
+            'in_review' => [
+                'class' => 'sdv-banner-review',
+                'icon' => 'bi-arrow-repeat',
+                'text' => 'Currently being reviewed by approvers.',
+            ],
+            'approved' => [
+                'class' => 'sdv-banner-success',
+                'icon' => 'bi-check-circle-fill',
+                'text' => 'This submission has been <strong>Approved</strong>.',
+            ],
+            'rejected' => [
+                'class' => 'sdv-banner-danger',
+                'icon' => 'bi-x-circle-fill',
+                'text' => 'This submission has been <strong>Rejected</strong>.',
+            ],
         ];
         $banner = $bannerMap[$submission->status] ?? $bannerMap['draft'];
 
+        // Ambil catatan dari approval terakhir (approve atau reject)
+        $lastApproval = $submission->approvals->sortByDesc('acted_at')->first();
+        $bannerNote = $lastApproval?->catatan ?? null;
+        $bannerNoteBy = $lastApproval?->approver->nama_karyawan ?? ($lastApproval?->approver->nrk ?? null);
+        $banner = $bannerMap[$submission->status] ?? $bannerMap['draft'];
+
         $badgeMap = [
-            'draft'     => ['class' => 'sdv-badge-draft',   'label' => 'Draft'],
-            'waiting'   => ['class' => 'sdv-badge-waiting', 'label' => 'Waiting'],
-            'in_review' => ['class' => 'sdv-badge-review',  'label' => 'In Review'],
-            'approved'  => ['class' => 'sdv-badge-success', 'label' => 'Approved'],
-            'rejected'  => ['class' => 'sdv-badge-danger',  'label' => 'Rejected'],
+            'draft' => ['class' => 'sdv-badge-draft', 'label' => 'Draft'],
+            'waiting' => ['class' => 'sdv-badge-waiting', 'label' => 'Waiting'],
+            'in_review' => ['class' => 'sdv-badge-review', 'label' => 'In Review'],
+            'approved' => ['class' => 'sdv-badge-success', 'label' => 'Approved'],
+            'rejected' => ['class' => 'sdv-badge-danger', 'label' => 'Rejected'],
         ];
         $badgeCurrent = $badgeMap[$submission->status] ?? $badgeMap['draft'];
 
         $stepClass = ['approved' => 'is-approved', 'rejected' => 'is-rejected', 'waiting' => 'is-waiting'];
         $stepBadge = [
             'approved' => ['class' => 'sdv-badge-success', 'icon' => 'bi-check-circle-fill', 'label' => 'Approved'],
-            'rejected' => ['class' => 'sdv-badge-danger',  'icon' => 'bi-x-circle-fill',     'label' => 'Rejected'],
-            'waiting'  => ['class' => 'sdv-badge-waiting', 'icon' => 'bi-hourglass-split',   'label' => 'Pending'],
+            'rejected' => ['class' => 'sdv-badge-danger', 'icon' => 'bi-x-circle-fill', 'label' => 'Rejected'],
+            'waiting' => ['class' => 'sdv-badge-waiting', 'icon' => 'bi-hourglass-split', 'label' => 'Pending'],
         ];
 
         /* ── Build flow steps ── */
@@ -133,13 +232,13 @@
 
         /* 1. Pengaju */
         $flowSteps[] = [
-            'label'   => 'Submitted by',
-            'name'    => $submission->user->nama_karyawan ?? $submission->user->nrk ?? '-',
-            'sub'     => $submission->user->jabatan ?? null,
-            'status'  => 'approved',
-            'time'    => $submission->created_at,
+            'label' => 'Submitted by',
+            'name' => $submission->user->nama_karyawan ?? ($submission->user->nrk ?? '-'),
+            'sub' => $submission->user->jabatan ?? null,
+            'status' => 'approved',
+            'time' => $submission->created_at,
             'catatan' => null,
-            'aksi'    => 'approve',
+            'aksi' => 'approve',
         ];
 
         /* 2. Terusan */
@@ -148,12 +247,13 @@
 
             if ($apLog) {
                 $status = $apLog->aksi === 'approve' ? 'approved' : 'rejected';
-                $name   = $apLog->approver->nama_karyawan ?? '-';
-                $sub    = $apLog->approver->jabatan ?? null;
-                $time   = $apLog->acted_at;
+                $name = $apLog->approver->nama_karyawan ?? '-';
+                $sub = $apLog->approver->jabatan ?? null;
+                $time = $apLog->acted_at;
             } else {
-                $isActive = $terusan->status === 'waiting'
-                    && !$submission->terusans
+                $isActive =
+                    $terusan->status === 'waiting' &&
+                    !$submission->terusans
                         ->where('urutan', '<', $terusan->urutan)
                         ->where('status', '!=', 'approved')
                         ->count();
@@ -163,19 +263,19 @@
                 } else {
                     $status = $isActive ? 'active' : 'pending';
                 }
-                $name = $terusan->departemen->nama ?? '-';
-                $sub  = null;
+                $name = $terusan->user->nama_karyawan ?? '-'; // ← ambil dari user
+                $sub = $terusan->user->jabatan ?? null;
                 $time = null;
             }
 
             $flowSteps[] = [
-                'label'   => $terusan->departemen->nama ?? '-',
-                'name'    => $apLog ? ($apLog->approver->nama_karyawan ?? '-') : null,
-                'sub'     => $apLog ? ($apLog->approver->jabatan ?? null) : null,
-                'status'  => $status,
-                'time'    => $time,
+                'label' => 'Carbon Copy (CC)',
+                'name' => $name,
+                'sub' => $sub,
+                'status' => $status,
+                'time' => $time,
                 'catatan' => $apLog ? $apLog->catatan : null,
-                'aksi'    => $apLog ? $apLog->aksi : null,
+                'aksi' => $apLog ? $apLog->aksi : null,
             ];
         }
 
@@ -183,46 +283,63 @@
         $kepApLog = $approvalIndex['kepada_0'] ?? null;
         if ($kepApLog) {
             $kepStatus = $kepApLog->aksi === 'approve' ? 'approved' : 'rejected';
-            $kepName   = $kepApLog->approver->nama_karyawan ?? '-';
-            $kepSub    = $kepApLog->approver->jabatan ?? null;
-            $kepTime   = $kepApLog->acted_at;
+            $kepName = $kepApLog->approver->nama_karyawan ?? '-';
+            $kepSub = $kepApLog->approver->jabatan ?? null;
+            $kepTime = $kepApLog->acted_at;
         } else {
-            $allDone   = $submission->terusans->isEmpty()
-                || $submission->terusans->every(fn($t) => $t->status === 'approved');
-            $kepStatus = $submission->status === 'rejected' ? 'skipped'
-                       : ($submission->status === 'approved' ? 'approved'
-                       : ($allDone ? 'active' : 'pending'));
-            $kepName   = $submission->kepada->nama_karyawan ?? '-';
-            $kepSub    = $submission->kepada->jabatan ?? null;
-            $kepTime   = null;
+            $allDone =
+                $submission->terusans->isEmpty() || $submission->terusans->every(fn($t) => $t->status === 'approved');
+            $kepStatus =
+                $submission->status === 'rejected'
+                    ? 'skipped'
+                    : ($submission->status === 'approved'
+                        ? 'approved'
+                        : ($allDone
+                            ? 'active'
+                            : 'pending'));
+            $kepName = $submission->kepada->nama_karyawan ?? '-';
+            $kepSub = $submission->kepada->jabatan ?? null;
+            $kepTime = null;
         }
 
         $flowSteps[] = [
-            'label'   => 'Final Approval',
-            'name'    => $kepName,
-            'sub'     => $kepSub,
-            'status'  => $kepStatus,
-            'time'    => $kepTime,
+            'label' => 'Final Approval',
+            'name' => $kepName,
+            'sub' => $kepSub,
+            'status' => $kepStatus,
+            'time' => $kepTime,
             'catatan' => $kepApLog ? $kepApLog->catatan : null,
-            'aksi'    => $kepApLog ? $kepApLog->aksi : null,
+            'aksi' => $kepApLog ? $kepApLog->aksi : null,
         ];
     @endphp
 
     {{-- ── PAGE HEADER ── --}}
-    <div class="sdv-header">
+    <div class="sdv-header" style="align-items:center;">
         <a href="{{ route('data.submission.index') }}" class="sdv-back" title="Back">
             <i class="bi bi-arrow-left"></i>
         </a>
-        <div class="sdv-header-text">
-            <h1 class="sdv-header-title">Submission Detail</h1>
-            <p class="sdv-header-sub">{{ $submission->nomor_surat }} — {{ $submission->perihal }}</p>
-        </div>
+        <h1 class="sdv-header-title" style="margin:0;">Submission Detail</h1>
     </div>
 
     {{-- ── STATUS BANNER ── --}}
     <div class="sdv-status-banner {{ $banner['class'] }}">
         <i class="bi {{ $banner['icon'] }}"></i>
-        <div>{!! $banner['text'] !!}</div>
+        <div>
+            <div>{!! $banner['text'] !!}</div>
+            @if ($bannerNote)
+                <div
+                    style="margin-top:.35rem;font-size:.8rem;opacity:.85;
+                        display:flex;align-items:flex-start;gap:.35rem;">
+                    <i class="bi bi-chat-left-quote" style="flex-shrink:0;margin-top:.1rem;"></i>
+                    <span>
+                        "{{ $bannerNote }}"
+                        @if ($bannerNoteBy)
+                            <span style="opacity:.7;font-size:.75rem;">— {{ $bannerNoteBy }}</span>
+                        @endif
+                    </span>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- ── TWO-COLUMN LAYOUT ── --}}
@@ -242,15 +359,27 @@
                 </div>
                 <div class="sdv-card-body">
                     <table class="sdv-info-table">
-                        <tr><th>Letter No.</th>   <td><strong>{{ $submission->nomor_surat }}</strong></td></tr>
-                        <tr><th>Subject</th>       <td>{{ $submission->perihal }}</td></tr>
-                        <tr><th>Letter Date</th>   <td>{{ $submission->tanggal_surat->format('d M Y, H:i') }}</td></tr>
-                        <tr><th>Company</th>       <td>{{ $submission->perusahaan->nama ?? '-' }}</td></tr>
+                        <tr>
+                            <th>Letter No.</th>
+                            <td><strong>{{ $submission->nomor_surat }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Subject</th>
+                            <td>{{ $submission->perihal }}</td>
+                        </tr>
+                        <tr>
+                            <th>Letter Date</th>
+                            <td>{{ $submission->tanggal_surat->format('d M Y, H:i') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Company</th>
+                            <td>{{ $submission->perusahaan->nama ?? '-' }}</td>
+                        </tr>
                         <tr>
                             <th>Document Type</th>
                             <td>
                                 {{ $submission->jenisDokumen->jenis_dokumen ?? '-' }}
-                                @if($submission->jenisDokumen)
+                                @if ($submission->jenisDokumen)
                                     <span class="sdv-info-sub">{{ $submission->jenisDokumen->kategori_dokumen }}</span>
                                 @endif
                             </td>
@@ -259,7 +388,7 @@
                             <th>Recipient</th>
                             <td>
                                 {{ $submission->kepada->nama_karyawan ?? '-' }}
-                                @if($submission->kepada?->jabatan)
+                                @if ($submission->kepada?->jabatan)
                                     <span class="sdv-info-sub">{{ $submission->kepada->jabatan }}</span>
                                 @endif
                             </td>
@@ -268,17 +397,20 @@
                             <th>Submitted By</th>
                             <td>
                                 {{ $submission->user->nama_karyawan ?? '-' }}
-                                @if($submission->user?->jabatan)
+                                @if ($submission->user?->jabatan)
                                     <span class="sdv-info-sub">{{ $submission->user->jabatan }}</span>
                                 @endif
                             </td>
                         </tr>
-                        <tr><th>Submitted At</th>  <td>{{ $submission->created_at->format('d M Y, H:i') }}</td></tr>
+                        <tr>
+                            <th>Submitted At</th>
+                            <td>{{ $submission->created_at->format('d M Y, H:i') }}</td>
+                        </tr>
                     </table>
 
-                    @if($submission->isEditable() || $submission->file_signed || $submission->file_current || $submission->file_original)
+                    @if ($submission->isEditable() || $submission->file_signed || $submission->file_current || $submission->file_original)
                         <div class="sdv-actions">
-                            @if($submission->isEditable())
+                            @if ($submission->isEditable())
                                 <a href="{{ route('data.submission.edit', $submission) }}" class="sdv-btn sdv-btn-primary">
                                     <i class="bi bi-pencil"></i> Edit Draft
                                 </a>
@@ -287,16 +419,19 @@
                                 </button>
                             @endif
 
-                            @if($submission->file_signed)
-                                <a href="{{ route('data.submission.currentFile', $submission) }}" target="_blank" class="sdv-btn sdv-btn-dl">
-                                    <i class="bi bi-file-earmark-pdf-fill"></i> Download Signed
+                            @if ($submission->file_signed)
+                                <a href="{{ route('data.submission.currentFile', $submission) }}" target="_blank"
+                                    class="sdv-btn sdv-btn-danger">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i> Show Signed Letter (PDF)
                                 </a>
                             @elseif($submission->file_current)
-                                <a href="{{ route('data.submission.currentFile', $submission) }}" target="_blank" class="sdv-btn sdv-btn-dl-ghost">
+                                <a href="{{ route('data.submission.currentFile', $submission) }}" target="_blank"
+                                    class="sdv-btn sdv-btn-dl-ghost">
                                     <i class="bi bi-file-earmark-pdf"></i> View (With Signatures So Far)
                                 </a>
                             @elseif($submission->file_original)
-                                <a href="{{ route('data.submission.file', $submission) }}" target="_blank" class="sdv-btn sdv-btn-dl-ghost">
+                                <a href="{{ route('data.submission.file', $submission) }}" target="_blank"
+                                    class="sdv-btn sdv-btn-dl-ghost">
                                     <i class="bi bi-file-earmark-pdf"></i> View Original
                                 </a>
                             @endif
@@ -324,21 +459,21 @@
                 </div>
                 <div class="sdv-card-body" style="padding-top:.6rem;">
                     <div class="afl-wrap">
-                        @foreach($flowSteps as $step)
+                        @foreach ($flowSteps as $step)
                             @php
                                 $s = $step['status'];
-                                $dotIcon = match($s) {
+                                $dotIcon = match ($s) {
                                     'approved' => 'bi-check-lg',
                                     'rejected' => 'bi-x-lg',
-                                    'active'   => 'bi-hourglass-split',
-                                    default    => 'bi-circle',
+                                    'active' => 'bi-hourglass-split',
+                                    default => 'bi-circle',
                                 };
-                                $badgeLabel = match($s) {
+                                $badgeLabel = match ($s) {
                                     'approved' => 'Approved',
                                     'rejected' => 'Rejected',
-                                    'active'   => 'Waiting',
-                                    'skipped'  => 'Skipped',
-                                    default    => 'Pending',
+                                    'active' => 'Waiting',
+                                    'skipped' => 'Skipped',
+                                    default => 'Pending',
                                 };
                             @endphp
 
@@ -348,24 +483,26 @@
                                 </div>
                                 <div class="afl-body">
                                     <div class="afl-row">
-                                        <div class="afl-name {{ in_array($s, ['pending','skipped']) ? 'muted' : '' }}">
+                                        <div class="afl-name {{ in_array($s, ['pending', 'skipped']) ? 'muted' : '' }}">
                                             {{ $step['label'] }}
                                         </div>
                                         <span class="afl-badge {{ $s }}">{{ $badgeLabel }}</span>
                                     </div>
 
                                     {{-- Nama + jabatan + waktu --}}
-                                    @if($step['name'] || $step['time'])
+                                    @if ($step['name'] || $step['time'])
                                         <div class="afl-sub">
-                                            @if($step['name'])
+                                            @if ($step['name'])
                                                 <span>{{ $step['name'] }}</span>
-                                                @if($step['sub'])
+                                                @if ($step['sub'])
                                                     <span style="opacity:.5;">·</span>
                                                     <span>{{ $step['sub'] }}</span>
                                                 @endif
                                             @endif
-                                            @if($step['time'])
-                                                @if($step['name'])<span style="opacity:.5;">·</span>@endif
+                                            @if ($step['time'])
+                                                @if ($step['name'])
+                                                    <span style="opacity:.5;">·</span>
+                                                @endif
                                                 <i class="bi bi-clock"></i>
                                                 <span>{{ \Carbon\Carbon::parse($step['time'])->format('d/m/Y H:i') }}</span>
                                             @endif
@@ -373,8 +510,13 @@
                                     @endif
 
                                     {{-- Catatan reject --}}
-                                    @if($step['catatan'] && $step['aksi'] === 'reject')
-                                        <div class="afl-note">"{{ $step['catatan'] }}"</div>
+                                    @if ($step['catatan'])
+                                        <div class="afl-note"
+                                            style="{{ $step['aksi'] === 'approve' ? 'color:#14532d;' : 'color:#991b1b;' }}">
+                                            <i class="bi bi-{{ $step['aksi'] === 'approve' ? 'chat-left-text' : 'exclamation-circle' }}"
+                                                style="font-size:.68rem;"></i>
+                                            "{{ $step['catatan'] }}"
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -413,12 +555,16 @@
 
 @push('scripts')
     <script>
-        (function () {
+        (function() {
             const modal = document.getElementById('sdvModalDel');
-            window.sdvOpenModal  = () => modal.classList.add('show');
+            window.sdvOpenModal = () => modal.classList.add('show');
             window.sdvCloseModal = () => modal.classList.remove('show');
-            modal.addEventListener('click', e => { if (e.target === modal) sdvCloseModal(); });
-            document.addEventListener('keydown', e => { if (e.key === 'Escape') sdvCloseModal(); });
+            modal.addEventListener('click', e => {
+                if (e.target === modal) sdvCloseModal();
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') sdvCloseModal();
+            });
         })();
     </script>
 @endpush

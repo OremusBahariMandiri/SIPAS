@@ -3,6 +3,7 @@
 namespace App\Models\DataMaster;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class WilayahKerja extends Model
 {
@@ -16,11 +17,13 @@ class WilayahKerja extends Model
         'skt_area_kerja',
     ];
 
-    /**
-     * Scope: filter berdasarkan wilayah kerja
-     */
     public function scopeByWilayah($query, string $wilayah)
     {
         return $query->where('wilayah_kerja', $wilayah);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'wilker', 'kode');
     }
 }

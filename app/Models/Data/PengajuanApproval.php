@@ -18,6 +18,7 @@ class PengajuanApproval extends Model
         'aksi',
         'catatan',
         'acted_at',
+        'file_snapshot',
     ];
 
     protected $casts = [

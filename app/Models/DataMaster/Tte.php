@@ -9,7 +9,6 @@ use App\Models\User;
 
 class Tte extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'a05_tte';
 

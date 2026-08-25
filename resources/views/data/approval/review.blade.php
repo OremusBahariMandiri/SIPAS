@@ -1096,7 +1096,7 @@
                                     Notes
                                     <span style="color:var(--muted);font-weight:400;">(optional)</span>
                                 </span>
-                                <textarea name="catatan_approve" class="rv-notes" rows="3" placeholder="Add a note for this approval...">{{ old('catatan_approve') }}</textarea>
+                                <textarea name="catatan" class="rv-notes" rows="3" placeholder="Add a note for this approval...">{{ old('catatan') }}</textarea>
                             </div>
 
                             <button type="submit" class="btn-approve-full" id="btnApprove"

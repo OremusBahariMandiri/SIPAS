@@ -67,7 +67,7 @@ class PerusahaanController extends Controller
         ]);
 
         return redirect()->route('master.perusahaan.index')
-            ->with('success', 'Perusahaan berhasil ditambahkan.');
+            ->with('success', 'Company successfully added.');
     }
 
     public function edit(Perusahaan $perusahaan): View
@@ -95,14 +95,12 @@ class PerusahaanController extends Controller
         ];
 
         if ($request->hasFile('logo')) {
-            // Hapus logo lama jika ada
             if ($perusahaan->logo) {
                 Storage::disk('public')->delete($perusahaan->logo);
             }
             $data['logo'] = $request->file('logo')->store('logos', 'public');
         }
 
-        // Hapus logo jika user centang hapus logo
         if ($request->boolean('hapus_logo') && $perusahaan->logo) {
             Storage::disk('public')->delete($perusahaan->logo);
             $data['logo'] = null;
@@ -111,7 +109,7 @@ class PerusahaanController extends Controller
         $perusahaan->update($data);
 
         return redirect()->route('master.perusahaan.index')
-            ->with('success', 'Data perusahaan berhasil diperbarui.');
+            ->with('success', 'Company data successfully updated.');
     }
 
     public function destroy(Perusahaan $perusahaan): RedirectResponse
@@ -119,7 +117,7 @@ class PerusahaanController extends Controller
         $this->authorizeAccess($this->menu, 'delete_access');
 
         if ($perusahaan->users()->exists()) {
-            return back()->with('error', 'Perusahaan tidak dapat dihapus karena masih memiliki pengguna terdaftar.');
+            return back()->with('error', 'Company cannot be deleted because it still has registered users.');
         }
 
         if ($perusahaan->logo) {
@@ -129,7 +127,7 @@ class PerusahaanController extends Controller
         $perusahaan->delete();
 
         return redirect()->route('master.perusahaan.index')
-            ->with('success', 'Perusahaan berhasil dihapus.');
+            ->with('success', 'Company successfully deleted.');
     }
 
     // ─── Helpers ─────────────────────────────────────────────
@@ -138,21 +136,21 @@ class PerusahaanController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
-        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
     }
 
     private function messages(): array
     {
         return [
-            'nama.required'      => 'Nama perusahaan wajib diisi.',
-            'nama.unique'        => 'Nama perusahaan sudah terdaftar.',
-            'singkatan.required' => 'Singkatan wajib diisi.',
-            'status.required'    => 'Status wajib dipilih.',
-            'logo.image'         => 'Logo harus berupa gambar.',
-            'logo.mimes'         => 'Format logo harus PNG, JPG, atau JPEG.',
-            'logo.max'           => 'Ukuran logo maksimal 2MB.',
+            'nama.required'      => 'Company name is required.',
+            'nama.unique'        => 'Company name is already registered.',
+            'singkatan.required' => 'Abbreviation is required.',
+            'status.required'    => 'Status is required.',
+            'logo.image'         => 'Logo must be an image file.',
+            'logo.mimes'         => 'Logo format must be PNG, JPG, or JPEG.',
+            'logo.max'           => 'Logo size must not exceed 2MB.',
         ];
     }
 }

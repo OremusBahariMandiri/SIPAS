@@ -12,36 +12,47 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ApprovalController extends Controller
 {
+    // =========================================================================
+    // INDEX
+    // =========================================================================
+
     public function index(Request $request): View
     {
         $user      = auth()->user();
-        $activeTab = $request->get('tab', 'inbox');
+        $isAdmin   = $user->isAdmin();
+        $activeTab = $request->get('tab', $isAdmin ? 'history' : 'inbox');
 
-        $terusans = PengajuanTerusan::with(['pengajuan.perusahaan', 'pengajuan.user', 'departemen'])
-            ->where('id_departemen', $user->id_departemen)
-            ->where('status', 'waiting')
-            ->whereHas('pengajuan', function ($q) {
-                $q->whereIn('status', ['waiting', 'in_review']);
-            })
-            ->get()
-            ->filter(function ($terusan) {
-                $prev = $terusan->pengajuan->terusans()
-                    ->where('urutan', '<', $terusan->urutan)
-                    ->where('status', '!=', 'approved')
-                    ->exists();
-                return !$prev;
-            });
+        if ($isAdmin) {
+            $terusans = collect();
+            $kepadas  = collect();
+        } else {
+            $terusans = PengajuanTerusan::with(['pengajuan.perusahaan', 'pengajuan.user'])
+                ->where('id_user', $user->id)
+                ->where('status', 'waiting')
+                ->whereHas('pengajuan', function ($q) {
+                    $q->whereIn('status', ['waiting', 'in_review']);
+                })
+                ->get()
+                ->filter(function ($terusan) {
+                    $prev = $terusan->pengajuan->terusans()
+                        ->where('urutan', '<', $terusan->urutan)
+                        ->where('status', '!=', 'approved')
+                        ->exists();
+                    return !$prev;
+                });
 
-        $kepadas = PengajuanSurat::with(['perusahaan', 'user', 'jenisDokumen'])
-            ->where('id_kepada', $user->id)
-            ->whereIn('status', ['waiting', 'in_review'])
-            ->whereDoesntHave('terusans', function ($q) {
-                $q->where('status', 'waiting');
-            })
-            ->get();
+            $kepadas = PengajuanSurat::with(['perusahaan', 'user', 'jenisDokumen'])
+                ->where('id_kepada', $user->id)
+                ->whereIn('status', ['waiting', 'in_review'])
+                ->whereDoesntHave('terusans', function ($q) {
+                    $q->where('status', 'waiting');
+                })
+                ->get();
+        }
 
         $perusahaanList = \App\Models\DataMaster\Perusahaan::where('status', 1)
             ->orderBy('nama')->get();
@@ -49,13 +60,15 @@ class ApprovalController extends Controller
         $histories = null;
 
         if ($activeTab === 'history') {
-            $query = PengajuanApproval::with(['pengajuan.perusahaan', 'pengajuan.jenisDokumen'])
+            $query = $isAdmin
+                ? PengajuanApproval::with(['pengajuan.perusahaan', 'pengajuan.jenisDokumen', 'approver'])
+                : PengajuanApproval::with(['pengajuan.perusahaan', 'pengajuan.jenisDokumen'])
                 ->where('id_approver', $user->id);
 
             if ($search = $request->get('search')) {
                 $query->whereHas('pengajuan', function ($q) use ($search) {
                     $q->where('nomor_surat', 'like', "%{$search}%")
-                        ->orWhere('perihal', 'like', "%{$search}%");
+                        ->orWhere('perihal',   'like', "%{$search}%");
                 });
             }
             if ($status = $request->get('status')) {
@@ -78,11 +91,11 @@ class ApprovalController extends Controller
                 $query->whereDate('acted_at', '<=', $dateTo);
             }
 
-            $sortable  = ['acted_at', 'aksi', 'tahap'];
-            $sortCol   = in_array($request->get('sort'), $sortable)
+            $sortable = ['acted_at', 'aksi', 'tahap'];
+            $sortCol  = in_array($request->get('sort'), $sortable)
                 ? $request->get('sort') : 'acted_at';
-            $sortDir   = $request->get('dir') === 'asc' ? 'asc' : 'desc';
-            $perPage   = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+            $sortDir  = $request->get('dir') === 'asc' ? 'asc' : 'desc';
+            $perPage  = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
                 ? (int) $request->get('per_page') : 15;
 
             $histories = $query->orderBy($sortCol, $sortDir)
@@ -91,12 +104,82 @@ class ApprovalController extends Controller
         }
 
         return view('data.approval.index', compact(
-            'terusans', 'kepadas', 'histories', 'activeTab', 'perusahaanList'
+            'terusans',
+            'kepadas',
+            'histories',
+            'activeTab',
+            'perusahaanList',
+            'isAdmin'
         ));
     }
 
     // =========================================================================
-    // REVIEW — tampilkan file_current (sudah mengandung TTE sebelumnya)
+    // SHOW (Approval History Detail)
+    // =========================================================================
+
+    public function show(PengajuanApproval $approval): View
+    {
+        $user    = auth()->user();
+        $isAdmin = $user->isAdmin();
+
+        if (!$isAdmin && $approval->id_approver !== $user->id) {
+            abort(403);
+        }
+
+        $approval->load([
+            'pengajuan.perusahaan',
+            'pengajuan.jenisDokumen',
+            'pengajuan.sifatSurat',
+            'pengajuan.user',
+            'pengajuan.kepada',
+            'pengajuan.terusans.user',
+            'approver',
+        ]);
+
+        $pengajuan = $approval->pengajuan;
+
+        return view('data.approval.show', compact('approval', 'pengajuan', 'isAdmin'));
+    }
+
+    // =========================================================================
+    // SHOW FILE (Snapshot PDF per tahapan)
+    // =========================================================================
+
+    public function showFile(PengajuanApproval $approval): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user    = auth()->user();
+        $isAdmin = $user->isAdmin();
+
+        if (!$isAdmin && $approval->id_approver !== $user->id) {
+            abort(403);
+        }
+
+        $filePath = $approval->file_snapshot;
+
+        if (!$filePath) {
+            $approval->loadMissing('pengajuan');
+            $pengajuan = $approval->pengajuan;
+
+            $filePath = $approval->tahap === 'kepada'
+                ? ($pengajuan->file_signed ?? $pengajuan->file_current ?? $pengajuan->file_original)
+                : ($pengajuan->file_current ?? $pengajuan->file_original);
+        }
+
+        if (!$filePath) abort(404);
+
+        $fullPath = storage_path('app/' . $filePath);
+        if (!file_exists($fullPath)) abort(404);
+
+        return response()->stream(function () use ($fullPath) {
+            readfile($fullPath);
+        }, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="document.pdf"',
+            'Cache-Control'       => 'no-store',
+        ]);
+    }
+    // =========================================================================
+    // REVIEW
     // =========================================================================
 
     public function review(PengajuanSurat $submission): View|RedirectResponse
@@ -108,7 +191,7 @@ class ApprovalController extends Controller
             'jenisDokumen',
             'kepada',
             'user',
-            'terusans.departemen',
+            'terusans.user',
         ]);
 
         $tahap   = null;
@@ -116,15 +199,33 @@ class ApprovalController extends Controller
         $needTte = false;
 
         $activeTerusan = $submission->terusans()
-            ->where('id_departemen', $user->id_departemen)
+            ->where('id_user', $user->id)
             ->where('status', 'waiting')
             ->first();
 
         if ($activeTerusan) {
+            $prevPending = $submission->terusans()
+                ->where('urutan', '<', $activeTerusan->urutan)
+                ->where('status', '!=', 'approved')
+                ->exists();
+
+            if ($prevPending) {
+                abort(403, 'Previous forwarding steps have not been approved yet.');
+            }
+
             $tahap   = 'terusan';
             $idRef   = $activeTerusan->id;
-            $needTte = $activeTerusan->require_tte;
+            $needTte = (bool) $activeTerusan->require_tte; // ← explicit cast
+
         } elseif ($submission->id_kepada === $user->id) {
+            $pendingTerusan = $submission->terusans()
+                ->where('status', 'waiting')
+                ->exists();
+
+            if ($pendingTerusan) {
+                abort(403, 'Forwarding steps are not yet complete.');
+            }
+
             $tahap   = 'kepada';
             $idRef   = 0;
             $needTte = true;
@@ -132,7 +233,8 @@ class ApprovalController extends Controller
             abort(403, 'You are not authorized to review this submission.');
         }
 
-        $tte = $user->tteForPerusahaan($submission->id_perusahaan);
+        // ← Hanya load & validasi TTE jika memang dibutuhkan
+        $tte = $needTte ? $user->tteForPerusahaan($submission->id_perusahaan) : null;
 
         if ($needTte && (!$tte || !$tte->isValid())) {
             return redirect()->route('data.approval.index')
@@ -159,101 +261,114 @@ class ApprovalController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'tahap'                  => ['required', 'in:terusan,kepada'],
-            'id_ref'                 => ['required', 'integer'],
-            'catatan'                => ['nullable', 'string', 'max:500'],
-            'placements'             => ['nullable', 'array'],
-            'placements.*.halaman'   => ['required_with:placements', 'integer', 'min:1'],
-            'placements.*.pos_x'     => ['required_with:placements', 'numeric'],
-            'placements.*.pos_y'     => ['required_with:placements', 'numeric'],
-            'placements.*.lebar'     => ['nullable', 'numeric'],
-            'placements.*.tinggi'    => ['nullable', 'numeric'],
+            'tahap'                => ['required', 'in:terusan,kepada'],
+            'id_ref'               => ['required', 'integer'],
+            'catatan'              => ['nullable', 'string', 'max:500'],
+            'placements'           => ['nullable', 'array'],
+            'placements.*.halaman' => ['required_with:placements', 'integer', 'min:1'],
+            'placements.*.pos_x'   => ['required_with:placements', 'numeric'],
+            'placements.*.pos_y'   => ['required_with:placements', 'numeric'],
+            'placements.*.lebar'   => ['nullable', 'numeric'],
+            'placements.*.tinggi'  => ['nullable', 'numeric'],
         ]);
 
-        // ── Validasi jumlah TTE yang ditempatkan ────────────────────────────
-        // Hitung requirement berdasarkan tahap
-        $placedCount   = count($request->input('placements', []));
+        // ── Tentukan apakah tahap ini butuh TTE ─────────────────────────────
+        $needsTte      = false;
         $requiredCount = 0;
 
         if ($request->tahap === 'kepada') {
-            $requiredCount = (int) ($submission->require_tte_kepada ?? 1);
+            $needsTte      = true;
+            $requiredCount = max(1, (int) ($submission->require_tte_kepada ?? 1));
         } elseif ($request->tahap === 'terusan') {
-            $terusanReq    = PengajuanTerusan::find($request->id_ref);
-            $requiredCount = $terusanReq ? (int) ($terusanReq->require_tte_count ?? 1) : 1;
-        }
-        if ($requiredCount < 1) $requiredCount = 1;
+            $terusanReq = PengajuanTerusan::find($request->id_ref);
+            $needsTte   = $terusanReq && (bool) $terusanReq->require_tte;
 
-        if ($placedCount < $requiredCount) {
-            $label = $requiredCount === 1 ? 'signature' : 'signatures';
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'placements' => "You must place {$requiredCount} {$label} on the document. Only {$placedCount} placed.",
-                ])
-                ->with('_scroll_to_error', true);
-        }
-
-        $tte = $user->tteForPerusahaan($submission->id_perusahaan);
-
-        // ── Simpan placements & langsung inject ke PDF ───────────────────────
-        if ($request->filled('placements') && $tte) {
-            $newPlacements = collect();
-
-            foreach ($request->placements as $pl) {
-                if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
-
-                $placement = PengajuanTtePlacement::create([
-                    'id_pengajuan' => $submission->id,
-                    'id_tte'       => $tte->id,
-                    'tahap'        => $request->tahap,
-                    'id_ref'       => $request->id_ref,
-                    'halaman'      => (int) ($pl['halaman'] ?? 1),
-                    'pos_x'        => round((float) $pl['pos_x'], 4),
-                    'pos_y'        => round((float) $pl['pos_y'], 4),
-                    'lebar'        => (float) ($pl['lebar']  ?? 40),
-                    'tinggi'       => (float) ($pl['tinggi'] ?? 40),
-                    'qr_token'     => Str::random(64),
-                ]);
-
-                $newPlacements->push($placement);
+            if ($needsTte) {
+                $requiredCount = max(1, (int) ($terusanReq->require_tte_count ?? 1));
             }
+        }
 
-            if ($newPlacements->isNotEmpty()) {
-                try {
-                    $submission->refresh();
+        // ── Validasi placement hanya jika butuh TTE ──────────────────────────
+        if ($needsTte) {
+            $placedCount = count($request->input('placements', []));
 
-                    // Load relasi tte.perusahaan yang diperlukan untuk generate QR
-                    $freshPlacements = PengajuanTtePlacement::with('tte.perusahaan')
-                        ->whereIn('id', $newPlacements->pluck('id'))
-                        ->get();
+            if ($placedCount < $requiredCount) {
+                $label = $requiredCount === 1 ? 'signature' : 'signatures';
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'placements' => "You must place {$requiredCount} {$label} on the document. Only {$placedCount} placed.",
+                    ])
+                    ->with('_scroll_to_error', true);
+            }
+        }
 
-                    // inject ke file_current (menumpuk di atas QR sebelumnya)
-                    (new TteService())->injectStageTteToPdf($submission, $freshPlacements);
-                } catch (\Throwable $e) {
-                    \Log::error('TTE inject failed on approve', [
-                        'pengajuan_id' => $submission->id,
+        // ── Inject TTE ke PDF (hanya jika butuh TTE) ────────────────────────
+        if ($needsTte && $request->filled('placements')) {
+            $tte = $user->tteForPerusahaan($submission->id_perusahaan);
+
+            if ($tte) {
+                $newPlacements = collect();
+
+                foreach ($request->placements as $pl) {
+                    if (!isset($pl['pos_x'], $pl['pos_y'])) continue;
+
+                    $placement = PengajuanTtePlacement::create([
+                        'id_pengajuan' => $submission->id,
+                        'id_tte'       => $tte->id,
                         'tahap'        => $request->tahap,
-                        'error'        => $e->getMessage(),
-                        'trace'        => $e->getTraceAsString(),
+                        'id_ref'       => $request->id_ref,
+                        'halaman'      => (int) ($pl['halaman'] ?? 1),
+                        'pos_x'        => round((float) $pl['pos_x'], 4),
+                        'pos_y'        => round((float) $pl['pos_y'], 4),
+                        'lebar'        => (float) ($pl['lebar']  ?? 40),
+                        'tinggi'       => (float) ($pl['tinggi'] ?? 40),
+                        'qr_token'     => Str::random(64),
                     ]);
+
+                    $newPlacements->push($placement);
+                }
+
+                if ($newPlacements->isNotEmpty()) {
+                    try {
+                        $submission->refresh();
+
+                        $freshPlacements = PengajuanTtePlacement::with('tte.perusahaan')
+                            ->whereIn('id', $newPlacements->pluck('id'))
+                            ->get();
+
+                        (new TteService())->injectStageTteToPdf($submission, $freshPlacements);
+                    } catch (\Throwable $e) {
+                        \Log::error('TTE inject failed on approve', [
+                            'pengajuan_id' => $submission->id,
+                            'tahap'        => $request->tahap,
+                            'error'        => $e->getMessage(),
+                            'trace'        => $e->getTraceAsString(),
+                        ]);
+                    }
                 }
             }
         }
 
-        // ── Catat approval log ───────────────────────────────────────────────
+        // ── Buat snapshot PDF setelah TTE diinjeksi ──────────────────────────
+        $submission->refresh();
+        $snapshotPath = $this->createSnapshot($submission);
+
+        // ── Catat approval ───────────────────────────────────────────────────
         PengajuanApproval::create([
-            'id_pengajuan' => $submission->id,
-            'tahap'        => $request->tahap,
-            'id_ref'       => $request->id_ref,
-            'id_approver'  => $user->id,
-            'aksi'         => 'approve',
-            'catatan'      => $request->catatan,
-            'acted_at'     => now(),
+            'id_pengajuan'  => $submission->id,
+            'tahap'         => $request->tahap,
+            'id_ref'        => $request->id_ref,
+            'id_approver'   => $user->id,
+            'aksi'          => 'approve',
+            'catatan'       => $request->catatan,
+            'acted_at'      => now(),
+            'file_snapshot' => $snapshotPath,
         ]);
 
-        // ── Tahap Terusan ────────────────────────────────────────────────────
+        // ── Terusan approved ─────────────────────────────────────────────────
         if ($request->tahap === 'terusan') {
-            $terusan        = PengajuanTerusan::find($request->id_ref);
+            $terusan        = $terusanReq ?? PengajuanTerusan::find($request->id_ref);
             $approvedUrutan = $terusan ? $terusan->urutan : 0;
 
             PengajuanTerusan::where('id', $request->id_ref)->update([
@@ -261,6 +376,7 @@ class ApprovalController extends Controller
                 'approved_by' => $user->id,
                 'approved_at' => now(),
             ]);
+
             $submission->update(['status' => 'in_review']);
 
             (new \App\Services\NotificationService())
@@ -270,12 +386,10 @@ class ApprovalController extends Controller
                 ->with('success', 'Forwarding approval has been submitted.');
         }
 
-        // ── Tahap Kepada (Final) ─────────────────────────────────────────────
+        // ── Kepada approved (final) ──────────────────────────────────────────
         if ($request->tahap === 'kepada') {
             $submission->update(['status' => 'approved']);
 
-            // file_signed = snapshot final = file_current saat ini
-            // (sudah mengandung semua QR karena inject bertahap)
             $submission->refresh();
             if ($submission->file_current) {
                 $submission->update(['file_signed' => $submission->file_current]);
@@ -307,14 +421,19 @@ class ApprovalController extends Controller
             'catatan.required' => 'Rejection reason is required.',
         ]);
 
+        // ── Buat snapshot PDF kondisi saat rejection ─────────────────────────
+        $snapshotPath = $this->createSnapshot($submission);
+
+        // ── Catat rejection ──────────────────────────────────────────────────
         PengajuanApproval::create([
-            'id_pengajuan' => $submission->id,
-            'tahap'        => $request->tahap,
-            'id_ref'       => $request->id_ref,
-            'id_approver'  => $user->id,
-            'aksi'         => 'reject',
-            'catatan'      => $request->catatan,
-            'acted_at'     => now(),
+            'id_pengajuan'  => $submission->id,
+            'tahap'         => $request->tahap,
+            'id_ref'        => $request->id_ref,
+            'id_approver'   => $user->id,
+            'aksi'          => 'reject',
+            'catatan'       => $request->catatan,
+            'acted_at'      => now(),
+            'file_snapshot' => $snapshotPath,
         ]);
 
         if ($request->tahap === 'terusan') {
@@ -336,5 +455,37 @@ class ApprovalController extends Controller
 
         return redirect()->route('data.approval.index')
             ->with('success', 'Submission has been rejected.');
+    }
+
+    // =========================================================================
+    // PRIVATE HELPERS
+    // =========================================================================
+
+    /**
+     * Buat salinan (snapshot) dari file_current atau file_original
+     * pada saat tahapan approval terjadi, agar history bisa menampilkan
+     * kondisi dokumen tepat di tahap tersebut.
+     */
+    private function createSnapshot(PengajuanSurat $submission): ?string
+    {
+        $sourceFile = $submission->file_current ?? $submission->file_original;
+
+        if (!$sourceFile) return null;
+
+        $fullPath = storage_path('app/' . $sourceFile);
+        if (!file_exists($fullPath)) return null;
+
+        try {
+            $snapshotPath = 'submissions/snapshots/' . Str::uuid() . '.pdf';
+            Storage::disk('local')->copy($sourceFile, $snapshotPath);
+            return $snapshotPath;
+        } catch (\Throwable $e) {
+            \Log::error('Snapshot creation failed', [
+                'pengajuan_id' => $submission->id,
+                'source'       => $sourceFile,
+                'error'        => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 }

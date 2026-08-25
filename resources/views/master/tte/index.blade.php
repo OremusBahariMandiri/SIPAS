@@ -1,189 +1,574 @@
 @extends('layouts.app')
 
-@section('title', 'Master TTE')
-@section('page-title', 'Master TTE')
+@section('title', 'TTE Master')
+@section('page-title', 'TTE Master')
 
 @section('content')
 
-<div class="page-header">
-    <h1 class="page-title">TTE</h1>
-    <p class="page-subtitle">Kelola Tanda Tangan Elektronik untuk pengguna yang berwenang.</p>
-</div>
+    @php
+        $fSearch = request('search', '');
+        $fStatus = request('status', '');
+        $fPerusahaan = request('perusahaan', '');
+        $perPageNow = request('per_page', 15);
+        $sortNow = request('sort', 'created_at');
+        $dirNow = request('dir', 'desc');
 
-<div class="dt-card">
-    <div class="dt-card-header">
-        <span class="dt-card-title">Daftar TTE</span>
-        @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'create_access'))
-        <a href="{{ route('master.tte.create') }}" class="btn-primary">
-            <i class="bi bi-plus-lg"></i> Generate TTE
-        </a>
-        @endif
+        $activeFilters = collect([
+            'search' => $fSearch,
+            'status' => $fStatus,
+            'perusahaan' => $fPerusahaan,
+        ])
+            ->filter(fn($v) => $v !== '')
+            ->count();
+
+        $hasFilter = $activeFilters > 0;
+
+        $statusLabels = [
+            'active' => 'Active',
+            'inactive' => 'Inactive',
+            'expired' => 'Expired',
+        ];
+    @endphp
+
+    <div class="page-header">
+        <h1 class="page-title">TTE</h1>
+        <p class="page-subtitle">Manage Electronic Signatures for authorized users.</p>
     </div>
 
-    <div style="overflow-x:auto;">
-        <table id="tblTte" class="tbl" style="width:100%;">
-            <thead>
-                <tr>
-                    <th class="no-sort" style="width:44px;">#</th>
-                    <th>NRK</th>
-                    <th>Jabatan</th>
-                    <th>Perusahaan</th>  {{-- ← sekarang dari relasi tte->perusahaan --}}
-                    <th style="width:110px;">Expired</th>
-                    <th style="width:120px;">Status</th>
-                    <th class="no-sort" style="width:110px; text-align:right;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($items as $item)
-                <tr>
-                    <td class="dt-no">{{ $loop->iteration }}</td>
-                    <td data-label="NRK">{{ $item->user->nrk ?? '-' }}</td>
-                    <td data-label="Jabatan" class="td-muted">{{ $item->user->jabatan ?? '-' }}</td>
-                    <td data-label="Perusahaan" class="td-muted">
-                        {{-- ← PERBAIKAN: pakai $item->perusahaan bukan $item->user->perusahaan --}}
-                        {{ $item->perusahaan->nama ?? '-' }}
-                        @if($item->perusahaan?->singkatan)
-                            <span style="font-size:.75rem;color:var(--muted);">({{ $item->perusahaan->singkatan }})</span>
-                        @endif
-                    </td>
-                    <td data-label="Expired" class="td-muted">
-                        {{ $item->expired_at ? $item->expired_at->format('d/m/Y') : '—' }}
-                    </td>
-                    <td data-label="Status">
-                        @if($item->isExpired())
-                            <span class="badge badge-danger"><i class="bi bi-clock-fill"></i> Expired</span>
-                        @elseif($item->is_active)
-                            <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Aktif</span>
-                        @else
-                            <span class="badge badge-muted">Non-aktif</span>
-                        @endif
-                    </td>
-                    <td class="td-actions">
-                        <div class="action-group">
-                            @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access'))
-                            <a href="{{ route('master.tte.show', $item) }}"
-                               class="btn-action btn-view" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            @endif
-                            @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'update_access'))
-                            <a href="{{ route('master.tte.edit', $item) }}"
-                               class="btn-action btn-edit" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <button type="button"
-                                class="btn-action {{ $item->is_active ? 'btn-warning' : 'btn-success' }}"
-                                title="{{ $item->is_active ? 'Nonaktifkan' : 'Aktifkan' }}"
-                                onclick="confirmToggle('{{ $item->id }}', {{ $item->is_active ? 'true' : 'false' }}, '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
-                                <i class="bi bi-{{ $item->is_active ? 'pause-circle' : 'play-circle' }}"></i>
-                            </button>
-                            @endif
-                            @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'delete_access'))
-                            <button type="button" class="btn-action btn-delete" title="Hapus"
-                                onclick="confirmDelete('{{ $item->id }}', '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
+    <div class="dt-card">
+        <div class="dt-card-header">
+            <span class="dt-card-title">
+                TTE List
+                @if (isset($items) && $items->total() > 0)
+                    <span style="font-size:.75rem;font-weight:500;color:var(--muted);margin-left:.35rem;">
+                        ({{ $items->total() }} total)
+                    </span>
+                @endif
+            </span>
 
-{{-- Modal Hapus --}}
-<div class="modal-backdrop-custom" id="modalHapus">
-    <div class="modal-box">
-        <div class="modal-icon"><i class="bi bi-trash"></i></div>
-        <div class="modal-title">Hapus TTE?</div>
-        <p class="modal-desc" id="modalDescHapus">TTE ini akan dihapus.</p>
-        <div class="modal-actions">
-            <button type="button" class="btn-cancel" onclick="closeModal('modalHapus')">Batal</button>
-            <form id="formHapus" method="POST">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn-danger">
-                    <i class="bi bi-trash"></i> Ya, Hapus
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+
+                {{-- Filter Button --}}
+                <button type="button" id="btnOpenFilter" class="idx-btn-filter {{ $hasFilter ? 'has-filter' : '' }}"
+                    title="Filter">
+                    <i class="bi bi-sliders"></i> Filter
+                    @if ($activeFilters > 0)
+                        <span class="idx-filter-count">{{ $activeFilters }}</span>
+                    @endif
                 </button>
-            </form>
-        </div>
-    </div>
-</div>
 
-{{-- Modal Toggle --}}
-<div class="modal-backdrop-custom" id="modalToggle">
-    <div class="modal-box">
-        <div class="modal-icon" id="modalToggleIcon"><i class="bi bi-pause-circle"></i></div>
-        <div class="modal-title" id="modalToggleTitle">Nonaktifkan TTE?</div>
-        <p class="modal-desc" id="modalDescToggle"></p>
-        <div class="modal-actions">
-            <button type="button" class="btn-cancel" onclick="closeModal('modalToggle')">Batal</button>
-            <form id="formToggle" method="POST">
-                @csrf
-                <button type="submit" class="btn-submit">Ya, Lanjutkan</button>
+                {{-- Per Page --}}
+                <select class="idx-filter-select" id="selPerPage" title="Rows per page"
+                    onchange="changePerPage(this.value)">
+                    @foreach ([10, 15, 25, 50] as $n)
+                        <option value="{{ $n }}" {{ $perPageNow == $n ? 'selected' : '' }}>
+                            {{ $n }} / page
+                        </option>
+                    @endforeach
+                </select>
+
+                @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'create_access'))
+                    <a href="{{ route('master.tte.create') }}" class="btn-primary">
+                        <i class="bi bi-plus-lg"></i> Generate TTE
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        {{-- Active Filter Chips --}}
+        @if ($hasFilter)
+            <div class="idx-active-chips">
+                <span class="idx-active-chips-label">
+                    <i class="bi bi-funnel-fill"></i> Active filters:
+                </span>
+
+                @if ($fSearch)
+                    <span class="idx-chip">
+                        <i class="bi bi-search" style="font-size:.68rem;"></i>
+                        "{{ Str::limit($fSearch, 24) }}"
+                        <button type="button" class="idx-chip-remove" data-remove-filter="search">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                @endif
+
+                @if ($fStatus)
+                    <span class="idx-chip">
+                        <i class="bi bi-circle-fill" style="font-size:.45rem;"></i>
+                        {{ $statusLabels[$fStatus] ?? $fStatus }}
+                        <button type="button" class="idx-chip-remove" data-remove-filter="status">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                @endif
+
+                @if ($fPerusahaan)
+                    <span class="idx-chip">
+                        <i class="bi bi-building" style="font-size:.68rem;"></i>
+                        {{ Str::limit($perusahaanList->find($fPerusahaan)?->nama ?? 'Company', 20) }}
+                        <button type="button" class="idx-chip-remove" data-remove-filter="perusahaan">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </span>
+                @endif
+
+                <a href="{{ route('master.tte.index') }}"
+                    style="margin-left:auto;font-size:.72rem;color:#DC2626;text-decoration:none;
+                   font-weight:600;display:flex;align-items:center;gap:.25rem;white-space:nowrap;">
+                    <i class="bi bi-x-circle"></i> Clear all
+                </a>
+            </div>
+        @endif
+
+        {{-- Table --}}
+        <div style="overflow-x:auto;">
+            <table class="tbl" style="width:100%;">
+                <thead>
+                    <tr>
+                        <th style="width:44px;">No</th>
+                        <th>NRK</th>
+                        <th>Name</th>
+                        <th>Departemen</th>
+                        <th>Position</th>
+                        <th>Company</th>
+                        <th style="width:110px;">Expired</th>
+                        <th style="width:120px;">Status</th>
+                        <th style="width:110px;text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($items as $item)
+                        <tr>
+                            <td class="dt-no">{{ $items->firstItem() + $loop->index }}</td>
+                            <td data-label="NRK">{{ $item->user->nrk ?? '-' }}</td>
+                            <td data-label="Name">{{ $item->user->nama_karyawan ?? '-' }}</td>
+                            <td data-label="Departemen">{{ $item->user->departemen->nama ?? '-' }}</td>
+                            <td data-label="Position" class="td-muted">{{ $item->user->jabatan ?? '-' }}</td>
+                            <td data-label="Company" class="td-muted">
+                                {{ $item->perusahaan->nama ?? '-' }}
+                                @if ($item->perusahaan?->singkatan)
+                                    <span
+                                        style="font-size:.75rem;color:var(--muted);">({{ $item->perusahaan->singkatan }})</span>
+                                @endif
+                            </td>
+                            <td data-label="Expired" class="td-muted">
+                                {{ $item->expired_at ? $item->expired_at->format('d/m/Y') : '—' }}
+                            </td>
+                            <td data-label="Status">
+                                @if ($item->isExpired())
+                                    <span class="badge badge-danger"><i class="bi bi-clock-fill"></i> Expired</span>
+                                @elseif($item->is_active)
+                                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                                @else
+                                    <span class="badge badge-muted">Inactive</span>
+                                @endif
+                            </td>
+                            <td class="td-actions">
+                                <div class="action-group">
+                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access'))
+                                        <a href="{{ route('master.tte.show', $item) }}" class="btn-action btn-view"
+                                            title="Detail">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    @endif
+                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'update_access'))
+                                        <a href="{{ route('master.tte.edit', $item) }}" class="btn-action btn-edit"
+                                            title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button"
+                                            class="btn-action {{ $item->is_active ? 'btn-warning' : 'btn-success' }}"
+                                            title="{{ $item->is_active ? 'Deactivate' : 'Activate' }}"
+                                            onclick="confirmToggle('{{ $item->id }}', {{ $item->is_active ? 'true' : 'false' }}, '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->user->nama_karyawan ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
+                                            <i class="bi bi-{{ $item->is_active ? 'pause-circle' : 'play-circle' }}"></i>
+                                        </button>
+                                    @endif
+                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'delete_access'))
+                                        <button type="button" class="btn-action btn-delete" title="Delete"
+                                            onclick="confirmDelete('{{ $item->id }}', '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->user->nama_karyawan ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8">
+                                <div style="padding:2.5rem;text-align:center;color:var(--muted);">
+                                    <i class="bi bi-shield-x" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
+                                    <strong>{{ $hasFilter ? 'No results found' : 'No TTE data yet' }}</strong>
+                                    @if ($hasFilter)
+                                        <p style="margin:.4rem 0 0;font-size:.82rem;">
+                                            Try adjusting your filter.
+                                            <a href="{{ route('master.tte.index') }}"
+                                                style="color:var(--accent);text-decoration:none;">Clear all</a>
+                                        </p>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Pagination --}}
+        @if (isset($items) && $items->hasPages())
+            <div class="idx-pagination-wrap">
+                <span class="idx-pag-info">
+                    Showing <strong>{{ $items->firstItem() }}–{{ $items->lastItem() }}</strong>
+                    of <strong>{{ $items->total() }}</strong> entries
+                </span>
+                <div class="idx-pag-links">
+                    @if ($items->onFirstPage())
+                        <span class="disabled"><i class="bi bi-chevron-left"></i></span>
+                    @else
+                        <a href="{{ $items->previousPageUrl() }}" rel="prev"><i class="bi bi-chevron-left"></i></a>
+                    @endif
+
+                    @foreach ($items->getUrlRange(max(1, $items->currentPage() - 2), min($items->lastPage(), $items->currentPage() + 2)) as $page => $url)
+                        @if ($page == $items->currentPage())
+                            <span aria-current="page">{{ $page }}</span>
+                        @else
+                            <a href="{{ $url }}">{{ $page }}</a>
+                        @endif
+                    @endforeach
+
+                    @if ($items->hasMorePages())
+                        <a href="{{ $items->nextPageUrl() }}" rel="next"><i class="bi bi-chevron-right"></i></a>
+                    @else
+                        <span class="disabled"><i class="bi bi-chevron-right"></i></span>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+    </div>
+
+    {{-- Delete Modal --}}
+    <div class="modal-backdrop-custom" id="modalHapus">
+        <div class="modal-box">
+            <div class="modal-icon"><i class="bi bi-trash"></i></div>
+            <div class="modal-title">Delete TTE?</div>
+            <p class="modal-desc" id="modalDescHapus">This TTE will be deleted.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('modalHapus')">Cancel</button>
+                <form id="formHapus" method="POST">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn-danger">
+                        <i class="bi bi-trash"></i> Yes, Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Toggle Modal --}}
+    <div class="modal-backdrop-custom" id="modalToggle">
+        <div class="modal-box">
+            <div class="modal-icon" id="modalToggleIcon"><i class="bi bi-pause-circle"></i></div>
+            <div class="modal-title" id="modalToggleTitle">Deactivate TTE?</div>
+            <p class="modal-desc" id="modalDescToggle"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('modalToggle')">Cancel</button>
+                <form id="formToggle" method="POST">
+                    @csrf
+                    <button type="submit" class="btn-submit">Yes, Proceed</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Filter Panel --}}
+    <div class="idx-fm-backdrop" id="fmBackdrop">
+        <div class="idx-fm-panel" id="fmPanel">
+
+            <div class="idx-fm-header">
+                <span class="idx-fm-title"><i class="bi bi-sliders"></i> Filter TTE</span>
+                <button type="button" class="idx-fm-close" id="fmClose" title="Close">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <form method="GET" action="{{ route('master.tte.index') }}" id="fmForm">
+                <input type="hidden" name="per_page" value="{{ $perPageNow }}">
+                <input type="hidden" name="page" value="1">
+
+                <div class="idx-fm-body">
+
+                    <div class="idx-fm-group">
+                        <label class="idx-fm-label" for="fm_perusahaan">
+                            <i class="bi bi-building"></i> Company
+                        </label>
+                        <select name="perusahaan" id="fm_perusahaan" class="fm-select2">
+                            <option value="">— All Companies —</option>
+                            @foreach ($perusahaanList as $p)
+                                <option value="{{ $p->id }}" {{ $fPerusahaan == $p->id ? 'selected' : '' }}>
+                                    {{ $p->nama }} ({{ $p->singkatan }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="idx-fm-group">
+                        <label class="idx-fm-label" for="fm_status">
+                            <i class="bi bi-circle-half"></i> Status
+                        </label>
+                        <select name="status" id="fm_status" class="fm-select2">
+                            <option value="">— All Statuses —</option>
+                            <option value="active" {{ $fStatus === 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ $fStatus === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="expired" {{ $fStatus === 'expired' ? 'selected' : '' }}>Expired</option>
+                        </select>
+                    </div>
+
+                    <div class="idx-fm-divider"></div>
+
+                    <div class="idx-fm-group">
+                        <label class="idx-fm-label" for="fm_search">
+                            <i class="bi bi-search"></i> Search
+                        </label>
+                        <input type="text" name="search" id="fm_search" class="idx-fm-input"
+                            value="{{ $fSearch }}" placeholder="NRK, name, position, company…" autocomplete="off">
+                    </div>
+
+                </div>
+
+                <div class="idx-fm-footer">
+                    <a href="{{ route('master.tte.index') }}" class="idx-fm-btn-reset">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </a>
+                    <button type="submit" class="idx-fm-btn-apply">
+                        <i class="bi bi-check-lg"></i> Apply Filter
+                    </button>
+                </div>
             </form>
         </div>
     </div>
-</div>
 
 @endsection
 
+@push('styles')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <style>
+        /* ── Select2 inside filter panel ── */
+        .select2-container--default .select2-selection--single {
+            height: 38px !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            background: var(--card) !important;
+            display: flex !important;
+            align-items: center !important;
+            transition: border-color .15s, box-shadow .15s !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 36px !important;
+            padding-left: .8rem !important;
+            padding-right: 3.2rem !important;
+            color: var(--text) !important;
+            font-size: .845rem !important;
+            font-family: inherit !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: var(--muted) !important;
+            opacity: .7 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px !important;
+            width: 30px !important;
+            right: 4px !important;
+            top: 0 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            border-color: var(--muted) transparent transparent transparent !important;
+            border-width: 5px 4px 0 4px !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            position: absolute !important;
+            right: 28px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            margin: 0 !important;
+            float: none !important;
+            font-size: 1.1rem !important;
+            color: var(--muted) !important;
+            transition: color .13s !important;
+            z-index: 1 !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__clear:hover {
+            color: #DC2626 !important;
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(63, 93, 120, .12) !important;
+        }
+
+        .select2-dropdown {
+            border: 1px solid var(--border) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 8px 28px rgba(13, 32, 64, .12) !important;
+            font-family: inherit !important;
+            font-size: .845rem !important;
+            overflow: hidden !important;
+            z-index: 99999 !important;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid var(--border) !important;
+            border-radius: 7px !important;
+            padding: .4rem .65rem !important;
+            font-size: .82rem !important;
+            font-family: inherit !important;
+            outline: none !important;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(63, 93, 120, .1) !important;
+        }
+
+        .select2-results__option {
+            padding: .5rem .85rem !important;
+            font-size: .84rem !important;
+            color: var(--text) !important;
+            transition: background .1s !important;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background: var(--primary-light) !important;
+            color: var(--primary) !important;
+        }
+
+        .select2-container--default .select2-results__option[aria-selected="true"] {
+            background: var(--primary) !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+        }
+
+        .select2-search--dropdown {
+            padding: .6rem .6rem .4rem !important;
+            border-bottom: 1px solid var(--border) !important;
+        }
+
+        .select2-results__options {
+            max-height: 220px !important;
+        }
+    </style>
+@endpush
+
 @push('scripts')
-<script>
-$(function () {
-    $('#tblTte').DataTable({
-        dom:
-            '<"dt-toolbar"<"dt-toolbar-left"l><"dt-toolbar-right"f>>' +
-            't' +
-            '<"dt-footer"<"dt-footer-left"i><"dt-footer-right"p>>',
-        language: {
-            search: '',
-            searchPlaceholder: 'Cari…',
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_–_END_ dari _TOTAL_ data',
-            infoEmpty: 'Tidak ada data',
-            infoFiltered: '(difilter dari _MAX_ total)',
-            zeroRecords: 'Data tidak ditemukan',
-            emptyTable: 'Belum ada data TTE',
-            paginate: {
-                previous: '<i class="bi bi-chevron-left"></i>',
-                next:     '<i class="bi bi-chevron-right"></i>',
-            },
-        },
-        pageLength: 15,
-        lengthMenu: [10, 15, 25, 50, 100],
-        columnDefs: [{ orderable: false, targets: [0, 6] }],
-        order: [[1, 'asc']],
-    });
-});
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        (function() {
 
-function confirmDelete(id, nrk, perusahaan) {
-    document.getElementById('modalDescHapus').textContent =
-        `TTE milik NRK "${nrk}" (${perusahaan}) akan dihapus dan tidak dapat dikembalikan.`;
-    document.getElementById('formHapus').action = `/master/tte/${id}`;
-    document.getElementById('modalHapus').classList.add('show');
-}
+            /* ── Filter panel open/close ── */
+            const backdrop = document.getElementById('fmBackdrop');
+            let s2Inited = false;
 
-function confirmToggle(id, isActive, nrk, perusahaan) {
-    const nonaktif = isActive;
-    document.getElementById('modalToggleTitle').textContent = nonaktif ? 'Nonaktifkan TTE?' : 'Aktifkan TTE?';
-    document.getElementById('modalToggleIcon').innerHTML    = nonaktif
-        ? '<i class="bi bi-pause-circle"></i>'
-        : '<i class="bi bi-play-circle"></i>';
-    document.getElementById('modalDescToggle').textContent  = nonaktif
-        ? `TTE milik NRK "${nrk}" (${perusahaan}) akan dinonaktifkan sementara.`
-        : `TTE milik NRK "${nrk}" (${perusahaan}) akan diaktifkan kembali.`;
-    document.getElementById('formToggle').action = `/master/tte/${id}/toggle`;
-    document.getElementById('modalToggle').classList.add('show');
-}
+            function fmOpen() {
+                backdrop?.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                if (!s2Inited) {
+                    setTimeout(initS2, 60);
+                    s2Inited = true;
+                }
+            }
 
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+            function fmClose() {
+                backdrop?.classList.remove('show');
+                document.body.style.overflow = '';
+            }
 
-document.querySelectorAll('.modal-backdrop-custom').forEach(function (el) {
-    el.addEventListener('click', function (e) {
-        if (e.target === this) this.classList.remove('show');
-    });
-});
-</script>
+            document.getElementById('btnOpenFilter')?.addEventListener('click', fmOpen);
+            document.getElementById('fmClose')?.addEventListener('click', fmClose);
+            backdrop?.addEventListener('click', e => {
+                if (e.target === backdrop) fmClose();
+            });
+
+            /* ── Select2 init (lazy, only when panel opens) ── */
+            function initS2() {
+                $('.fm-select2').each(function() {
+                    $(this).select2({
+                        dropdownParent: $('#fmPanel'),
+                        width: '100%',
+                        allowClear: true,
+                        placeholder: $(this).find('option[value=""]').first().text() || '— Select —',
+                        language: {
+                            noResults: () =>
+                                '<span style="padding:.5rem .85rem;display:block;font-size:.82rem;color:var(--muted);">No results found</span>',
+                        },
+                        escapeMarkup: m => m,
+                    });
+                });
+            }
+
+            /* ── Per page ── */
+            window.changePerPage = function(val) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('per_page', val);
+                url.searchParams.delete('page');
+                window.location = url.toString();
+            };
+
+            /* ── Chip remove ── */
+            document.querySelectorAll('[data-remove-filter]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const keys = this.dataset.removeFilter.split(',');
+                    const url = new URL(window.location.href);
+                    keys.forEach(k => url.searchParams.delete(k.trim()));
+                    url.searchParams.delete('page');
+                    window.location = url.toString();
+                });
+            });
+
+            /* ── Escape ── */
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') fmClose();
+            });
+
+            /* ── Delete modal ── */
+            window.confirmDelete = function(id, nrk, nama, perusahaan) {
+                document.getElementById('modalDescHapus').textContent =
+                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be permanently deleted.`;
+                document.getElementById('formHapus').action = `/master/tte/${id}`;
+                document.getElementById('modalHapus').classList.add('show');
+            };
+
+            /* ── Toggle modal ── */
+            window.confirmToggle = function(id, isActive, nrk, nama, perusahaan) {
+                const deactivate = isActive;
+                document.getElementById('modalToggleTitle').textContent =
+                    deactivate ? 'Deactivate TTE?' : 'Activate TTE?';
+                document.getElementById('modalToggleIcon').innerHTML =
+                    deactivate ? '<i class="bi bi-pause-circle"></i>' : '<i class="bi bi-play-circle"></i>';
+                document.getElementById('modalDescToggle').textContent = deactivate ?
+                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be temporarily deactivated.` :
+                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be reactivated.`;
+                document.getElementById('formToggle').action = `/master/tte/${id}/toggle`;
+                document.getElementById('modalToggle').classList.add('show');
+            };
+
+            /* ── Close modal (shared) ── */
+            window.closeModal = function(id) {
+                document.getElementById(id)?.classList.remove('show');
+            };
+
+            document.querySelectorAll('.modal-backdrop-custom').forEach(el => {
+                el.addEventListener('click', function(e) {
+                    if (e.target === this) this.classList.remove('show');
+                });
+            });
+
+        })();
+    </script>
 @endpush

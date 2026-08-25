@@ -22,8 +22,8 @@ class WilayahKerjaController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('wilayah_kerja', 'like', "%{$s}%")
-                  ->orWhere('area_kerja', 'like', "%{$s}%")
-                  ->orWhere('kode', 'like', "%{$s}%");
+                    ->orWhere('area_kerja', 'like', "%{$s}%")
+                    ->orWhere('kode', 'like', "%{$s}%");
             });
         }
 
@@ -67,7 +67,7 @@ class WilayahKerjaController extends Controller
         ]);
 
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Wilayah kerja berhasil ditambahkan.');
+            ->with('success', 'Work region successfully added.');
     }
 
     public function edit(WilayahKerja $wilker): View
@@ -100,17 +100,23 @@ class WilayahKerjaController extends Controller
         ]);
 
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Data wilayah kerja berhasil diperbarui.');
+            ->with('success', 'Work region data successfully updated.');
     }
 
     public function destroy(WilayahKerja $wilker): RedirectResponse
     {
         $this->authorizeAccess($this->menu, 'delete_access');
 
+        $userCount = \App\Models\User::where('wilker', $wilker->kode)->count();
+
+        if ($userCount > 0) {
+            return back()->with('error', "Work region \"{$wilker->wilayah_kerja}\" cannot be deleted because it is currently assigned to {$userCount} user(s).");
+        }
+
         $wilker->delete();
 
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Wilayah kerja berhasil dihapus.');
+            ->with('success', 'Work region successfully deleted.');
     }
 
     // ─── Helpers ─────────────────────────────────────────────
@@ -119,17 +125,17 @@ class WilayahKerjaController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
-        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
     }
 
     private function messages(): array
     {
         return [
-            'kode.required'          => 'Kode wajib diisi.',
-            'kode.unique'            => 'Kode sudah terdaftar.',
-            'wilayah_kerja.required' => 'Wilayah kerja wajib diisi.',
+            'kode.required'          => 'Code is required.',
+            'kode.unique'            => 'Code is already registered.',
+            'wilayah_kerja.required' => 'Work region is required.',
         ];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models\DataMaster;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class Jabatan extends Model
 {
@@ -19,11 +20,13 @@ class Jabatan extends Model
         'status' => 'integer',
     ];
 
-    /**
-     * Scope: hanya yang aktif
-     */
     public function scopeAktif($query)
     {
         return $query->where('status', 1);
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'jabatan', 'nama');
     }
 }

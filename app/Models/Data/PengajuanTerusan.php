@@ -5,7 +5,6 @@ namespace App\Models\Data;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
-use App\Models\DataMaster\Departemen;
 
 class PengajuanTerusan extends Model
 {
@@ -13,7 +12,7 @@ class PengajuanTerusan extends Model
 
     protected $fillable = [
         'id_pengajuan',
-        'id_departemen',
+        'id_user',          // ← ganti dari id_departemen
         'urutan',
         'require_tte',
         'require_tte_count',
@@ -33,11 +32,13 @@ class PengajuanTerusan extends Model
         return $this->belongsTo(PengajuanSurat::class, 'id_pengajuan');
     }
 
-    public function departemen(): BelongsTo
+    // Relasi ke user tujuan terusan
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Departemen::class, 'id_departemen');
+        return $this->belongsTo(User::class, 'id_user');
     }
 
+    // Relasi ke user yang menyetujui
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
