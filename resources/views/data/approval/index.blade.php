@@ -111,7 +111,6 @@
                                 <th>Classification</th>
                                 <th>Department</th>
                                 <th>Submitted By</th>
-                                <th>Require TTE</th>
                                 <th style="width:110px;">Date</th>
                                 <th style="width:90px;text-align:right;">Action</th>
                             </tr>
@@ -140,15 +139,6 @@
                                             <br><span style="font-size:.72rem;">{{ $t->pengajuan->user->jabatan }}</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        @if ($t->require_tte)
-                                            <span class="idx-badge idx-badge-info">
-                                                <i class="bi bi-shield-check"></i> Yes
-                                            </span>
-                                        @else
-                                            <span class="idx-badge idx-badge-muted">No</span>
-                                        @endif
-                                    </td>
                                     <td class="idx-td-muted">
                                         {{ $t->pengajuan->tanggal_surat->format('d/m/Y') }}
                                     </td>
@@ -172,13 +162,6 @@
                         <div class="idx-mob-card">
                             <div class="idx-mc-top">
                                 <span class="idx-mc-subject">{{ $t->pengajuan->perihal }}</span>
-                                @if ($t->require_tte)
-                                    <span class="idx-badge idx-badge-info" style="flex-shrink:0;">
-                                        <i class="bi bi-shield-check"></i> TTE
-                                    </span>
-                                @else
-                                    <span class="idx-badge idx-badge-muted" style="flex-shrink:0;">No TTE</span>
-                                @endif
                             </div>
                             <div class="idx-mc-meta">
                                 <span class="idx-mc-meta-item">
