@@ -16,8 +16,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   LAYOUT
-                                                ═══════════════════════════════════════════ */
+                                                       LAYOUT
+                                                    ═══════════════════════════════════════════ */
         .rv-wrap {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -34,8 +34,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   CARD
-                                                ═══════════════════════════════════════════ */
+                                                       CARD
+                                                    ═══════════════════════════════════════════ */
         .rv-card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -79,8 +79,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   SUBMISSION DETAIL GRID
-                                                ═══════════════════════════════════════════ */
+                                                       SUBMISSION DETAIL GRID
+                                                    ═══════════════════════════════════════════ */
         .rv-detail-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -126,8 +126,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   TTE IDENTITY
-                                                ═══════════════════════════════════════════ */
+                                                       TTE IDENTITY
+                                                    ═══════════════════════════════════════════ */
         .rv-tte-id {
             display: flex;
             align-items: center;
@@ -167,8 +167,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   REQUIREMENT BANNER
-                                                ═══════════════════════════════════════════ */
+                                                       REQUIREMENT BANNER
+                                                    ═══════════════════════════════════════════ */
         .rv-tte-req {
             display: flex;
             align-items: center;
@@ -215,8 +215,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   HOW-TO HINT
-                                                ═══════════════════════════════════════════ */
+                                                       HOW-TO HINT
+                                                    ═══════════════════════════════════════════ */
         .rv-howto {
             display: flex;
             align-items: flex-start;
@@ -236,8 +236,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   SIGNATURE SLOTS
-                                                ═══════════════════════════════════════════ */
+                                                       SIGNATURE SLOTS
+                                                    ═══════════════════════════════════════════ */
         .rv-sig-slot {
             border: 1.5px solid var(--border);
             border-radius: 10px;
@@ -400,8 +400,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   TAB SWITCHER
-                                                ═══════════════════════════════════════════ */
+                                                       TAB SWITCHER
+                                                    ═══════════════════════════════════════════ */
         .rv-tab-bar {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -446,8 +446,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   TAB PANELS
-                                                ═══════════════════════════════════════════ */
+                                                       TAB PANELS
+                                                    ═══════════════════════════════════════════ */
         .rv-tab-panel {
             display: none;
             flex-direction: column;
@@ -576,8 +576,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   VALIDATION ERROR
-                                                ═══════════════════════════════════════════ */
+                                                       VALIDATION ERROR
+                                                    ═══════════════════════════════════════════ */
         #tteValidationError {
             display: none;
             align-items: flex-start;
@@ -591,8 +591,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   PDF VIEWER
-                                                ═══════════════════════════════════════════ */
+                                                       PDF VIEWER
+                                                    ═══════════════════════════════════════════ */
         .rv-pdf-toolbar {
             padding: .6rem 1rem;
             border-bottom: 1px solid var(--border);
@@ -622,8 +622,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   CANVAS CARD
-                                                ═══════════════════════════════════════════ */
+                                                       CANVAS CARD
+                                                    ═══════════════════════════════════════════ */
         .rv-canvas-toolbar {
             padding: .55rem .9rem;
             border-bottom: 1px solid var(--border);
@@ -667,8 +667,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   FLOATING BARS
-                                                ═══════════════════════════════════════════ */
+                                                       FLOATING BARS
+                                                    ═══════════════════════════════════════════ */
         .tte-float-bar {
             max-height: 30px;
             position: absolute;
@@ -776,8 +776,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                                   RESPONSIVE
-                                                ═══════════════════════════════════════════ */
+                                                       RESPONSIVE
+                                                    ═══════════════════════════════════════════ */
         @media (max-width: 767px) {
 
             html,
@@ -879,8 +879,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                                           SHARED NOTE + UNIFIED SUBMIT
-                                ═══════════════════════════════════════════ */
+                                               SHARED NOTE + UNIFIED SUBMIT
+                                    ═══════════════════════════════════════════ */
         .rv-shared-note {
             margin-bottom: .85rem;
         }
@@ -1156,7 +1156,7 @@
                         <textarea id="sharedNote" class="rv-notes" rows="3" placeholder="Add a note…"></textarea>
                         <div id="noteError"
                             style="display:none;color:#DC2626;font-size:.75rem;margin-top:.3rem;
-                   display:flex;align-items:center;gap:.3rem;">
+                                   align-items:center;gap:.3rem;">
                             <i class="bi bi-exclamation-circle"></i>
                             <span>Rejection reason is required.</span>
                         </div>
