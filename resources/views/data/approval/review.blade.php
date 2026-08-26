@@ -16,8 +16,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   LAYOUT
-                ═══════════════════════════════════════════ */
+                                                   LAYOUT
+                                                ═══════════════════════════════════════════ */
         .rv-wrap {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -34,8 +34,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   CARD
-                ═══════════════════════════════════════════ */
+                                                   CARD
+                                                ═══════════════════════════════════════════ */
         .rv-card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -79,8 +79,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   SUBMISSION DETAIL GRID
-                ═══════════════════════════════════════════ */
+                                                   SUBMISSION DETAIL GRID
+                                                ═══════════════════════════════════════════ */
         .rv-detail-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -126,8 +126,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   TTE IDENTITY
-                ═══════════════════════════════════════════ */
+                                                   TTE IDENTITY
+                                                ═══════════════════════════════════════════ */
         .rv-tte-id {
             display: flex;
             align-items: center;
@@ -167,8 +167,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   REQUIREMENT BANNER
-                ═══════════════════════════════════════════ */
+                                                   REQUIREMENT BANNER
+                                                ═══════════════════════════════════════════ */
         .rv-tte-req {
             display: flex;
             align-items: center;
@@ -215,8 +215,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   HOW-TO HINT
-                ═══════════════════════════════════════════ */
+                                                   HOW-TO HINT
+                                                ═══════════════════════════════════════════ */
         .rv-howto {
             display: flex;
             align-items: flex-start;
@@ -236,8 +236,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   SIGNATURE SLOTS
-                ═══════════════════════════════════════════ */
+                                                   SIGNATURE SLOTS
+                                                ═══════════════════════════════════════════ */
         .rv-sig-slot {
             border: 1.5px solid var(--border);
             border-radius: 10px;
@@ -400,8 +400,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   TAB SWITCHER
-                ═══════════════════════════════════════════ */
+                                                   TAB SWITCHER
+                                                ═══════════════════════════════════════════ */
         .rv-tab-bar {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -446,8 +446,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   TAB PANELS
-                ═══════════════════════════════════════════ */
+                                                   TAB PANELS
+                                                ═══════════════════════════════════════════ */
         .rv-tab-panel {
             display: none;
             flex-direction: column;
@@ -576,8 +576,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   VALIDATION ERROR
-                ═══════════════════════════════════════════ */
+                                                   VALIDATION ERROR
+                                                ═══════════════════════════════════════════ */
         #tteValidationError {
             display: none;
             align-items: flex-start;
@@ -591,8 +591,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   PDF VIEWER
-                ═══════════════════════════════════════════ */
+                                                   PDF VIEWER
+                                                ═══════════════════════════════════════════ */
         .rv-pdf-toolbar {
             padding: .6rem 1rem;
             border-bottom: 1px solid var(--border);
@@ -622,8 +622,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   CANVAS CARD
-                ═══════════════════════════════════════════ */
+                                                   CANVAS CARD
+                                                ═══════════════════════════════════════════ */
         .rv-canvas-toolbar {
             padding: .55rem .9rem;
             border-bottom: 1px solid var(--border);
@@ -667,8 +667,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   FLOATING BARS
-                ═══════════════════════════════════════════ */
+                                                   FLOATING BARS
+                                                ═══════════════════════════════════════════ */
         .tte-float-bar {
             max-height: 30px;
             position: absolute;
@@ -776,8 +776,8 @@
         }
 
         /* ═══════════════════════════════════════════
-                   RESPONSIVE
-                ═══════════════════════════════════════════ */
+                                                   RESPONSIVE
+                                                ═══════════════════════════════════════════ */
         @media (max-width: 767px) {
 
             html,
@@ -876,6 +876,81 @@
                 width: 100% !important;
                 min-width: unset !important;
             }
+        }
+
+        /* ═══════════════════════════════════════════
+                                           SHARED NOTE + UNIFIED SUBMIT
+                                ═══════════════════════════════════════════ */
+        .rv-shared-note {
+            margin-bottom: .85rem;
+        }
+
+        .rv-action-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            margin-bottom: .4rem;
+            border: 1px solid;
+        }
+
+        .rv-action-tag.approve {
+            background: #F0FDF4;
+            border-color: #86EFAC;
+            color: #14532D;
+        }
+
+        .rv-action-tag.reject {
+            background: #FEF2F2;
+            border-color: #FCA5A5;
+            color: #991B1B;
+        }
+
+        .rv-submit-unified {
+            width: 100%;
+            padding: .7rem;
+            border-radius: 10px;
+            border: none;
+            font-size: .88rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .45rem;
+            font-family: inherit;
+            transition: filter .15s, opacity .15s;
+            margin-top: .25rem;
+        }
+
+        .rv-submit-unified:hover:not(:disabled) {
+            filter: brightness(1.08);
+        }
+
+        .rv-submit-unified:disabled {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+
+        .rv-submit-unified.approve {
+            background: #16A34A;
+            color: #fff;
+        }
+
+        .rv-submit-unified.reject {
+            background: #DC2626;
+            color: #fff;
+        }
+
+        .rv-divider {
+            height: 1px;
+            background: var(--border);
+            margin: .85rem 0;
         }
     </style>
 @endpush
@@ -1058,7 +1133,6 @@
                             </div>
                         </div>
 
-
                         {{-- Signature Slots --}}
                         <div id="sigSlots"></div>
                         <button type="button" class="rv-btn-add-slot" id="btnAddSlot" onclick="slotAdd()">
@@ -1072,7 +1146,26 @@
                         <span id="tteValidationMsg"></span>
                     </div>
 
-                    {{-- ── TAB BAR ── --}}
+                    {{-- ── SHARED NOTE ── --}}
+                    <div class="rv-shared-note">
+                        <span class="rv-notes-label">
+                            Notes
+                            <span id="noteRequired" style="color:#DC2626;display:none;">*</span>
+                            <span id="noteOptional" style="color:var(--muted);font-weight:400;">(optional)</span>
+                        </span>
+                        <textarea id="sharedNote" class="rv-notes" rows="3" placeholder="Add a note…"></textarea>
+                        <div id="noteError"
+                            style="display:none;color:#DC2626;font-size:.75rem;margin-top:.3rem;
+                   display:flex;align-items:center;gap:.3rem;">
+                            <i class="bi bi-exclamation-circle"></i>
+                            <span>Rejection reason is required.</span>
+                        </div>
+                    </div>
+
+                    <div class="rv-divider"></div>
+
+                    {{-- ── TAB BAR (action selector) ── --}}
+                    <span class="rv-notes-label" style="margin-bottom:.5rem;display:block;">Choose action</span>
                     <div class="rv-tab-bar">
                         <button type="button" class="rv-tab-btn rv-tab-approve" id="rvTabApprove"
                             onclick="rvSwitchTab('approve')">
@@ -1083,38 +1176,18 @@
                         </button>
                     </div>
 
-                    {{-- ── APPROVE PANEL ── --}}
+                    {{-- ── APPROVE PANEL (info only) ── --}}
                     <div class="rv-tab-panel visible" id="rvPanelApprove">
-                        <form action="{{ route('data.approval.approve', $submission) }}" method="POST" id="formApprove">
-                            @csrf
-                            <input type="hidden" name="tahap" value="{{ $tahap }}">
-                            <input type="hidden" name="id_ref" value="{{ $idRef }}">
-                            <div id="placementsInput"></div>
-
-                            <div style="margin-bottom:.75rem;">
-                                <span class="rv-notes-label">
-                                    Notes
-                                    <span style="color:var(--muted);font-weight:400;">(optional)</span>
-                                </span>
-                                <textarea name="catatan" class="rv-notes" rows="3" placeholder="Add a note for this approval...">{{ old('catatan') }}</textarea>
+                        @if ($needTte)
+                            <div class="rv-approve-hint need" id="approveHint">
+                                <i class="bi bi-info-circle" id="approveHintIcon"></i>
+                                <span id="approveHintText">Place {{ $requiredTteCount }}
+                                    signature{{ $requiredTteCount > 1 ? 's' : '' }} to approve.</span>
                             </div>
-
-                            <button type="submit" class="btn-approve-full" id="btnApprove"
-                                {{ $needTte ? 'disabled' : '' }}>
-                                <i class="bi bi-check-lg"></i> Approve Submission
-                            </button>
-
-                            @if ($needTte)
-                                <div class="rv-approve-hint need" id="approveHint">
-                                    <i class="bi bi-info-circle" id="approveHintIcon"></i>
-                                    <span id="approveHintText">Place {{ $requiredTteCount }}
-                                        signature{{ $requiredTteCount > 1 ? 's' : '' }} to approve.</span>
-                                </div>
-                            @endif
-                        </form>
+                        @endif
                     </div>
 
-                    {{-- ── REJECT PANEL ── --}}
+                    {{-- ── REJECT PANEL (warning only) ── --}}
                     <div class="rv-tab-panel" id="rvPanelReject">
                         <div class="rv-reject-warn">
                             <i class="bi bi-exclamation-triangle-fill"></i>
@@ -1123,29 +1196,35 @@
                                 revise and resubmit the document.
                             </span>
                         </div>
-
-                        <form action="{{ route('data.approval.reject', $submission) }}" method="POST" id="formReject">
-                            @csrf
-                            <input type="hidden" name="tahap" value="{{ $tahap }}">
-                            <input type="hidden" name="id_ref" value="{{ $idRef }}">
-
-                            <div style="margin-bottom:.75rem;">
-                                <span class="rv-notes-label">
-                                    Rejection Reason
-                                    <span style="color:#DC2626;">*</span>
-                                </span>
-                                <textarea name="catatan" class="rv-notes-reject @error('catatan') is-invalid @enderror" rows="3"
-                                    placeholder="Explain why this submission is rejected..." required>{{ old('catatan') }}</textarea>
-                                @error('catatan')
-                                    <div class="invalid-msg">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <button type="submit" class="btn-reject-full">
-                                <i class="bi bi-x-lg"></i> Reject Submission
-                            </button>
-                        </form>
                     </div>
+
+                    <div class="rv-divider"></div>
+
+                    {{-- ── UNIFIED SUBMIT BUTTON ── --}}
+                    <div id="placementsInput"></div>
+
+                    {{-- Hidden forms (still needed for action URLs) --}}
+                    <form action="{{ route('data.approval.approve', $submission) }}" method="POST" id="formApprove"
+                        style="display:none;">
+                        @csrf
+                        <input type="hidden" name="tahap" value="{{ $tahap }}">
+                        <input type="hidden" name="id_ref" value="{{ $idRef }}">
+                        <input type="hidden" name="catatan" id="hiddenNoteApprove">
+                        <div id="placementsInputHidden"></div>
+                    </form>
+
+                    <form action="{{ route('data.approval.reject', $submission) }}" method="POST" id="formReject"
+                        style="display:none;">
+                        @csrf
+                        <input type="hidden" name="tahap" value="{{ $tahap }}">
+                        <input type="hidden" name="id_ref" value="{{ $idRef }}">
+                        <input type="hidden" name="catatan" id="hiddenNoteReject">
+                    </form>
+                    <button type="button" class="rv-submit-unified approve" id="btnUnifiedSubmit"
+                        {{ $needTte ? 'disabled' : '' }} onclick="rvSubmit()">
+                        <i class="bi bi-check-lg" id="submitIcon"></i>
+                        <span id="submitLabel">Submit</span>
+                    </button>
 
                 </div>
             </div>
@@ -1218,7 +1297,7 @@
                     <div id="tteActiveBar" class="rv-active-bar">
                         <i class="bi bi-record-circle"
                             style="animation:rv-pulse 1s ease-in-out infinite;flex-shrink:0;"></i>
-                        <span id="tteActiveLabel">Click the canvas  below to place signature</span>
+                        <span id="tteActiveLabel">Click the canvas below to place signature</span>
                     </div>
 
                     <div class="rv-placement-scroll" id="placementScroll">
@@ -1289,11 +1368,16 @@
             })();
 
             /* ── Tab switcher ── */
+            var rvActiveTab = 'approve';
+
             window.rvSwitchTab = function(tab) {
+                rvActiveTab = tab;
                 var btnA = document.getElementById('rvTabApprove');
                 var btnR = document.getElementById('rvTabReject');
                 var pA = document.getElementById('rvPanelApprove');
                 var pR = document.getElementById('rvPanelReject');
+
+                /* Tab highlight */
                 if (tab === 'approve') {
                     btnA.className = 'rv-tab-btn rv-tab-approve';
                     btnR.className = 'rv-tab-btn';
@@ -1305,6 +1389,94 @@
                     pR.classList.add('visible');
                     pA.classList.remove('visible');
                 }
+
+                /* Note placeholder & required marker */
+                var note = document.getElementById('sharedNote');
+                var noteReq = document.getElementById('noteRequired');
+                var noteOpt = document.getElementById('noteOptional');
+                var noteErr = document.getElementById('noteError');
+                if (note) note.placeholder = tab === 'approve' ?
+                    'Add a note for this approval… (optional)' :
+                    'Explain why this submission is rejected…';
+                if (noteReq) noteReq.style.display = tab === 'reject' ? 'inline' : 'none';
+                if (noteOpt) noteOpt.style.display = tab === 'approve' ? 'inline' : 'none';
+                if (noteErr) noteErr.style.display = 'none';
+
+                /* Unified submit button */
+                var btn = document.getElementById('btnUnifiedSubmit');
+                var icon = document.getElementById('submitIcon');
+                var label = document.getElementById('submitLabel');
+
+                if (tab === 'approve') {
+                    if (btn) {
+                        btn.className = 'rv-submit-unified approve';
+                        /* Re-evaluate disabled: jika butuh TTE dan belum cukup → disable */
+                        var needDisable = (typeof NEED_TTE !== 'undefined' && NEED_TTE) &&
+                            (typeof placedCount === 'function') &&
+                            (placedCount() < (typeof REQUIRED_COUNT !== 'undefined' ? REQUIRED_COUNT : 1));
+                        btn.disabled = needDisable;
+                        btn.style.opacity = needDisable ? '.45' : '1';
+                        btn.style.cursor = needDisable ? 'not-allowed' : 'pointer';
+                    }
+                    if (icon) {
+                        icon.className = 'bi bi-check-lg';
+                    }
+                    if (label) {
+                        label.textContent = 'Submit';
+                    }
+                } else {
+                    if (btn) {
+                        btn.className = 'rv-submit-unified reject';
+                        btn.disabled = false; /* Reject tidak butuh TTE */
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                    if (icon) {
+                        icon.className = 'bi bi-x-lg';
+                    }
+                    if (label) {
+                        label.textContent = 'Submit';
+                    }
+                }
+            };
+
+            window.rvSubmit = function() {
+                var note = document.getElementById('sharedNote');
+                var val = note ? note.value.trim() : '';
+
+                if (rvActiveTab === 'reject') {
+                    /* Reject requires a reason */
+                    if (!val) {
+                        var noteErr = document.getElementById('noteError');
+                        if (noteErr) noteErr.style.display = 'flex';
+                        note.focus();
+                        return;
+                    }
+                    document.getElementById('hiddenNoteReject').value = val;
+                    document.getElementById('formReject').submit();
+                    return;
+                }
+
+                /* Approve */
+                if (NEED_TTE) {
+                    var placed = placedCount();
+                    if (placed < REQUIRED_COUNT) {
+                        var msg = placed === 0 ?
+                            'You must place ' + REQUIRED_COUNT + ' signature' +
+                            (REQUIRED_COUNT > 1 ? 's' : '') + ' on the document before approving.' :
+                            'You have placed ' + placed + ' of ' + REQUIRED_COUNT +
+                            ' required signature' + (REQUIRED_COUNT > 1 ? 's' : '') +
+                            '. Please place ' + (REQUIRED_COUNT - placed) + ' more.';
+                        showValidationError(msg);
+                        rvSwitchTab('approve');
+                        return;
+                    }
+                    hideValidationError();
+                    /* Sync placements into the hidden form */
+                    syncInputsTo('placementsInputHidden');
+                }
+                document.getElementById('hiddenNoteApprove').value = val;
+                document.getElementById('formApprove').submit();
             };
 
             /* ══════════════════════════════════════════
@@ -1575,7 +1747,7 @@
             }
 
             function setApproveDisabled(disabled) {
-                var btn = document.getElementById('btnApprove');
+                var btn = document.getElementById('btnUnifiedSubmit');
                 if (!btn) return;
                 btn.disabled = disabled;
                 btn.style.opacity = disabled ? '.45' : '1';
@@ -1618,12 +1790,17 @@
                 var label = document.getElementById('tteFloatSlotName');
                 var btnSave = document.getElementById('tteFloatSave');
                 var btnAdd = document.getElementById('tteFloatAdd');
+                var divider = document.querySelector('#tteFloatBar .tte-float-divider');
                 if (idle) idle.classList.remove('visible');
                 if (!bar) return;
                 if (label) label.textContent = 'TTD #' + (idx + 1);
                 if (btnSave) btnSave.disabled = true;
-                if (btnAdd) btnAdd.disabled =
-                    (slots[idx] && slots[idx].pdfX === null) || (placedCount() >= REQUIRED_COUNT);
+                var full = placedCount() >= REQUIRED_COUNT;
+                if (btnAdd) {
+                    btnAdd.disabled = (slots[idx] && slots[idx].pdfX === null) || full;
+                    btnAdd.style.display = full ? 'none' : 'flex';
+                }
+                if (divider) divider.style.display = full ? 'none' : 'block';
                 bar.classList.add('visible');
             }
 
@@ -1636,9 +1813,22 @@
                 var placed = placedCount();
                 var idle = document.getElementById('tteFloatIdle');
                 var label = document.getElementById('tteFloatIdleLabel');
+                var idleAdd = document.getElementById('tteFloatIdleAdd');
+                var idleDivider = document.querySelector('#tteFloatIdle .tte-float-divider');
                 if (!idle) return;
                 if (placed > 0 && activeSlotIdx === null) {
-                    if (label) label.textContent = placed + ' signature' + (placed > 1 ? 's' : '') + ' placed';
+                    var full = placed >= REQUIRED_COUNT;
+                    if (label) {
+                        if (full) {
+                            label.innerHTML =
+                                '<i class="bi bi-shield-check-fill" style="color:#22c55e;animation:none;pointer-events:none;"></i>' +
+                                '&nbsp;All TTE Requirements Are Complete';
+                        } else {
+                            label.textContent = placed + ' signature' + (placed > 1 ? 's' : '') + ' placed';
+                        }
+                    }
+                    if (idleAdd) idleAdd.style.display = full ? 'none' : 'flex';
+                    if (idleDivider) idleDivider.style.display = full ? 'none' : 'block';
                     idle.classList.add('visible');
                 } else {
                     idle.classList.remove('visible');
@@ -1862,9 +2052,12 @@
                 }
             }
 
-            /* ── Sync hidden inputs ── */
             function syncInputs() {
-                var c = document.getElementById('placementsInput');
+                syncInputsTo('placementsInputHidden');
+            }
+
+            function syncInputsTo(containerId) {
+                var c = document.getElementById(containerId);
                 if (!c) return;
                 c.innerHTML = '';
                 var i = 0;
@@ -1887,29 +2080,8 @@
                 });
             }
 
-            /* ── Form submit validation ── */
-            var form = document.getElementById('formApprove');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    var placed = placedCount();
-                    if (placed < REQUIRED_COUNT) {
-                        e.preventDefault();
-                        var msg = placed === 0 ?
-                            'You must place ' + REQUIRED_COUNT + ' signature' +
-                            (REQUIRED_COUNT > 1 ? 's' : '') + ' on the document before approving.' :
-                            'You have placed ' + placed + ' of ' + REQUIRED_COUNT +
-                            ' required signature' + (REQUIRED_COUNT > 1 ? 's' : '') +
-                            '. Please place ' + (REQUIRED_COUNT - placed) + ' more.';
-                        showValidationError(msg);
-                        /* Switch to approve tab so error is visible */
-                        rvSwitchTab('approve');
-                    } else {
-                        hideValidationError();
-                    }
-                });
-            }
-
             /* ── Init ── */
+            rvSwitchTab('approve');
             updateReqBanner();
             slotAdd();
         });
