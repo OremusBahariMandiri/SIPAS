@@ -592,7 +592,7 @@ class SubmissionController extends Controller
         $submission->update($data);
 
         // ── Rebuild terusan ──────────────────────────────────────────────────
-        $submission->terusans()->delete();
+        $submission->terusans()->whereDoesntHave('approvals')->delete();
 
         if ($request->filled('terusan')) {
             foreach ($request->terusan as $urutan => $t) {
