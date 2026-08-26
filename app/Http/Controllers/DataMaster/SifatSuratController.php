@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\SifatSurat;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class SifatSuratController extends Controller
 {
     private string $menu = 'master.sifat-surat';
+
+    private array $logFields = ['kode', 'nama', 'keterangan', 'status'];
 
     public function index(Request $request): View
     {
@@ -54,12 +57,19 @@ class SifatSuratController extends Controller
             'status'     => ['required', 'in:1,0'],
         ], $this->messages());
 
-        SifatSurat::create([
+        $sifatSurat = SifatSurat::create([
             'kode'       => strtoupper($request->kode),
             'nama'       => $request->nama,
             'keterangan' => $request->keterangan,
             'status'     => $request->status,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $sifatSurat,
+            "{$sifatSurat->nama} ({$sifatSurat->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.sifat-surat.index')
             ->with('success', 'Letter classification successfully added.');
@@ -83,12 +93,22 @@ class SifatSuratController extends Controller
             'status'     => ['required', 'in:1,0'],
         ], $this->messages());
 
+        $original = $sifatSurat->toArray();
+
         $sifatSurat->update([
             'kode'       => strtoupper($request->kode),
             'nama'       => $request->nama,
             'keterangan' => $request->keterangan,
             'status'     => $request->status,
         ]);
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $sifatSurat,
+            $original,
+            "{$sifatSurat->nama} ({$sifatSurat->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.sifat-surat.index')
             ->with('success', 'Letter classification data successfully updated.');
@@ -102,18 +122,22 @@ class SifatSuratController extends Controller
             return back()->with('error', 'Letter classification cannot be deleted because it is still used in letter submissions.');
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $sifatSurat,
+            "{$sifatSurat->nama} ({$sifatSurat->kode})",
+            $this->logFields,
+        );
+
         $sifatSurat->delete();
 
         return redirect()->route('master.sifat-surat.index')
             ->with('success', 'Letter classification successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) {

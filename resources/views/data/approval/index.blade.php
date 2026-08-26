@@ -37,14 +37,15 @@
             'approve' => 'Approved',
             'reject' => 'Rejected',
         ];
-
         $tahapLabels = [
             'terusan' => 'Forwarding',
             'kepada' => 'Final',
         ];
 
-        // colspan history: admin ada kolom Approver
-        $historyColspan = $isAdmin ? 9 : 8;
+        // colspan history
+        // user biasa : No | Letter No | Company | Subject | Doc.Type | Classification | Dept | Submitted By | Date | Action = 10
+        // admin      : + Stage | Approver | Acted At = 13
+        $historyColspan = $isAdmin ? 13 : 10;
     @endphp
 
     {{-- PAGE HEADER --}}
@@ -53,7 +54,9 @@
             {{ $isAdmin ? 'Approval Management' : 'Approval Inbox' }}
         </h1>
         <p class="idx-page-subtitle">
-            {{ $isAdmin ? 'View all approval activities across the system.' : 'Review and approve document submissions assigned to you.' }}
+            {{ $isAdmin
+                ? 'View all approval activities across the system.'
+                : 'Review and approve document submissions assigned to you.' }}
         </p>
     </div>
 
@@ -64,9 +67,7 @@
                 class="idx-tab-link {{ $activeTab === 'inbox' ? 'active' : '' }}">
                 <i class="bi bi-inbox"></i>
                 Inbox
-                @php
-                    $totalPending = ($terusans ?? collect())->count() + ($kepadas ?? collect())->count();
-                @endphp
+                @php $totalPending = ($terusans ?? collect())->count() + ($kepadas ?? collect())->count(); @endphp
                 @if ($totalPending > 0)
                     <span class="idx-tab-badge">{{ $totalPending }}</span>
                 @endif
@@ -80,10 +81,10 @@
     </div>
 
 
-    {{-- ════ TAB: INBOX (non-admin only) ════ --}}
+    {{-- ════ TAB: INBOX ════ --}}
     @if ($activeTab === 'inbox' && !$isAdmin)
 
-        {{-- Forwarding Approval --}}
+        {{-- FORWARDING APPROVAL --}}
         @if (($terusans ?? collect())->isNotEmpty())
             <div class="idx-card" style="margin-bottom:1.5rem;">
                 <div class="idx-card-header">
@@ -102,12 +103,16 @@
                     <table class="idx-tbl" style="width:100%;">
                         <thead>
                             <tr>
-                                <th style="width:44px;">#</th>
+                                <th style="width:44px;">No</th>
                                 <th>Letter No.</th>
+                                <th>Company</th>
                                 <th>Subject</th>
+                                <th>Doc. Type</th>
+                                <th>Classification</th>
+                                <th>Department</th>
                                 <th>Submitted By</th>
                                 <th>Require TTE</th>
-                                <th style="width:120px;">Date</th>
+                                <th style="width:110px;">Date</th>
                                 <th style="width:90px;text-align:right;">Action</th>
                             </tr>
                         </thead>
@@ -116,8 +121,25 @@
                                 <tr>
                                     <td class="idx-no">{{ $loop->iteration }}</td>
                                     <td><strong style="font-size:.83rem;">{{ $t->pengajuan->nomor_surat }}</strong></td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $t->pengajuan->perusahaan->nama ?? '-' }}
+                                    </td>
                                     <td>{{ $t->pengajuan->perihal }}</td>
-                                    <td class="idx-td-muted">{{ $t->pengajuan->user->nrk ?? '-' }}</td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $t->pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $t->pengajuan->sifatSurat->nama ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $t->pengajuan->user->departemen->nama ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $t->pengajuan->user->nama_karyawan ?? '-' }}
+                                        @if ($t->pengajuan->user->jabatan ?? null)
+                                            <br><span style="font-size:.72rem;">{{ $t->pengajuan->user->jabatan }}</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         @if ($t->require_tte)
                                             <span class="idx-badge idx-badge-info">
@@ -127,7 +149,9 @@
                                             <span class="idx-badge idx-badge-muted">No</span>
                                         @endif
                                     </td>
-                                    <td class="idx-td-muted">{{ $t->pengajuan->tanggal_surat->format('d/m/Y') }}</td>
+                                    <td class="idx-td-muted">
+                                        {{ $t->pengajuan->tanggal_surat->format('d/m/Y') }}
+                                    </td>
                                     <td class="idx-td-right">
                                         <div class="idx-actions">
                                             <a href="{{ route('data.approval.review', $t->pengajuan) }}"
@@ -142,6 +166,7 @@
                     </table>
                 </div>
 
+                {{-- Mobile --}}
                 <div class="idx-mob-list">
                     @foreach ($terusans as $t)
                         <div class="idx-mob-card">
@@ -160,7 +185,21 @@
                                     <i class="bi bi-file-text"></i> {{ $t->pengajuan->nomor_surat }}
                                 </span>
                                 <span class="idx-mc-meta-item">
-                                    <i class="bi bi-person"></i> {{ $t->pengajuan->user->nrk ?? '-' }}
+                                    <i class="bi bi-building"></i> {{ $t->pengajuan->perusahaan->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-tag"></i> {{ $t->pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-bookmark"></i> {{ $t->pengajuan->sifatSurat->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-diagram-3"></i> {{ $t->pengajuan->user->departemen->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-person"></i>
+                                    {{ $t->pengajuan->user->nama_karyawan ?? '-' }}
+                                    {{ $t->pengajuan->user->jabatan ? '— ' . $t->pengajuan->user->jabatan : '' }}
                                 </span>
                             </div>
                             <div class="idx-mc-footer">
@@ -181,7 +220,7 @@
             </div>
         @endif
 
-        {{-- Final Approval --}}
+        {{-- FINAL APPROVAL --}}
         @if (($kepadas ?? collect())->isNotEmpty())
             <div class="idx-card">
                 <div class="idx-card-header">
@@ -200,12 +239,15 @@
                     <table class="idx-tbl" style="width:100%;">
                         <thead>
                             <tr>
-                                <th style="width:44px;">#</th>
+                                <th style="width:44px;">No.</th>
                                 <th>Letter No.</th>
+                                <th>Company</th>
                                 <th>Subject</th>
-                                <th>Document Type</th>
+                                <th>Doc. Type</th>
+                                <th>Classification</th>
+                                <th>Department</th>
                                 <th>Submitted By</th>
-                                <th style="width:120px;">Date</th>
+                                <th style="width:110px;">Date</th>
                                 <th style="width:90px;text-align:right;">Action</th>
                             </tr>
                         </thead>
@@ -214,9 +256,25 @@
                                 <tr>
                                     <td class="idx-no">{{ $loop->iteration }}</td>
                                     <td><strong style="font-size:.83rem;">{{ $k->nomor_surat }}</strong></td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $k->perusahaan->nama ?? '-' }}
+                                    </td>
                                     <td>{{ $k->perihal }}</td>
-                                    <td class="idx-td-muted">{{ $k->jenisDokumen->jenis_dokumen ?? '-' }}</td>
-                                    <td class="idx-td-muted">{{ $k->user->nrk ?? '-' }}</td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $k->jenisDokumen->jenis_dokumen ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $k->sifatSurat->nama ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $k->user->departemen->nama ?? '-' }}
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $k->user->nama_karyawan ?? '-' }}
+                                        @if ($k->user->jabatan ?? null)
+                                            <br><span style="font-size:.72rem;">{{ $k->user->jabatan }}</span>
+                                        @endif
+                                    </td>
                                     <td class="idx-td-muted">{{ $k->tanggal_surat->format('d/m/Y') }}</td>
                                     <td class="idx-td-right">
                                         <div class="idx-actions">
@@ -232,6 +290,7 @@
                     </table>
                 </div>
 
+                {{-- Mobile --}}
                 <div class="idx-mob-list">
                     @foreach ($kepadas as $k)
                         <div class="idx-mob-card">
@@ -244,10 +303,21 @@
                                     <i class="bi bi-file-text"></i> {{ $k->nomor_surat }}
                                 </span>
                                 <span class="idx-mc-meta-item">
+                                    <i class="bi bi-building"></i> {{ $k->perusahaan->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
                                     <i class="bi bi-tag"></i> {{ $k->jenisDokumen->jenis_dokumen ?? '-' }}
                                 </span>
                                 <span class="idx-mc-meta-item">
-                                    <i class="bi bi-person"></i> {{ $k->user->nrk ?? '-' }}
+                                    <i class="bi bi-bookmark"></i> {{ $k->sifatSurat->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-diagram-3"></i> {{ $k->user->departemen->nama ?? '-' }}
+                                </span>
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-person"></i>
+                                    {{ $k->user->nama_karyawan ?? '-' }}
+                                    {{ $k->user->jabatan ? '— ' . $k->user->jabatan : '' }}
                                 </span>
                             </div>
                             <div class="idx-mc-footer">
@@ -268,7 +338,7 @@
             </div>
         @endif
 
-        {{-- Empty state inbox --}}
+        {{-- Empty state --}}
         @if (($terusans ?? collect())->isEmpty() && ($kepadas ?? collect())->isEmpty())
             <div class="idx-card">
                 <div class="idx-empty" style="padding:3rem 1.5rem;">
@@ -392,21 +462,25 @@
                 <table class="idx-tbl" style="width:100%;">
                     <thead>
                         <tr>
-                            <th style="width:44px;">#</th>
+                            <th style="width:44px;">No.</th>
                             <th class="idx-sortable" data-col="nomor_surat">
                                 Letter No. <i class="bi bi-chevron-expand idx-sort-icon"></i>
                             </th>
+                            <th>Company</th>
                             <th>Subject</th>
-                            @if ($isAdmin)
-                                <th>Approver</th>
-                            @endif
-                            <th style="width:110px;">Stage</th>
-                            <th style="width:110px;">Action</th>
-                            <th>Note</th>
-                            <th class="idx-sortable" data-col="acted_at" style="width:140px;">
-                                Acted At <i class="bi bi-chevron-expand idx-sort-icon"></i>
+                            <th>Doc. Type</th>
+                            <th>Classification</th>
+                            <th>Department</th>
+                            <th>Submitted By</th>
+                            <th class="idx-sortable" data-col="acted_at" style="width:110px;">
+                                Date <i class="bi bi-chevron-expand idx-sort-icon"></i>
                             </th>
-                            <th style="width:90px;text-align:right;">Detail</th>
+                            @if ($isAdmin)
+                                <th style="width:110px;">Stage</th>
+                                <th>Approver</th>
+                                <th style="width:140px;">Acted At</th>
+                            @endif
+                            <th style="width:90px;text-align:right;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -415,36 +489,44 @@
                                 <td class="idx-no">{{ $histories->firstItem() + $loop->index }}</td>
                                 <td><strong style="font-size:.83rem;">{{ $h->pengajuan->nomor_surat ?? '-' }}</strong>
                                 </td>
-                                <td>{{ $h->pengajuan->perihal ?? '-' }}</td>
-                                @if ($isAdmin)
-                                    <td class="idx-td-muted" style="font-size:.8rem;">
-                                        {{ $h->approver->nrk ?? '-' }}
-                                        @if ($h->approver->nama_karyawan ?? null)
-                                            <br><span style="font-size:.72rem;">{{ $h->approver->nama_karyawan }}</span>
-                                        @endif
-                                    </td>
-                                @endif
-                                <td>
-                                    <span class="idx-badge idx-badge-muted">
-                                        {{ $tahapLabels[$h->tahap] ?? $h->tahap }}
-                                    </span>
+                                <td class="idx-td-muted" style="font-size:.8rem;">
+                                    {{ $h->pengajuan->perusahaan->nama ?? '-' }}
                                 </td>
-                                <td>
-                                    <span class="idx-badge {{ $badges[$h->aksi] ?? 'idx-badge-muted' }}">
-                                        @if ($h->aksi === 'approve')
-                                            <i class="bi bi-check-lg"></i>
-                                        @else
-                                            <i class="bi bi-x-lg"></i>
-                                        @endif
-                                        {{ $labels[$h->aksi] ?? $h->aksi }}
-                                    </span>
+                                <td>{{ $h->pengajuan->perihal ?? '-' }}</td>
+                                <td class="idx-td-muted" style="font-size:.8rem;">
+                                    {{ $h->pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}
                                 </td>
                                 <td class="idx-td-muted" style="font-size:.8rem;">
-                                    {{ $h->catatan ? Str::limit($h->catatan, 60) : '—' }}
+                                    {{ $h->pengajuan->sifatSurat->nama ?? '-' }}
+                                </td>
+                                <td class="idx-td-muted" style="font-size:.8rem;">
+                                    {{ $h->pengajuan->user->departemen->nama ?? '-' }}
+                                </td>
+                                <td class="idx-td-muted" style="font-size:.8rem;">
+                                    {{ $h->pengajuan->user->nama_karyawan ?? '-' }}
+                                    @if ($h->pengajuan->user->jabatan ?? null)
+                                        <br><span style="font-size:.72rem;">{{ $h->pengajuan->user->jabatan }}</span>
+                                    @endif
                                 </td>
                                 <td class="idx-td-muted">
-                                    {{ $h->acted_at ? \Carbon\Carbon::parse($h->acted_at)->format('d/m/Y H:i') : '-' }}
+                                    {{ $h->pengajuan->tanggal_surat ? \Carbon\Carbon::parse($h->pengajuan->tanggal_surat)->format('d/m/Y') : '-' }}
                                 </td>
+                                @if ($isAdmin)
+                                    <td>
+                                        <span class="idx-badge idx-badge-muted">
+                                            {{ $tahapLabels[$h->tahap] ?? $h->tahap }}
+                                        </span>
+                                    </td>
+                                    <td class="idx-td-muted" style="font-size:.8rem;">
+                                        {{ $h->approver->nama_karyawan ?? '-' }}
+                                        @if ($h->approver->jabatan ?? null)
+                                            <br><span style="font-size:.72rem;">{{ $h->approver->jabatan }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="idx-td-muted">
+                                        {{ $h->acted_at ? \Carbon\Carbon::parse($h->acted_at)->format('d/m/Y H:i') : '-' }}
+                                    </td>
+                                @endif
                                 <td class="idx-td-right">
                                     <div class="idx-actions">
                                         @if ($h->pengajuan)
@@ -493,45 +575,69 @@
                     <div class="idx-mob-card">
                         <div class="idx-mc-top">
                             <span class="idx-mc-subject">{{ $h->pengajuan->perihal ?? '-' }}</span>
-                            <span class="idx-badge {{ $badges[$h->aksi] ?? 'idx-badge-muted' }}" style="flex-shrink:0;">
-                                @if ($h->aksi === 'approve')
-                                    <i class="bi bi-check-lg"></i>
-                                @else
-                                    <i class="bi bi-x-lg"></i>
-                                @endif
-                                {{ $labels[$h->aksi] ?? $h->aksi }}
-                            </span>
+                            @if ($isAdmin)
+                                <span class="idx-badge {{ $badges[$h->aksi] ?? 'idx-badge-muted' }}"
+                                    style="flex-shrink:0;">
+                                    @if ($h->aksi === 'approve')
+                                        <i class="bi bi-check-lg"></i>
+                                    @else
+                                        <i class="bi bi-x-lg"></i>
+                                    @endif
+                                    {{ $labels[$h->aksi] ?? $h->aksi }}
+                                </span>
+                            @endif
                         </div>
                         <div class="idx-mc-meta">
                             <span class="idx-mc-meta-item">
                                 <i class="bi bi-file-text"></i> {{ $h->pengajuan->nomor_surat ?? '-' }}
                             </span>
                             <span class="idx-mc-meta-item">
-                                <i class="bi bi-layers"></i> {{ $tahapLabels[$h->tahap] ?? $h->tahap }}
+                                <i class="bi bi-building"></i> {{ $h->pengajuan->perusahaan->nama ?? '-' }}
                             </span>
-                            @if ($isAdmin && ($h->approver ?? null))
+                            <span class="idx-mc-meta-item">
+                                <i class="bi bi-tag"></i> {{ $h->pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}
+                            </span>
+                            <span class="idx-mc-meta-item">
+                                <i class="bi bi-bookmark"></i> {{ $h->pengajuan->sifatSurat->nama ?? '-' }}
+                            </span>
+                            <span class="idx-mc-meta-item">
+                                <i class="bi bi-diagram-3"></i> {{ $h->pengajuan->user->departemen->nama ?? '-' }}
+                            </span>
+                            <span class="idx-mc-meta-item">
+                                <i class="bi bi-person"></i>
+                                {{ $h->pengajuan->user->nama_karyawan ?? '-' }}
+                                {{ $h->pengajuan->user->jabatan ? '— ' . $h->pengajuan->user->jabatan : '' }}
+                            </span>
+                            @if ($isAdmin)
+                                <span class="idx-mc-meta-item">
+                                    <i class="bi bi-layers"></i> {{ $tahapLabels[$h->tahap] ?? $h->tahap }}
+                                </span>
                                 <span class="idx-mc-meta-item">
                                     <i class="bi bi-person-check"></i>
-                                    {{ $h->approver->nrk ?? '-' }}
-                                    {{ $h->approver->nama_karyawan ? '— ' . $h->approver->nama_karyawan : '' }}
+                                    {{ $h->approver->nama_karyawan ?? '-' }}
+                                    {{ $h->approver->jabatan ? '— ' . $h->approver->jabatan : '' }}
                                 </span>
-                            @endif
-                            @if ($h->catatan)
-                                <span class="idx-mc-meta-item" style="grid-column:1/-1;">
-                                    <i class="bi bi-chat-left-text"></i>
-                                    {{ Str::limit($h->catatan, 80) }}
-                                </span>
+                                @if ($h->catatan)
+                                    <span class="idx-mc-meta-item" style="grid-column:1/-1;">
+                                        <i class="bi bi-chat-left-text"></i> {{ Str::limit($h->catatan, 80) }}
+                                    </span>
+                                @endif
                             @endif
                         </div>
                         <div class="idx-mc-footer">
                             <span class="idx-mc-date">
-                                <i class="bi bi-clock"></i>
-                                {{ $h->acted_at ? \Carbon\Carbon::parse($h->acted_at)->format('d/m/Y H:i') : '-' }}
+                                @if ($isAdmin)
+                                    <i class="bi bi-clock"></i>
+                                    {{ $h->acted_at ? \Carbon\Carbon::parse($h->acted_at)->format('d/m/Y H:i') : '-' }}
+                                @else
+                                    <i class="bi bi-calendar3"></i>
+                                    {{ $h->pengajuan->tanggal_surat ? \Carbon\Carbon::parse($h->pengajuan->tanggal_surat)->format('d/m/Y') : '-' }}
+                                @endif
                             </span>
                             <div class="idx-actions">
                                 @if ($h->pengajuan)
-                                    <a href="{{ route('data.submission.show', $h->pengajuan) }}"
-                                        class="idx-btn-action idx-btn-view" title="View Submission">
+                                    <a href="{{ route('data.approval.show', $h) }}" class="idx-btn-action idx-btn-view"
+                                        title="View">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     @if ($isAdmin)
@@ -695,7 +801,7 @@
             </div>
         </div>
 
-        {{-- MODAL DELETE — untuk admin hapus submission dari history --}}
+        {{-- MODAL DELETE (admin only) --}}
         @if ($isAdmin)
             <div class="idx-modal-backdrop" id="idxModalDel">
                 <div class="idx-modal-box">
@@ -718,7 +824,7 @@
     @endif {{-- /tab history --}}
 
 
-    {{-- TAB NAV STYLE --}}
+    {{-- TAB STYLE --}}
     <style>
         .idx-tab-nav {
             display: flex;
@@ -895,10 +1001,9 @@
 
                 /* Escape */
                 document.addEventListener('keydown', e => {
-                    if (e.key === 'Escape') {
-                        idxFmClose();
-                        idxCloseModal();
-                    }
+                    if (e.key !== 'Escape') return;
+                    idxFmClose();
+                    idxCloseModal();
                 });
 
             })();

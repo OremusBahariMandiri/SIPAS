@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\WilayahKerja;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class WilayahKerjaController extends Controller
 {
     private string $menu = 'master.wilker';
+
+    private array $logFields = ['kode', 'wilayah_kerja', 'skt_wilayah_kerja', 'area_kerja', 'skt_area_kerja'];
 
     public function index(Request $request): View
     {
@@ -58,13 +61,20 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => ['nullable', 'string', 'max:20'],
         ], $this->messages());
 
-        WilayahKerja::create([
+        $wilker = WilayahKerja::create([
             'kode'              => strtoupper($request->kode),
             'wilayah_kerja'     => $request->wilayah_kerja,
             'skt_wilayah_kerja' => $request->skt_wilayah_kerja ? strtoupper($request->skt_wilayah_kerja) : null,
             'area_kerja'        => $request->area_kerja,
             'skt_area_kerja'    => $request->skt_area_kerja ? strtoupper($request->skt_area_kerja) : null,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $wilker,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.wilker.index')
             ->with('success', 'Work region successfully added.');
@@ -91,6 +101,8 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => ['nullable', 'string', 'max:20'],
         ], $this->messages());
 
+        $original = $wilker->toArray();
+
         $wilker->update([
             'kode'              => strtoupper($request->kode),
             'wilayah_kerja'     => $request->wilayah_kerja,
@@ -98,6 +110,14 @@ class WilayahKerjaController extends Controller
             'area_kerja'        => $request->area_kerja,
             'skt_area_kerja'    => $request->skt_area_kerja ? strtoupper($request->skt_area_kerja) : null,
         ]);
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $wilker,
+            $original,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.wilker.index')
             ->with('success', 'Work region data successfully updated.');
@@ -113,18 +133,22 @@ class WilayahKerjaController extends Controller
             return back()->with('error', "Work region \"{$wilker->wilayah_kerja}\" cannot be deleted because it is currently assigned to {$userCount} user(s).");
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $wilker,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
+
         $wilker->delete();
 
         return redirect()->route('master.wilker.index')
             ->with('success', 'Work region successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');

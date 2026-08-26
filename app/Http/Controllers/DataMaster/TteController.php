@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DataMaster\Tte;
 use App\Models\DataMaster\Perusahaan;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -17,6 +18,8 @@ class TteController extends Controller
 {
     private string $menu = 'master.tte';
 
+    private array $logFields = ['id_user', 'id_perusahaan', 'is_active', 'expired_at'];
+
     public function index(Request $request): View
     {
         $this->authorizeAccess($this->menu, 'index_access');
@@ -27,17 +30,13 @@ class TteController extends Controller
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->whereHas(
-                    'user',
-                    fn($q) =>
+                $q->whereHas('user', fn($q) =>
                     $q->where('nrk', 'like', "%{$s}%")
-                        ->orWhere('nama_karyawan', 'like', "%{$s}%")  // ← tambah
-                        ->orWhere('jabatan', 'like', "%{$s}%")
-                )->orWhereHas(
-                    'perusahaan',
-                    fn($q) =>
+                      ->orWhere('nama_karyawan', 'like', "%{$s}%")
+                      ->orWhere('jabatan', 'like', "%{$s}%")
+                )->orWhereHas('perusahaan', fn($q) =>
                     $q->where('nama', 'like', "%{$s}%")
-                        ->orWhere('singkatan', 'like', "%{$s}%")
+                      ->orWhere('singkatan', 'like', "%{$s}%")
                 );
             });
         }
@@ -58,8 +57,8 @@ class TteController extends Controller
         $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
             ? (int) $request->get('per_page') : 15;
 
-        $items         = $query->paginate($perPage)->withQueryString();
-        $perusahaanList = \App\Models\DataMaster\Perusahaan::where('status', 1)->orderBy('nama')->get();
+        $items          = $query->paginate($perPage)->withQueryString();
+        $perusahaanList = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
         return view('master.tte.index', compact('items', 'perusahaanList'));
     }
@@ -71,12 +70,9 @@ class TteController extends Controller
         $users       = User::orderBy('nrk')->get();
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
-        // Ambil TTE yang sudah ada untuk user yang dipilih
         $existingTte = collect();
         if ($request->filled('user_id')) {
-            $existingTte = Tte::where('id_user', $request->user_id)
-                ->withTrashed() // termasuk yang soft deleted
-                ->get();
+            $existingTte = Tte::where('id_user', $request->user_id)->get();
         }
 
         return view('master.tte.create', compact('users', 'perusahaans', 'existingTte'));
@@ -87,17 +83,17 @@ class TteController extends Controller
         $this->authorizeAccess($this->menu, 'create_access');
 
         $request->validate([
-            'id_user'        => ['required', 'exists:users,id'],
-            'id_perusahaan'  => ['required', 'array', 'min:1'],
+            'id_user'         => ['required', 'exists:users,id'],
+            'id_perusahaan'   => ['required', 'array', 'min:1'],
             'id_perusahaan.*' => ['exists:a01_perusahaan,id'],
-            'expired_at'     => ['nullable', 'date', 'after:today'],
+            'expired_at'      => ['nullable', 'date', 'after:today'],
         ], $this->messages());
 
-        $generated = 0;
-        $skipped   = 0;
+        $targetUser = User::find($request->id_user);
+        $generated  = 0;
+        $skipped    = 0;
 
         foreach ($request->id_perusahaan as $idPerusahaan) {
-            // Skip jika kombinasi sudah ada
             $exists = Tte::where('id_user', $request->id_user)
                 ->where('id_perusahaan', $idPerusahaan)
                 ->exists();
@@ -110,7 +106,7 @@ class TteController extends Controller
             $privateKey = RSA::createKey(2048);
             $publicKey  = $privateKey->getPublicKey();
 
-            Tte::create([
+            $tte = Tte::create([
                 'id_user'       => $request->id_user,
                 'id_perusahaan' => $idPerusahaan,
                 'private_key'   => Crypt::encryptString($privateKey->toString('PKCS8')),
@@ -121,6 +117,15 @@ class TteController extends Controller
                 'created_by'    => auth()->id(),
                 'updated_by'    => null,
             ]);
+
+            $tte->load('perusahaan');
+
+            ActivityLogService::masterCreated(
+                $this->menu,
+                $tte,
+                "{$targetUser->nrk} – {$targetUser->nama_karyawan} @ {$tte->perusahaan?->singkatan}",
+                $this->logFields,
+            );
 
             $generated++;
         }
@@ -158,11 +163,23 @@ class TteController extends Controller
             'expired_at' => ['nullable', 'date'],
         ], $this->messages());
 
+        $original = $tte->toArray();
+
         $tte->update([
             'is_active'  => $request->is_active,
             'expired_at' => $request->expired_at,
             'updated_by' => auth()->id(),
         ]);
+
+        $tte->load('user', 'perusahaan');
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $tte,
+            $original,
+            "{$tte->user?->nrk} – {$tte->user?->nama_karyawan} @ {$tte->perusahaan?->singkatan}",
+            $this->logFields,
+        );
 
         return redirect()->route('master.tte.index')
             ->with('success', 'Data TTE berhasil diperbarui.');
@@ -171,6 +188,16 @@ class TteController extends Controller
     public function destroy(Tte $tte): RedirectResponse
     {
         $this->authorizeAccess($this->menu, 'delete_access');
+
+        $tte->load('user', 'perusahaan');
+        $label = "{$tte->user?->nrk} – {$tte->user?->nama_karyawan} @ {$tte->perusahaan?->singkatan}";
+
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $tte,
+            $label,
+            $this->logFields,
+        );
 
         $tte->update(['updated_by' => auth()->id()]);
         $tte->delete();
@@ -192,6 +219,17 @@ class TteController extends Controller
             'updated_by'  => auth()->id(),
         ]);
 
+        $tte->load('user', 'perusahaan');
+
+        ActivityLogService::masterAction(
+            $this->menu,
+            'update',
+            $tte,
+            "{$tte->user?->nrk} – {$tte->user?->nama_karyawan} @ {$tte->perusahaan?->singkatan}",
+            'Keypair TTE di-regenerate. Dokumen lama tidak dapat diverifikasi.',
+            ['action' => 'regenerate_keypair'],
+        );
+
         return redirect()->route('master.tte.show', $tte)
             ->with('success', 'Keypair TTE berhasil di-regenerate.');
     }
@@ -200,22 +238,32 @@ class TteController extends Controller
     {
         $this->authorizeAccess($this->menu, 'update_access');
 
+        $statusBefore = $tte->is_active;
+
         $tte->update([
             'is_active'  => !$tte->is_active,
             'updated_by' => auth()->id(),
         ]);
 
-        $status = $tte->fresh()->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        $tte->load('user', 'perusahaan');
+        $statusAfter = $tte->fresh()->is_active;
+        $statusLabel = $statusAfter ? 'diaktifkan' : 'dinonaktifkan';
 
-        return back()->with('success', "TTE berhasil {$status}.");
+        ActivityLogService::masterAction(
+            $this->menu,
+            'update',
+            $tte,
+            "{$tte->user?->nrk} – {$tte->user?->nama_karyawan} @ {$tte->perusahaan?->singkatan}",
+            "Status TTE {$statusLabel}.",
+            ['is_active' => ['before' => $statusBefore, 'after' => $statusAfter]],
+        );
+
+        return back()->with('success', "TTE berhasil {$statusLabel}.");
     }
-
-    // ─── Helpers ─────────────────────────────────────────────
 
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Silakan login terlebih dahulu.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
@@ -224,13 +272,13 @@ class TteController extends Controller
     private function messages(): array
     {
         return [
-            'id_user.required'          => 'User wajib dipilih.',
-            'id_user.exists'            => 'User tidak ditemukan.',
-            'id_perusahaan.required'    => 'Perusahaan wajib dipilih.',
-            'id_perusahaan.exists'      => 'Perusahaan tidak ditemukan.',
-            'expired_at.date'           => 'Format tanggal tidak valid.',
-            'expired_at.after'          => 'Tanggal expired harus setelah hari ini.',
-            'is_active.required'        => 'Status wajib dipilih.',
+            'id_user.required'       => 'User wajib dipilih.',
+            'id_user.exists'         => 'User tidak ditemukan.',
+            'id_perusahaan.required' => 'Perusahaan wajib dipilih.',
+            'id_perusahaan.exists'   => 'Perusahaan tidak ditemukan.',
+            'expired_at.date'        => 'Format tanggal tidak valid.',
+            'expired_at.after'       => 'Tanggal expired harus setelah hari ini.',
+            'is_active.required'     => 'Status wajib dipilih.',
         ];
     }
 }

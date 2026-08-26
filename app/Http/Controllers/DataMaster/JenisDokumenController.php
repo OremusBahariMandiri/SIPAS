@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DataMaster;
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\JenisDokumen;
 use App\Models\DataMaster\Departemen;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -12,6 +13,8 @@ use Illuminate\View\View;
 class JenisDokumenController extends Controller
 {
     private string $menu = 'master.jenis-dokumen';
+
+    private array $logFields = ['kode_dokumen', 'kategori_dokumen', 'jenis_dokumen', 'departemen_pemilik'];
 
     public function index(Request $request): View
     {
@@ -66,12 +69,19 @@ class JenisDokumenController extends Controller
             'departemen_pemilik' => ['required', 'exists:a02_departemen,id'],
         ], $this->messages());
 
-        JenisDokumen::create([
+        $jenisDokumen = JenisDokumen::create([
             'kode_dokumen'       => strtoupper($request->kode_dokumen),
             'kategori_dokumen'   => $request->kategori_dokumen,
             'jenis_dokumen'      => $request->jenis_dokumen,
             'departemen_pemilik' => $request->departemen_pemilik,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $jenisDokumen,
+            "{$jenisDokumen->jenis_dokumen} ({$jenisDokumen->kode_dokumen})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.jenis-dokumen.index')
             ->with('success', 'Document type successfully added.');
@@ -97,12 +107,22 @@ class JenisDokumenController extends Controller
             'departemen_pemilik' => ['required', 'exists:a02_departemen,id'],
         ], $this->messages());
 
+        $original = $jenisDokumen->toArray();
+
         $jenisDokumen->update([
             'kode_dokumen'       => strtoupper($request->kode_dokumen),
             'kategori_dokumen'   => $request->kategori_dokumen,
             'jenis_dokumen'      => $request->jenis_dokumen,
             'departemen_pemilik' => $request->departemen_pemilik,
         ]);
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $jenisDokumen,
+            $original,
+            "{$jenisDokumen->jenis_dokumen} ({$jenisDokumen->kode_dokumen})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.jenis-dokumen.index')
             ->with('success', 'Document type successfully updated.');
@@ -118,18 +138,22 @@ class JenisDokumenController extends Controller
             return back()->with('error', "Document type \"{$jenisDokumen->jenis_dokumen}\" cannot be deleted because it is used in {$count} letter submission(s).");
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $jenisDokumen,
+            "{$jenisDokumen->jenis_dokumen} ({$jenisDokumen->kode_dokumen})",
+            $this->logFields,
+        );
+
         $jenisDokumen->delete();
 
         return redirect()->route('master.jenis-dokumen.index')
             ->with('success', 'Document type successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');

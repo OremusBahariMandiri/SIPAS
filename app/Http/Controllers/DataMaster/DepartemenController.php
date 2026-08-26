@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\Departemen;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class DepartemenController extends Controller
 {
     private string $menu = 'master.departemen';
+
+    private array $logFields = ['kode', 'nama', 'singkatan', 'status'];
 
     public function index(Request $request): View
     {
@@ -54,12 +57,19 @@ class DepartemenController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
-        Departemen::create([
+        $departemen = Departemen::create([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
             'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
             'status'    => $request->status,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $departemen,
+            "{$departemen->nama} ({$departemen->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.departemen.index')
             ->with('success', 'Department successfully added.');
@@ -83,12 +93,22 @@ class DepartemenController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
+        $original = $departemen->toArray();
+
         $departemen->update([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
             'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
             'status'    => $request->status,
         ]);
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $departemen,
+            $original,
+            "{$departemen->nama} ({$departemen->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.departemen.index')
             ->with('success', 'Department data successfully updated.');
@@ -102,18 +122,22 @@ class DepartemenController extends Controller
             return back()->with('error', 'Department cannot be deleted because it still has registered users.');
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $departemen,
+            "{$departemen->nama} ({$departemen->kode})",
+            $this->logFields,
+        );
+
         $departemen->delete();
 
         return redirect()->route('master.departemen.index')
             ->with('success', 'Department successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
