@@ -806,6 +806,36 @@
                 transform: translateY(0);
             }
         }
+
+        /* ── PENDING BADGE ── */
+        .nav-pending-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: .6rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            line-height: 1.6;
+            flex-shrink: 0;
+            transition: opacity .2s;
+        }
+
+        .nav-inbox-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: .65rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+
+        /* Saat menu-data terbuka: sembunyikan badge di toggle, tampilkan di sub */
+        #menu-data.show~* .nav-pending-badge,
+        .nav-pending-badge.hidden {
+            display: none;
+        }
     </style>
 
     @stack('styles')
@@ -942,18 +972,19 @@
                 $showData = Auth::user()->isAdmin() || Auth::user()->hasAccess('data.submission', 'index_access');
                 $dataActive = Request::is('data/*');
 
-                // Hitung pending approval untuk badge
                 $pendingApproval = 0;
                 if (Auth::check()) {
                     $user = Auth::user();
-                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_user', $user->id_user)
+                    $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_user', $user->id)
                         ->where('status', 'waiting')
                         ->whereHas('pengajuan', fn($q) => $q->whereIn('status', ['waiting', 'in_review']))
                         ->count();
+
                     $pendingKepada = \App\Models\Data\PengajuanSurat::where('id_kepada', $user->id)
                         ->whereIn('status', ['waiting', 'in_review'])
                         ->whereDoesntHave('terusans', fn($q) => $q->where('status', 'waiting'))
                         ->count();
+
                     $pendingApproval = $pendingTerusan + $pendingKepada;
                 }
             @endphp
@@ -966,6 +997,9 @@
                     <span class="nav-item-left">
                         <i class="bi bi-file-earmark-text"></i>
                         <span class="nav-item-label">Documents</span>
+                        @if ($pendingApproval > 0)
+                            <span class="nav-pending-badge" id="navDocsBadge">{{ $pendingApproval }}</span>
+                        @endif
                     </span>
                     <i class="bi bi-chevron-right chevron"></i>
                 </a>
@@ -980,10 +1014,7 @@
                         <span class="nav-item-label">
                             Approval Inbox
                             @if ($pendingApproval > 0)
-                                <span
-                                    style="background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;">
-                                    {{ $pendingApproval }}
-                                </span>
+                                <span class="nav-inbox-badge">{{ $pendingApproval }}</span>
                             @endif
                         </span>
                     </a>
@@ -1258,6 +1289,21 @@
         });
 
         init();
+        (function() {
+            var menuData = document.getElementById('menu-data');
+            var navBadge = document.getElementById('navDocsBadge');
+            if (!menuData || !navBadge) return;
+
+            function syncBadge() {
+                var isOpen = menuData.classList.contains('show');
+                navBadge.style.display = isOpen ? 'none' : 'inline';
+            }
+
+            syncBadge(); // set state awal
+
+            menuData.addEventListener('shown.bs.collapse', syncBadge);
+            menuData.addEventListener('hidden.bs.collapse', syncBadge);
+        })();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>

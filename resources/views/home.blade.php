@@ -624,7 +624,7 @@
                         $acBadgeTxt = $isApprove ? '#14532d' : '#7f1d1d';
                         $acLabel = $isApprove ? 'Approved' : 'Rejected';
                         $tahapLabel = match ($approval->tahap) {
-                            'terusan' => 'Carbon Copy',
+                            'terusan' => 'Carbon Copy (CC)',
                             'kepada' => 'Final Approval',
                             default => $approval->tahap,
                         };
