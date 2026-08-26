@@ -44,7 +44,22 @@ class PengajuanTerusan extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function isWaiting(): bool  { return $this->status === 'waiting'; }
-    public function isApproved(): bool { return $this->status === 'approved'; }
-    public function isRejected(): bool { return $this->status === 'rejected'; }
+    public function approvals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PengajuanApproval::class, 'id_ref')
+            ->where('tahap', 'terusan');
+    }
+
+    public function isWaiting(): bool
+    {
+        return $this->status === 'waiting';
+    }
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
 }

@@ -162,6 +162,34 @@
             color: #991b1b;
             font-style: italic;
         }
+
+        /* ── History entries (lintas resubmit) ── */
+        .afl-history {
+            margin-top: .4rem;
+            border-left: 2px solid var(--border);
+            padding-left: .6rem;
+        }
+
+        .afl-history-entry {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-bottom: .25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: .3rem;
+        }
+
+        .afl-history-entry i {
+            font-size: .68rem;
+            margin-top: .12rem;
+            flex-shrink: 0;
+        }
+
+        .afl-history-entry .afl-history-note {
+            display: block;
+            font-style: italic;
+            opacity: .8;
+        }
     </style>
 @endpush
 
@@ -171,86 +199,100 @@
         $bannerMap = [
             'draft' => [
                 'class' => 'sdv-banner-draft',
-                'icon' => 'bi-pencil-square',
-                'text' => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.',
+                'icon'  => 'bi-pencil-square',
+                'text'  => 'This submission is saved as <strong>Draft</strong> and has not been submitted yet.',
             ],
             'waiting' => [
                 'class' => 'sdv-banner-waiting',
-                'icon' => 'bi-hourglass-split',
-                'text' => 'Waiting for the first approver to review.',
+                'icon'  => 'bi-hourglass-split',
+                'text'  => 'Waiting for the first approver to review.',
             ],
             'in_review' => [
                 'class' => 'sdv-banner-review',
-                'icon' => 'bi-arrow-repeat',
-                'text' => 'Currently being reviewed by approvers.',
+                'icon'  => 'bi-arrow-repeat',
+                'text'  => 'Currently being reviewed by approvers.',
             ],
             'approved' => [
                 'class' => 'sdv-banner-success',
-                'icon' => 'bi-check-circle-fill',
-                'text' => 'This submission has been <strong>Approved</strong>.',
+                'icon'  => 'bi-check-circle-fill',
+                'text'  => 'This submission has been <strong>Approved</strong>.',
             ],
             'rejected' => [
                 'class' => 'sdv-banner-danger',
-                'icon' => 'bi-x-circle-fill',
-                'text' => 'This submission has been <strong>Rejected</strong>.',
+                'icon'  => 'bi-x-circle-fill',
+                'text'  => 'This submission has been <strong>Rejected</strong>.',
             ],
         ];
-        $banner = $bannerMap[$submission->status] ?? $bannerMap['draft'];
 
-        // Ambil catatan dari approval terakhir (approve atau reject)
-        $lastApproval = $submission->approvals->sortByDesc('acted_at')->first();
-        $bannerNote = $lastApproval?->catatan ?? null;
-        $bannerNoteBy = $lastApproval?->approver->nama_karyawan ?? ($lastApproval?->approver->nrk ?? null);
-        $banner = $bannerMap[$submission->status] ?? $bannerMap['draft'];
+        $lastApproval  = $submission->approvals->sortByDesc('acted_at')->first();
+        $bannerNote    = $lastApproval?->catatan ?? null;
+        $bannerNoteBy  = $lastApproval?->approver->nama_karyawan ?? ($lastApproval?->approver->nrk ?? null);
+        $banner        = $bannerMap[$submission->status] ?? $bannerMap['draft'];
 
         $badgeMap = [
-            'draft' => ['class' => 'sdv-badge-draft', 'label' => 'Draft'],
-            'waiting' => ['class' => 'sdv-badge-waiting', 'label' => 'Waiting'],
-            'in_review' => ['class' => 'sdv-badge-review', 'label' => 'In Review'],
-            'approved' => ['class' => 'sdv-badge-success', 'label' => 'Approved'],
-            'rejected' => ['class' => 'sdv-badge-danger', 'label' => 'Rejected'],
+            'draft'     => ['class' => 'sdv-badge-draft',   'label' => 'Draft'],
+            'waiting'   => ['class' => 'sdv-badge-waiting', 'label' => 'Waiting'],
+            'in_review' => ['class' => 'sdv-badge-review',  'label' => 'In Review'],
+            'approved'  => ['class' => 'sdv-badge-success', 'label' => 'Approved'],
+            'rejected'  => ['class' => 'sdv-badge-danger',  'label' => 'Rejected'],
         ];
         $badgeCurrent = $badgeMap[$submission->status] ?? $badgeMap['draft'];
 
-        $stepClass = ['approved' => 'is-approved', 'rejected' => 'is-rejected', 'waiting' => 'is-waiting'];
-        $stepBadge = [
-            'approved' => ['class' => 'sdv-badge-success', 'icon' => 'bi-check-circle-fill', 'label' => 'Approved'],
-            'rejected' => ['class' => 'sdv-badge-danger', 'icon' => 'bi-x-circle-fill', 'label' => 'Rejected'],
-            'waiting' => ['class' => 'sdv-badge-waiting', 'icon' => 'bi-hourglass-split', 'label' => 'Pending'],
-        ];
+        /* ══════════════════════════════════════════════════════════════
+           BUILD FLOW STEPS
+           Menggunakan urutan (bukan id terusan) agar history tidak
+           hilang saat submission di-resubmit dan terusan di-recreate.
+        ══════════════════════════════════════════════════════════════ */
 
-        /* ── Build flow steps ── */
-        $approvalIndex = [];
-        foreach ($submission->approvals as $ap) {
-            $key = $ap->tahap . '_' . $ap->id_ref;
-            if (!isset($approvalIndex[$key]) || $ap->acted_at > $approvalIndex[$key]->acted_at) {
-                $approvalIndex[$key] = $ap;
+        // Mapping: approval grouped by urutan terusan
+        $terusanById      = $submission->terusans->keyBy('id');
+        $approvalByUrutan = []; // ['terusan_urutan_1' => [PengajuanApproval, ...]]
+
+        foreach ($submission->approvals->sortBy('acted_at') as $ap) {
+            if ($ap->tahap === 'terusan') {
+                $t = $terusanById->get($ap->id_ref);
+                if ($t) {
+                    $uKey = 'terusan_urutan_' . $t->urutan;
+                    $approvalByUrutan[$uKey][] = $ap;
+                }
             }
         }
 
+        // Semua approval kepada, urut ascending
+        $kepAdaApprovals = $submission->approvals
+            ->where('tahap', 'kepada')
+            ->sortBy('acted_at')
+            ->values();
+
         $flowSteps = [];
 
-        /* 1. Pengaju */
+        /* ── 1. Pengaju ── */
         $flowSteps[] = [
-            'label' => 'Submitted by',
-            'name' => $submission->user->nama_karyawan ?? ($submission->user->nrk ?? '-'),
-            'sub' => $submission->user->jabatan ?? null,
-            'status' => 'approved',
-            'time' => $submission->created_at,
+            'label'   => 'Submitted by',
+            'name'    => $submission->user->nama_karyawan ?? ($submission->user->nrk ?? '-'),
+            'sub'     => $submission->user->jabatan ?? null,
+            'status'  => 'approved',
+            'time'    => $submission->created_at,
             'catatan' => null,
-            'aksi' => 'approve',
+            'aksi'    => 'approve',
+            'history' => [],
         ];
 
-        /* 2. Terusan */
-        foreach ($submission->terusans as $terusan) {
-            $apLog = $approvalIndex['terusan_' . $terusan->id] ?? null;
+        /* ── 2. Terusan — grouped by urutan ── */
+        $allUrutans = $submission->terusans->pluck('urutan')->unique()->sort()->values();
 
-            if ($apLog) {
-                $status = $apLog->aksi === 'approve' ? 'approved' : 'rejected';
-                $name = $apLog->approver->nama_karyawan ?? '-';
-                $sub = $apLog->approver->jabatan ?? null;
-                $time = $apLog->acted_at;
-            } else {
+        foreach ($allUrutans as $urutan) {
+            $terusan   = $submission->terusans->firstWhere('urutan', $urutan);
+            $uKey      = 'terusan_urutan_' . $urutan;
+            $apLogs    = collect($approvalByUrutan[$uKey] ?? [])->sortBy('acted_at')->values();
+            $lastApLog = $apLogs->last();
+
+            if ($lastApLog) {
+                $status = $lastApLog->aksi === 'approve' ? 'approved' : 'rejected';
+                $name   = $lastApLog->approver->nama_karyawan ?? '-';
+                $sub    = $lastApLog->approver->jabatan ?? null;
+                $time   = $lastApLog->acted_at;
+            } elseif ($terusan) {
                 $isActive =
                     $terusan->status === 'waiting' &&
                     !$submission->terusans
@@ -258,58 +300,79 @@
                         ->where('status', '!=', 'approved')
                         ->count();
 
-                if ($submission->status === 'rejected' && $terusan->status === 'waiting') {
-                    $status = 'skipped';
-                } else {
-                    $status = $isActive ? 'active' : 'pending';
-                }
-                $name = $terusan->user->nama_karyawan ?? '-'; // ← ambil dari user
-                $sub = $terusan->user->jabatan ?? null;
+                $status = match (true) {
+                    $submission->status === 'rejected' && $terusan->status === 'waiting' => 'skipped',
+                    $isActive => 'active',
+                    default   => 'pending',
+                };
+                $name = $terusan->user->nama_karyawan ?? '-';
+                $sub  = $terusan->user->jabatan ?? null;
                 $time = null;
+            } else {
+                // Terusan sudah dihapus tapi punya approval history
+                $status = 'approved';
+                $name   = '-';
+                $sub    = null;
+                $time   = null;
             }
 
+            $historyEntries = $apLogs->map(fn($ap) => [
+                'aksi'    => $ap->aksi,
+                'catatan' => $ap->catatan,
+                'by'      => $ap->approver->nama_karyawan ?? '-',
+                'time'    => $ap->acted_at,
+            ])->all();
+
             $flowSteps[] = [
-                'label' => 'Carbon Copy (CC)',
-                'name' => $name,
-                'sub' => $sub,
-                'status' => $status,
-                'time' => $time,
-                'catatan' => $apLog ? $apLog->catatan : null,
-                'aksi' => $apLog ? $apLog->aksi : null,
+                'label'   => 'Carbon Copy (CC) #' . $urutan,
+                'name'    => $name,
+                'sub'     => $sub,
+                'status'  => $status,
+                'time'    => $time,
+                'catatan' => $lastApLog?->catatan,
+                'aksi'    => $lastApLog?->aksi,
+                'history' => $historyEntries,
             ];
         }
 
-        /* 3. Kepada (final) */
-        $kepApLog = $approvalIndex['kepada_0'] ?? null;
-        if ($kepApLog) {
-            $kepStatus = $kepApLog->aksi === 'approve' ? 'approved' : 'rejected';
-            $kepName = $kepApLog->approver->nama_karyawan ?? '-';
-            $kepSub = $kepApLog->approver->jabatan ?? null;
-            $kepTime = $kepApLog->acted_at;
+        /* ── 3. Kepada (final) ── */
+        $lastKepAp = $kepAdaApprovals->last();
+
+        if ($lastKepAp) {
+            $kepStatus = $lastKepAp->aksi === 'approve' ? 'approved' : 'rejected';
+            $kepName   = $lastKepAp->approver->nama_karyawan ?? '-';
+            $kepSub    = $lastKepAp->approver->jabatan ?? null;
+            $kepTime   = $lastKepAp->acted_at;
         } else {
-            $allDone =
-                $submission->terusans->isEmpty() || $submission->terusans->every(fn($t) => $t->status === 'approved');
-            $kepStatus =
-                $submission->status === 'rejected'
-                    ? 'skipped'
-                    : ($submission->status === 'approved'
-                        ? 'approved'
-                        : ($allDone
-                            ? 'active'
-                            : 'pending'));
+            $allDone   = $submission->terusans->isEmpty()
+                      || $submission->terusans->every(fn($t) => $t->status === 'approved');
+            $kepStatus = match (true) {
+                $submission->status === 'rejected' => 'skipped',
+                $submission->status === 'approved' => 'approved',
+                $allDone                           => 'active',
+                default                            => 'pending',
+            };
             $kepName = $submission->kepada->nama_karyawan ?? '-';
-            $kepSub = $submission->kepada->jabatan ?? null;
+            $kepSub  = $submission->kepada->jabatan ?? null;
             $kepTime = null;
         }
 
+        $kepHistory = $kepAdaApprovals->map(fn($ap) => [
+            'aksi'    => $ap->aksi,
+            'catatan' => $ap->catatan,
+            'by'      => $ap->approver->nama_karyawan ?? '-',
+            'time'    => $ap->acted_at,
+        ])->all();
+
         $flowSteps[] = [
-            'label' => 'Final Approval',
-            'name' => $kepName,
-            'sub' => $kepSub,
-            'status' => $kepStatus,
-            'time' => $kepTime,
-            'catatan' => $kepApLog ? $kepApLog->catatan : null,
-            'aksi' => $kepApLog ? $kepApLog->aksi : null,
+            'label'   => 'Final Approval',
+            'name'    => $kepName,
+            'sub'     => $kepSub,
+            'status'  => $kepStatus,
+            'time'    => $kepTime,
+            'catatan' => $lastKepAp?->catatan,
+            'aksi'    => $lastKepAp?->aksi,
+            'history' => $kepHistory,
         ];
     @endphp
 
@@ -327,9 +390,8 @@
         <div>
             <div>{!! $banner['text'] !!}</div>
             @if ($bannerNote)
-                <div
-                    style="margin-top:.35rem;font-size:.8rem;opacity:.85;
-                        display:flex;align-items:flex-start;gap:.35rem;">
+                <div style="margin-top:.35rem;font-size:.8rem;opacity:.85;
+                            display:flex;align-items:flex-start;gap:.35rem;">
                     <i class="bi bi-chat-left-quote" style="flex-shrink:0;margin-top:.1rem;"></i>
                     <span>
                         "{{ $bannerNote }}"
@@ -347,7 +409,6 @@
 
         {{-- ════ KOLOM KIRI ════ --}}
         <div>
-
             <div class="sdv-card">
                 <div class="sdv-card-head">
                     <h2 class="sdv-card-title">
@@ -424,12 +485,12 @@
                                     class="sdv-btn sdv-btn-danger">
                                     <i class="bi bi-file-earmark-pdf-fill"></i> Show Signed Letter (PDF)
                                 </a>
-                            @elseif($submission->file_current)
+                            @elseif ($submission->file_current)
                                 <a href="{{ route('data.submission.currentFile', $submission) }}" target="_blank"
                                     class="sdv-btn sdv-btn-dl-ghost">
                                     <i class="bi bi-file-earmark-pdf"></i> View (With Signatures So Far)
                                 </a>
-                            @elseif($submission->file_original)
+                            @elseif ($submission->file_original)
                                 <a href="{{ route('data.submission.file', $submission) }}" target="_blank"
                                     class="sdv-btn sdv-btn-dl-ghost">
                                     <i class="bi bi-file-earmark-pdf"></i> View Original
@@ -439,14 +500,10 @@
                     @endif
                 </div>
             </div>
-
         </div>{{-- /kolom kiri --}}
-
 
         {{-- ════ KOLOM KANAN ════ --}}
         <div>
-
-            {{-- ── Approval Flow ── --}}
             <div class="sdv-card">
                 <div class="sdv-card-head">
                     <h2 class="sdv-card-title">
@@ -461,19 +518,19 @@
                     <div class="afl-wrap">
                         @foreach ($flowSteps as $step)
                             @php
-                                $s = $step['status'];
+                                $s       = $step['status'];
                                 $dotIcon = match ($s) {
                                     'approved' => 'bi-check-lg',
                                     'rejected' => 'bi-x-lg',
-                                    'active' => 'bi-hourglass-split',
-                                    default => 'bi-circle',
+                                    'active'   => 'bi-hourglass-split',
+                                    default    => 'bi-circle',
                                 };
                                 $badgeLabel = match ($s) {
                                     'approved' => 'Approved',
                                     'rejected' => 'Rejected',
-                                    'active' => 'Waiting',
-                                    'skipped' => 'Skipped',
-                                    default => 'Pending',
+                                    'active'   => 'Waiting',
+                                    'skipped'  => 'Skipped',
+                                    default    => 'Pending',
                                 };
                             @endphp
 
@@ -489,7 +546,7 @@
                                         <span class="afl-badge {{ $s }}">{{ $badgeLabel }}</span>
                                     </div>
 
-                                    {{-- Nama + jabatan + waktu --}}
+                                    {{-- Nama + jabatan + waktu (kondisi terkini) --}}
                                     @if ($step['name'] || $step['time'])
                                         <div class="afl-sub">
                                             @if ($step['name'])
@@ -509,12 +566,30 @@
                                         </div>
                                     @endif
 
-                                    {{-- Catatan reject --}}
-                                    @if ($step['catatan'])
+                                    {{-- Riwayat approval lintas-resubmit --}}
+                                    @if (!empty($step['history']) && count($step['history']) > 0)
+                                        <div class="afl-history">
+                                            @foreach ($step['history'] as $h)
+                                                <div class="afl-history-entry">
+                                                    <i class="bi bi-{{ $h['aksi'] === 'approve' ? 'check-circle-fill' : 'x-circle-fill' }}"
+                                                       style="color:{{ $h['aksi'] === 'approve' ? '#16A34A' : '#DC2626' }};"></i>
+                                                    <span>
+                                                        <strong>{{ $h['aksi'] === 'approve' ? 'Approved' : 'Rejected' }}</strong>
+                                                        by {{ $h['by'] }}
+                                                        · {{ \Carbon\Carbon::parse($h['time'])->format('d/m/Y H:i') }}
+                                                        @if ($h['catatan'])
+                                                            <span class="afl-history-note">"{{ $h['catatan'] }}"</span>
+                                                        @endif
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @elseif ($step['catatan'])
+                                        {{-- Fallback: hanya satu entry, tampilkan sebagai catatan biasa --}}
                                         <div class="afl-note"
-                                            style="{{ $step['aksi'] === 'approve' ? 'color:#14532d;' : 'color:#991b1b;' }}">
-                                            <i class="bi bi-{{ $step['aksi'] === 'approve' ? 'chat-left-text' : 'exclamation-circle' }}"
-                                                style="font-size:.68rem;"></i>
+                                             style="{{ ($step['aksi'] ?? '') === 'approve' ? 'color:#14532d;' : 'color:#991b1b;' }}">
+                                            <i class="bi bi-{{ ($step['aksi'] ?? '') === 'approve' ? 'chat-left-text' : 'exclamation-circle' }}"
+                                               style="font-size:.68rem;"></i>
                                             "{{ $step['catatan'] }}"
                                         </div>
                                     @endif
@@ -524,11 +599,9 @@
                     </div>
                 </div>
             </div>
-
         </div>{{-- /kolom kanan --}}
 
     </div>{{-- /sdv-layout --}}
-
 
     {{-- ── DELETE MODAL ── --}}
     <div class="sdv-modal-bd" id="sdvModalDel">
@@ -555,16 +628,12 @@
 
 @push('scripts')
     <script>
-        (function() {
+        (function () {
             const modal = document.getElementById('sdvModalDel');
-            window.sdvOpenModal = () => modal.classList.add('show');
+            window.sdvOpenModal  = () => modal.classList.add('show');
             window.sdvCloseModal = () => modal.classList.remove('show');
-            modal.addEventListener('click', e => {
-                if (e.target === modal) sdvCloseModal();
-            });
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') sdvCloseModal();
-            });
+            modal.addEventListener('click', e => { if (e.target === modal) sdvCloseModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') sdvCloseModal(); });
         })();
     </script>
 @endpush
