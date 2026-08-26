@@ -8,6 +8,7 @@ use App\Models\DataMaster\Perusahaan;
 use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Jabatan;
 use App\Models\DataMaster\WilayahKerja;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -26,6 +27,7 @@ class UsersController extends Controller
         'users'                => 'Manajemen – Pengguna',
         'users.akses'          => 'Manajemen – Hak Akses',
         'data.submission'      => 'Dokumen – Pengajuan Surat',
+        'activity_log'         => 'Log Aktivitas',          // ← tambah menu baru
         'settings.smtp'        => 'SMTP Konfigurasi',
     ];
 
@@ -99,7 +101,7 @@ class UsersController extends Controller
             'is_admin'      => ['sometimes', 'boolean'],
         ], $this->messages());
 
-        User::create([
+        $user = User::create([
             'nrk'           => $request->nrk,
             'email'         => $request->email ?: null,
             'nama_karyawan' => $request->nama_karyawan,
@@ -110,6 +112,9 @@ class UsersController extends Controller
             'wilker'        => $request->wilker,
             'is_admin'      => $request->boolean('is_admin') ? 1 : 0,
         ]);
+
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userCreated($user);
 
         return redirect()->route('users.index')
             ->with('success', 'User has been added successfully.');
@@ -149,6 +154,9 @@ class UsersController extends Controller
             'is_admin'      => ['sometimes', 'boolean'],
         ], $this->messages());
 
+        // Simpan data lama sebelum diupdate
+        $original = $user->toArray();
+
         $data = [
             'nrk'           => $request->nrk,
             'email'         => $request->email ?: null,
@@ -165,6 +173,9 @@ class UsersController extends Controller
         }
 
         $user->update($data);
+
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userUpdated($user, $original);
 
         return redirect()->route('users.index')
             ->with('success', 'User data has been updated successfully.');
@@ -199,6 +210,9 @@ class UsersController extends Controller
             ]);
         }
 
+        // ── Log sebelum dihapus ──────────────────────────────────
+        ActivityLogService::userDeleted($user);
+
         $user->akses()->delete();
         $user->delete();
 
@@ -231,10 +245,10 @@ class UsersController extends Controller
     {
         $this->authorize_access('users.akses', 'update_access');
 
-        DB::transaction(function () use ($request, $user) {
-            $user->akses()->delete();
+        $aksesInput = $request->input('akses', []);
 
-            $aksesInput = $request->input('akses', []);
+        DB::transaction(function () use ($request, $user, $aksesInput) {
+            $user->akses()->delete();
 
             foreach (array_keys(self::$menuList) as $menu) {
                 $menuData = $aksesInput[$menu] ?? [];
@@ -248,6 +262,9 @@ class UsersController extends Controller
                 UsersAccess::create($row);
             }
         });
+
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userAccessUpdated($user, $aksesInput);
 
         return redirect()->route('users.index')
             ->with('success', 'Access rights for "' . $user->nama_karyawan . '" have been saved successfully.');

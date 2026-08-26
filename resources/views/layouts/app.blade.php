@@ -984,7 +984,7 @@
             {{-- ── Settings ── --}}
             @php
                 $showSettings = true; // Profile always accessible for all logged-in users
-                $settingsActive = Request::is('settings/*');
+                $settingsActive = Request::is('settings/*') || Request::is('activity-log*');
             @endphp
 
             @if ($showSettings)
@@ -1008,6 +1008,13 @@
                         </a>
                     @endif
 
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('activity_log', 'index_access'))
+                        <a href="{{ route('activity_log.index') }}"
+                            class="nav-item {{ Request::is('activity-log*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Activity Log</span>
+                        </a>
+                    @endif
+
                     <a href="{{ route('settings.profile.edit') }}"
                         class="nav-item {{ Request::is('settings/profile*') ? 'active' : '' }}">
                         <span class="nav-item-label">Profile</span>
@@ -1023,9 +1030,9 @@
                     {{ strtoupper(substr(Auth::user()->nrk, 0, 2)) }}
                 </div>
                 <div class="sidebar-user-info">
-                    <div class="sidebar-user-name">{{ Auth::user()->nrk }}</div>
+                    <div class="sidebar-user-name">{{ Auth::user()->nama_karyawan }}</div>
                     <div class="sidebar-user-role">
-                        {{ Auth::user()->isAdmin() ? 'Administrator' : Auth::user()->jabatan ?? 'User' }}
+                        {{ Auth::user()->departemen->singkatan ?? 'User' }} - {{ Auth::user()->jabatan ?? 'User' }}
                     </div>
                 </div>
                 <form action="{{ route('logout') }}" method="POST">
@@ -1066,7 +1073,8 @@
                     <div class="dropdown-header">
                         <div class="dropdown-header-name">{{ Auth::user()->nama_karyawan }}</div>
                         <div class="dropdown-header-nrk">
-                            {{ Auth::user()->isAdmin() ? 'Administrator' : Auth::user()->jabatan ?? 'User' }}
+                            {{ Auth::user()->departemen->singkatan ?? 'User' }} -
+                            {{ Auth::user()->jabatan ?? 'User' }}
                         </div>
                     </div>
                     <a href="{{ route('settings.profile.edit') }}" class="dropdown-item">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\Jabatan;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class JabatanController extends Controller
 {
     private string $menu = 'master.jabatan';
+
+    private array $logFields = ['kode', 'nama', 'singkatan', 'status'];
 
     public function index(Request $request): View
     {
@@ -54,12 +57,19 @@ class JabatanController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
-        Jabatan::create([
+        $jabatan = Jabatan::create([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
             'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
             'status'    => $request->status,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $jabatan,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.jabatan.index')
             ->with('success', 'Position successfully added.');
@@ -83,12 +93,22 @@ class JabatanController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
+        $original = $jabatan->toArray();
+
         $jabatan->update([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
             'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
             'status'    => $request->status,
         ]);
+
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $jabatan,
+            $original,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.jabatan.index')
             ->with('success', 'Position data successfully updated.');
@@ -104,18 +124,22 @@ class JabatanController extends Controller
             return back()->with('error', "Position \"{$jabatan->nama}\" cannot be deleted because it is currently assigned to {$userCount} user(s).");
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $jabatan,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
+
         $jabatan->delete();
 
         return redirect()->route('master.jabatan.index')
             ->with('success', 'Position successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');

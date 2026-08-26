@@ -12,6 +12,7 @@ use App\Http\Controllers\Data\SubmissionController;
 use App\Http\Controllers\Data\ApprovalController;
 use App\Http\Controllers\DataMaster\SifatSuratController;
 use App\Http\Controllers\Settings\SmtpSettingController;
+use App\Http\Controllers\ActivityLogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -290,5 +291,22 @@ Route::middleware(['auth'])->group(function () {
         )
             ->middleware('akses:settings.smtp,index_access')
             ->name('smtp.test');
+    });
+
+    Route::prefix('activity-log')->name('activity_log.')->group(function () {
+
+        Route::get(
+            '/',
+            [ActivityLogController::class, 'index']
+        )
+            ->middleware('akses:activity_log,index_access')
+            ->name('index');
+
+        Route::get(
+            '/{activityLog}',
+            [ActivityLogController::class, 'show']
+        )
+            ->middleware('akses:activity_log,index_access')
+            ->name('show');
     });
 });

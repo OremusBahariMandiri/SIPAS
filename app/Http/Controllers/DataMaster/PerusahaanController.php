@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\Perusahaan;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -12,6 +13,9 @@ use Illuminate\Support\Facades\Storage;
 class PerusahaanController extends Controller
 {
     private string $menu = 'master.perusahaan';
+
+    // Field yang di-snapshot untuk log (logo diabaikan karena hanya path)
+    private array $logFields = ['nama', 'singkatan', 'status'];
 
     public function index(Request $request): View
     {
@@ -59,12 +63,19 @@ class PerusahaanController extends Controller
             $logoPath = $request->file('logo')->store('logos', 'public');
         }
 
-        Perusahaan::create([
+        $perusahaan = Perusahaan::create([
             'nama'      => $request->nama,
             'singkatan' => strtoupper($request->singkatan),
             'status'    => $request->status,
             'logo'      => $logoPath,
         ]);
+
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $perusahaan,
+            "{$perusahaan->nama} ({$perusahaan->singkatan})",
+            $this->logFields,
+        );
 
         return redirect()->route('master.perusahaan.index')
             ->with('success', 'Company successfully added.');
@@ -88,6 +99,8 @@ class PerusahaanController extends Controller
             'logo'      => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
         ], $this->messages());
 
+        $original = $perusahaan->toArray();
+
         $data = [
             'nama'      => $request->nama,
             'singkatan' => strtoupper($request->singkatan),
@@ -108,6 +121,14 @@ class PerusahaanController extends Controller
 
         $perusahaan->update($data);
 
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $perusahaan,
+            $original,
+            "{$perusahaan->nama} ({$perusahaan->singkatan})",
+            $this->logFields,
+        );
+
         return redirect()->route('master.perusahaan.index')
             ->with('success', 'Company data successfully updated.');
     }
@@ -120,6 +141,13 @@ class PerusahaanController extends Controller
             return back()->with('error', 'Company cannot be deleted because it still has registered users.');
         }
 
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $perusahaan,
+            "{$perusahaan->nama} ({$perusahaan->singkatan})",
+            $this->logFields,
+        );
+
         if ($perusahaan->logo) {
             Storage::disk('public')->delete($perusahaan->logo);
         }
@@ -130,12 +158,9 @@ class PerusahaanController extends Controller
             ->with('success', 'Company successfully deleted.');
     }
 
-    // ─── Helpers ─────────────────────────────────────────────
-
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
         if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
         if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');

@@ -13,6 +13,7 @@ use App\Models\DataMaster\Perusahaan;
 use App\Models\DataMaster\SifatSurat;
 use App\Models\User;
 use App\Services\TteService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -42,8 +43,14 @@ class SubmissionController extends Controller
         $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
             ? (int) $request->get('per_page') : 15;
 
-        $query = PengajuanSurat::with(['perusahaan', 'jenisDokumen', 'kepada', 'sifatSurat', 'user'])
-            ->orderBy($sort, $dir);
+        $query = PengajuanSurat::with([
+            'perusahaan',
+            'jenisDokumen',
+            'kepada',
+            'sifatSurat',
+            'user',
+            'terusans.user'
+        ])->orderBy($sort, $dir);
 
         if (!$isAdmin) {
             $query->byUser($user->id);
@@ -238,10 +245,7 @@ class SubmissionController extends Controller
 
         // Validasi CC
         if ($request->filled('terusan') && $request->filled('id_kepada')) {
-            $ccUsers = collect($request->terusan)
-                ->pluck('id_user')
-                ->filter()
-                ->values();
+            $ccUsers = collect($request->terusan)->pluck('id_user')->filter()->values();
 
             if ($ccUsers->contains((string) $request->id_kepada)) {
                 return back()->withInput()->withErrors([
@@ -259,8 +263,7 @@ class SubmissionController extends Controller
         // ── Simpan file ──────────────────────────────────────────────────────
         if ($request->hasFile('file_dokumen')) {
             $filename = Str::uuid() . '.pdf';
-            $path     = $request->file('file_dokumen')
-                ->storeAs('submissions/original', $filename, 'local');
+            $path     = $request->file('file_dokumen')->storeAs('submissions/original', $filename, 'local');
         } elseif ($hasTmpFile) {
             $tmpPath  = session('tmp_pdf_' . $request->tmp_key);
             $filename = Str::uuid() . '.pdf';
@@ -295,10 +298,7 @@ class SubmissionController extends Controller
             foreach ($request->terusan as $urutan => $t) {
                 if (empty($t['id_user'])) continue;
 
-                $targetUser = User::where('id', $t['id_user'])
-                    ->where('is_admin', '!=', 1)
-                    ->first();
-
+                $targetUser = User::where('id', $t['id_user'])->where('is_admin', '!=', 1)->first();
                 if (!$targetUser) continue;
 
                 $requireTte = isset($t['require_tte']) ? 1 : 0;
@@ -349,6 +349,9 @@ class SubmissionController extends Controller
                             ->get();
 
                         (new TteService())->injectStageTteToPdf($pengajuan, $freshPlacements);
+
+                        // ── Log TTE placed ───────────────────────────────
+                        ActivityLogService::ttePlaced($pengajuan, 'pengaju', $newPlacements->count());
                     } catch (\Throwable $e) {
                         \Log::error('TTE inject pengaju failed on store', [
                             'pengajuan_id' => $pengajuan->id,
@@ -369,6 +372,9 @@ class SubmissionController extends Controller
                 session()->forget('tmp_filename_' . $tmpKey);
             }
         }
+
+        // ── Log submission ───────────────────────────────────────────────────
+        ActivityLogService::submissionCreated($pengajuan, $isDraft);
 
         // ── Notifikasi ───────────────────────────────────────────────────────
         if (!$isDraft) {
@@ -423,7 +429,6 @@ class SubmissionController extends Controller
         $user        = auth()->user();
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
-        // Exclude diri sendiri dan admin — sama persis dengan create()
         $kepadas = User::where('id', '!=', $user->id)
             ->where('is_admin', '!=', 1)
             ->orderBy('nrk')
@@ -437,7 +442,6 @@ class SubmissionController extends Controller
         $sifatSurats = SifatSurat::aktif()->orderBy('nama')->get();
         $tteMap      = $this->buildTteMap($user, $perusahaans);
 
-        // Load terusan beserta relasi user-nya untuk di-restore di blade
         $submission->load('terusans.user');
 
         return view('data.submission.edit', compact(
@@ -464,10 +468,11 @@ class SubmissionController extends Controller
                 ->with('error', 'This submission can no longer be edited.');
         }
 
-        $isDraft = $request->action !== 'submit';
-
-        // Simpan status awal SEBELUM update untuk keperluan pesan akhir
+        $isDraft      = $request->action !== 'submit';
         $statusBefore = $submission->status;
+
+        // Simpan snapshot sebelum update
+        $original = $submission->toArray();
 
         $hasTmpFile = $request->filled('tmp_key')
             && session('tmp_pdf_' . $request->tmp_key)
@@ -496,8 +501,6 @@ class SubmissionController extends Controller
                 'pengaju_placements.*.tinggi'  => ['nullable', 'numeric'],
             ], $this->messages());
         } else {
-            // Untuk submit: jika rejected wajib upload file baru,
-            // jika draft biasa cukup gunakan file yang sudah ada
             if ($submission->status === 'rejected') {
                 $fileRule = ($request->hasFile('file_dokumen') || $hasTmpFile)
                     ? ['nullable', 'file', 'mimes:pdf', 'max:10240']
@@ -533,10 +536,7 @@ class SubmissionController extends Controller
 
         // Validasi CC
         if ($request->filled('terusan') && $request->filled('id_kepada')) {
-            $ccUsers = collect($request->terusan)
-                ->pluck('id_user')
-                ->filter()
-                ->values();
+            $ccUsers = collect($request->terusan)->pluck('id_user')->filter()->values();
 
             if ($ccUsers->contains((string) $request->id_kepada)) {
                 return back()->withInput()->withErrors([
@@ -565,20 +565,14 @@ class SubmissionController extends Controller
             'require_tte_kepada'  => (int) $request->input('require_tte_kepada', 1),
         ];
 
-        // Reset rejection_reason saat resubmit
         if (!$isDraft && $submission->status === 'rejected') {
             $data['rejection_reason'] = null;
         }
 
         // ── Ganti file jika ada upload baru ─────────────────────────────────
         if ($request->hasFile('file_dokumen') || $hasTmpFile) {
-            // Hapus file lama
-            if ($submission->file_original) {
-                Storage::disk('local')->delete($submission->file_original);
-            }
-            if ($submission->file_current) {
-                Storage::disk('local')->delete($submission->file_current);
-            }
+            if ($submission->file_original) Storage::disk('local')->delete($submission->file_original);
+            if ($submission->file_current)  Storage::disk('local')->delete($submission->file_current);
 
             $filename = Str::uuid() . '.pdf';
 
@@ -604,10 +598,7 @@ class SubmissionController extends Controller
             foreach ($request->terusan as $urutan => $t) {
                 if (empty($t['id_user'])) continue;
 
-                $targetUser = User::where('id', $t['id_user'])
-                    ->where('is_admin', '!=', 1)
-                    ->first();
-
+                $targetUser = User::where('id', $t['id_user'])->where('is_admin', '!=', 1)->first();
                 if (!$targetUser) continue;
 
                 $requireTte = isset($t['require_tte']) ? 1 : 0;
@@ -626,7 +617,6 @@ class SubmissionController extends Controller
         // ── Rebuild TTE placements pengaju ───────────────────────────────────
         $submission->ttePlacements()->where('tahap', 'pengaju')->delete();
 
-        // Gunakan file_original dari $data jika baru diupload, fallback ke existing
         $currentFilePath = $data['file_original'] ?? $submission->file_original;
 
         if ($currentFilePath && $request->filled('pengaju_placements')) {
@@ -663,6 +653,9 @@ class SubmissionController extends Controller
                             ->get();
 
                         (new TteService())->injectStageTteToPdf($submission, $freshPlacements);
+
+                        // ── Log TTE placed ───────────────────────────────
+                        ActivityLogService::ttePlaced($submission, 'pengaju', $newPlacements->count());
                     } catch (\Throwable $e) {
                         \Log::error('TTE inject pengaju failed on update', [
                             'pengajuan_id' => $submission->id,
@@ -683,15 +676,15 @@ class SubmissionController extends Controller
             }
         }
 
+        // ── Log submission ───────────────────────────────────────────────────
+        $submission->refresh();
+        ActivityLogService::submissionUpdated($submission, $original, $isDraft, $statusBefore);
+
         // ── Notifikasi ───────────────────────────────────────────────────────
         if (!$isDraft) {
-            $submission->refresh();
             (new \App\Services\NotificationService())->notifyOnSubmit($submission);
         }
 
-        // ── Pesan sukses ─────────────────────────────────────────────────────
-        // Gunakan $statusBefore (disimpan sebelum update) bukan wasChanged()
-        // karena refresh() akan mereset dirty state model
         $msg = match (true) {
             !$isDraft && $statusBefore === 'rejected' => 'Submission has been resubmitted successfully.',
             !$isDraft                                 => 'Submission has been sent successfully.',
@@ -721,15 +714,12 @@ class SubmissionController extends Controller
             }
         }
 
-        if ($submission->file_original) {
-            Storage::disk('local')->delete($submission->file_original);
-        }
-        if ($submission->file_current) {
-            Storage::disk('local')->delete($submission->file_current);
-        }
-        if ($submission->file_signed) {
-            Storage::disk('local')->delete($submission->file_signed);
-        }
+        // ── Log sebelum dihapus ──────────────────────────────────────────────
+        ActivityLogService::submissionDeleted($submission);
+
+        if ($submission->file_original) Storage::disk('local')->delete($submission->file_original);
+        if ($submission->file_current)  Storage::disk('local')->delete($submission->file_current);
+        if ($submission->file_signed)   Storage::disk('local')->delete($submission->file_signed);
 
         $submission->ttePlacements()->delete();
         $submission->terusans()->delete();
