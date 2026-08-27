@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Crypt;
 use phpseclib3\Crypt\RSA;
 
+
 class TteController extends Controller
 {
     private string $menu = 'master.tte';
@@ -24,30 +25,38 @@ class TteController extends Controller
     {
         $this->authorizeAccess($this->menu, 'index_access');
 
-        $query = Tte::with(['user', 'perusahaan', 'createdBy'])
-            ->orderBy('created_at', 'desc');
+        $query = User::whereHas('ttes')
+            ->with([
+                'perusahaan',
+                'departemen',
+                'ttes' => fn($q) => $q->with('perusahaan'),
+            ])
+            ->orderBy('nrk');
 
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
-                $q->whereHas('user', fn($q) =>
-                    $q->where('nrk', 'like', "%{$s}%")
-                      ->orWhere('nama_karyawan', 'like', "%{$s}%")
-                      ->orWhere('jabatan', 'like', "%{$s}%")
-                )->orWhereHas('perusahaan', fn($q) =>
-                    $q->where('nama', 'like', "%{$s}%")
-                      ->orWhere('singkatan', 'like', "%{$s}%")
-                );
+                $q->where('nrk', 'like', "%{$s}%")
+                    ->orWhere('nama_karyawan', 'like', "%{$s}%")
+                    ->orWhere('jabatan', 'like', "%{$s}%")
+                    ->orWhereHas(
+                        'perusahaan',
+                        fn($q) =>
+                        $q->where('nama', 'like', "%{$s}%")
+                            ->orWhere('singkatan', 'like', "%{$s}%")
+                    );
             });
         }
 
         if ($request->filled('status')) {
-            match ($request->status) {
-                'active'   => $query->valid(),
-                'inactive' => $query->inactive(),
-                'expired'  => $query->expired(),
-                default    => null,
-            };
+            $query->whereHas('ttes', function ($q) use ($request) {
+                match ($request->status) {
+                    'active'   => $q->valid(),
+                    'inactive' => $q->inactive(),
+                    'expired'  => $q->expired(),
+                    default    => null,
+                };
+            });
         }
 
         if ($request->filled('perusahaan')) {
@@ -145,6 +154,21 @@ class TteController extends Controller
         $tte->load(['user', 'perusahaan', 'createdBy', 'updatedBy']);
 
         return view('master.tte.show', compact('tte'));
+    }
+
+    public function showUser(User $user): View
+    {
+        $this->authorizeAccess($this->menu, 'index_access');
+
+        $user->load([
+            'ttes.perusahaan',
+            'ttes.createdBy',
+            'ttes.updatedBy',
+            'departemen',
+            'perusahaan',
+        ]);
+
+        return view('master.tte.show_user', compact('user'));
     }
 
     public function edit(Tte $tte): View

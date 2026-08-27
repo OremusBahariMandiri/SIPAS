@@ -114,7 +114,7 @@
 
                 <a href="{{ route('master.tte.index') }}"
                     style="margin-left:auto;font-size:.72rem;color:#DC2626;text-decoration:none;
-                   font-weight:600;display:flex;align-items:center;gap:.25rem;white-space:nowrap;">
+                           font-weight:600;display:flex;align-items:center;gap:.25rem;white-space:nowrap;">
                     <i class="bi bi-x-circle"></i> Clear all
                 </a>
             </div>
@@ -131,70 +131,63 @@
                         <th>Departemen</th>
                         <th>Position</th>
                         <th>Company</th>
-                        <th style="width:110px;">Expired</th>
+                        <th style="width:110px;">Wilker</th>
                         <th style="width:120px;">Status</th>
                         <th style="width:110px;text-align:right;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($items as $item)
+                        @php
+                            $tteUtama = $item->ttes->firstWhere('id_perusahaan', $item->id_perusahaan);
+                        @endphp
                         <tr>
                             <td class="dt-no">{{ $items->firstItem() + $loop->index }}</td>
-                            <td data-label="NRK">{{ $item->user->nrk ?? '-' }}</td>
-                            <td data-label="Name">{{ $item->user->nama_karyawan ?? '-' }}</td>
-                            <td data-label="Departemen">{{ $item->user->departemen->nama ?? '-' }}</td>
-                            <td data-label="Position" class="td-muted">{{ $item->user->jabatan ?? '-' }}</td>
+                            <td data-label="NRK">{{ $item->nrk ?? '-' }}</td>
+                            <td data-label="Name">{{ $item->nama_karyawan ?? '-' }}</td>
+                            <td data-label="Departemen">{{ $item->departemen->nama ?? '-' }}</td>
+                            <td data-label="Position" class="td-muted">{{ $item->jabatan ?? '-' }}</td>
                             <td data-label="Company" class="td-muted">
                                 {{ $item->perusahaan->nama ?? '-' }}
-                                @if ($item->perusahaan?->singkatan)
-                                    <span
-                                        style="font-size:.75rem;color:var(--muted);">({{ $item->perusahaan->singkatan }})</span>
-                                @endif
                             </td>
                             <td data-label="Expired" class="td-muted">
-                                {{ $item->expired_at ? $item->expired_at->format('d/m/Y') : '—' }}
+                                {{ $item->wilker ?? '-' }}
                             </td>
                             <td data-label="Status">
-                                @if ($item->isExpired())
-                                    <span class="badge badge-danger"><i class="bi bi-clock-fill"></i> Expired</span>
-                                @elseif($item->is_active)
-                                    <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Active</span>
-                                @else
+                                @if ($tteUtama?->isExpired())
+                                    <span class="badge badge-danger">
+                                        <i class="bi bi-clock-fill"></i> Expired
+                                    </span>
+                                @elseif ($tteUtama?->is_active)
+                                    <span class="badge badge-success">
+                                        <i class="bi bi-check-circle-fill"></i> Active
+                                    </span>
+                                @elseif ($tteUtama)
                                     <span class="badge badge-muted">Inactive</span>
+                                @else
+                                    <span class="badge badge-muted">—</span>
                                 @endif
                             </td>
                             <td class="td-actions">
                                 <div class="action-group">
                                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access'))
-                                        <a href="{{ route('master.tte.show', $item) }}" class="btn-action btn-view"
+                                        <a href="{{ route('master.tte.user.show', $item) }}" class="btn-action btn-view"
                                             title="Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                     @endif
-                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'update_access'))
-                                        <a href="{{ route('master.tte.edit', $item) }}" class="btn-action btn-edit"
-                                            title="Edit">
-                                            <i class="bi bi-pencil"></i>
+                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'create_access'))
+                                        <a href="{{ route('master.tte.create', ['user_id' => $item->id]) }}"
+                                            class="btn-action btn-edit" title="Generate TTE">
+                                            <i class="bi bi-plus-circle"></i>
                                         </a>
-                                        <button type="button"
-                                            class="btn-action {{ $item->is_active ? 'btn-warning' : 'btn-success' }}"
-                                            title="{{ $item->is_active ? 'Deactivate' : 'Activate' }}"
-                                            onclick="confirmToggle('{{ $item->id }}', {{ $item->is_active ? 'true' : 'false' }}, '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->user->nama_karyawan ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
-                                            <i class="bi bi-{{ $item->is_active ? 'pause-circle' : 'play-circle' }}"></i>
-                                        </button>
-                                    @endif
-                                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'delete_access'))
-                                        <button type="button" class="btn-action btn-delete" title="Delete"
-                                            onclick="confirmDelete('{{ $item->id }}', '{{ addslashes($item->user->nrk ?? '') }}', '{{ addslashes($item->user->nama_karyawan ?? '') }}', '{{ addslashes($item->perusahaan->singkatan ?? '') }}')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
                                     @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div style="padding:2.5rem;text-align:center;color:var(--muted);">
                                     <i class="bi bi-shield-x" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
                                     <strong>{{ $hasFilter ? 'No results found' : 'No TTE data yet' }}</strong>
@@ -224,7 +217,9 @@
                     @if ($items->onFirstPage())
                         <span class="disabled"><i class="bi bi-chevron-left"></i></span>
                     @else
-                        <a href="{{ $items->previousPageUrl() }}" rel="prev"><i class="bi bi-chevron-left"></i></a>
+                        <a href="{{ $items->previousPageUrl() }}" rel="prev">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
                     @endif
 
                     @foreach ($items->getUrlRange(max(1, $items->currentPage() - 2), min($items->lastPage(), $items->currentPage() + 2)) as $page => $url)
@@ -236,7 +231,9 @@
                     @endforeach
 
                     @if ($items->hasMorePages())
-                        <a href="{{ $items->nextPageUrl() }}" rel="next"><i class="bi bi-chevron-right"></i></a>
+                        <a href="{{ $items->nextPageUrl() }}" rel="next">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
                     @else
                         <span class="disabled"><i class="bi bi-chevron-right"></i></span>
                     @endif
@@ -244,40 +241,6 @@
             </div>
         @endif
 
-    </div>
-
-    {{-- Delete Modal --}}
-    <div class="modal-backdrop-custom" id="modalHapus">
-        <div class="modal-box">
-            <div class="modal-icon"><i class="bi bi-trash"></i></div>
-            <div class="modal-title">Delete TTE?</div>
-            <p class="modal-desc" id="modalDescHapus">This TTE will be deleted.</p>
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" onclick="closeModal('modalHapus')">Cancel</button>
-                <form id="formHapus" method="POST">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="btn-danger">
-                        <i class="bi bi-trash"></i> Yes, Delete
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Toggle Modal --}}
-    <div class="modal-backdrop-custom" id="modalToggle">
-        <div class="modal-box">
-            <div class="modal-icon" id="modalToggleIcon"><i class="bi bi-pause-circle"></i></div>
-            <div class="modal-title" id="modalToggleTitle">Deactivate TTE?</div>
-            <p class="modal-desc" id="modalDescToggle"></p>
-            <div class="modal-actions">
-                <button type="button" class="btn-cancel" onclick="closeModal('modalToggle')">Cancel</button>
-                <form id="formToggle" method="POST">
-                    @csrf
-                    <button type="submit" class="btn-submit">Yes, Proceed</button>
-                </form>
-            </div>
-        </div>
     </div>
 
     {{-- Filter Panel --}}
@@ -352,7 +315,6 @@
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
-        /* ── Select2 inside filter panel ── */
         .select2-container--default .select2-selection--single {
             height: 38px !important;
             border: 1px solid var(--border) !important;
@@ -470,7 +432,6 @@
     <script>
         (function() {
 
-            /* ── Filter panel open/close ── */
             const backdrop = document.getElementById('fmBackdrop');
             let s2Inited = false;
 
@@ -494,7 +455,6 @@
                 if (e.target === backdrop) fmClose();
             });
 
-            /* ── Select2 init (lazy, only when panel opens) ── */
             function initS2() {
                 $('.fm-select2').each(function() {
                     $(this).select2({
@@ -511,7 +471,6 @@
                 });
             }
 
-            /* ── Per page ── */
             window.changePerPage = function(val) {
                 const url = new URL(window.location.href);
                 url.searchParams.set('per_page', val);
@@ -519,7 +478,6 @@
                 window.location = url.toString();
             };
 
-            /* ── Chip remove ── */
             document.querySelectorAll('[data-remove-filter]').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -531,42 +489,8 @@
                 });
             });
 
-            /* ── Escape ── */
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') fmClose();
-            });
-
-            /* ── Delete modal ── */
-            window.confirmDelete = function(id, nrk, nama, perusahaan) {
-                document.getElementById('modalDescHapus').textContent =
-                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be permanently deleted.`;
-                document.getElementById('formHapus').action = `/master/tte/${id}`;
-                document.getElementById('modalHapus').classList.add('show');
-            };
-
-            /* ── Toggle modal ── */
-            window.confirmToggle = function(id, isActive, nrk, nama, perusahaan) {
-                const deactivate = isActive;
-                document.getElementById('modalToggleTitle').textContent =
-                    deactivate ? 'Deactivate TTE?' : 'Activate TTE?';
-                document.getElementById('modalToggleIcon').innerHTML =
-                    deactivate ? '<i class="bi bi-pause-circle"></i>' : '<i class="bi bi-play-circle"></i>';
-                document.getElementById('modalDescToggle').textContent = deactivate ?
-                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be temporarily deactivated.` :
-                    `TTE belonging to NRK "${nrk}" – ${nama} (${perusahaan}) will be reactivated.`;
-                document.getElementById('formToggle').action = `/master/tte/${id}/toggle`;
-                document.getElementById('modalToggle').classList.add('show');
-            };
-
-            /* ── Close modal (shared) ── */
-            window.closeModal = function(id) {
-                document.getElementById(id)?.classList.remove('show');
-            };
-
-            document.querySelectorAll('.modal-backdrop-custom').forEach(el => {
-                el.addEventListener('click', function(e) {
-                    if (e.target === this) this.classList.remove('show');
-                });
             });
 
         })();
