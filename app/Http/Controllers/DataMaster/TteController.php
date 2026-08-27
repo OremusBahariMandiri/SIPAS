@@ -79,6 +79,7 @@ class TteController extends Controller
             ->keyBy(fn($w) => strtolower($w->wilayah_kerja));
 
         $users = User::with(['departemen', 'perusahaan'])
+            ->where('is_admin', 0)
             ->orderBy('nrk')
             ->get()
             ->each(function ($user) use ($wilayahMap) {
@@ -87,6 +88,7 @@ class TteController extends Controller
                     $wilayahMap->get(strtolower($user->wilker))
                 );
             });
+            
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
         $existingTte = collect();
