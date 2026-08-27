@@ -75,8 +75,16 @@ class TteController extends Controller
     public function create(Request $request): View
     {
         $this->authorizeAccess($this->menu, 'create_access');
+        $users = User::with(['departemen', 'perusahaan'])
+            ->orderBy('nrk')
+            ->get()
+            ->each(function ($user) {
+                $user->setRelation(
+                    'wilayahKerja',
+                    \App\Models\DataMaster\WilayahKerja::where('kode', $user->wilker)->first()
+                );
+            });
 
-        $users       = User::orderBy('nrk')->get();
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
         $existingTte = collect();

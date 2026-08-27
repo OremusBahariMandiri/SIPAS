@@ -12,6 +12,7 @@ use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Tte;
 use App\Models\Data\PengajuanSurat;
 use App\Models\Data\PengajuanTerusan;
+use App\Models\DataMaster\WilayahKerja;
 
 class User extends Authenticatable
 {
@@ -58,6 +59,11 @@ class User extends Authenticatable
     public function tte(): HasOne
     {
         return $this->hasOne(Tte::class, 'id_user');
+    }
+
+    public function wilayahKerja(): BelongsTo
+    {
+        return $this->belongsTo(WilayahKerja::class, 'wilker', 'kode');
     }
 
     public function ttes(): HasMany
