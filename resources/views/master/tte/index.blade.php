@@ -132,7 +132,6 @@
                         <th>Position</th>
                         <th>Company</th>
                         <th style="width:110px;">Wilker</th>
-                        <th style="width:120px;">Status</th>
                         <th style="width:110px;text-align:right;">Action</th>
                     </tr>
                 </thead>
@@ -153,21 +152,6 @@
                             <td data-label="Expired" class="td-muted">
                                 {{ $item->wilker ?? '-' }}
                             </td>
-                            <td data-label="Status">
-                                @if ($tteUtama?->isExpired())
-                                    <span class="badge badge-danger">
-                                        <i class="bi bi-clock-fill"></i> Expired
-                                    </span>
-                                @elseif ($tteUtama?->is_active)
-                                    <span class="badge badge-success">
-                                        <i class="bi bi-check-circle-fill"></i> Active
-                                    </span>
-                                @elseif ($tteUtama)
-                                    <span class="badge badge-muted">Inactive</span>
-                                @else
-                                    <span class="badge badge-muted">—</span>
-                                @endif
-                            </td>
                             <td class="td-actions">
                                 <div class="action-group">
                                     @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('master.tte', 'index_access'))
@@ -187,7 +171,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9">
+                            <td colspan="8">
                                 <div style="padding:2.5rem;text-align:center;color:var(--muted);">
                                     <i class="bi bi-shield-x" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>
                                     <strong>{{ $hasFilter ? 'No results found' : 'No TTE data yet' }}</strong>
