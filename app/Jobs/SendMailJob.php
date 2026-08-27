@@ -26,7 +26,8 @@ class SendMailJob implements ShouldQueue
 
     public function handle(): void
     {
-        // Apply SMTP dari DB sebelum kirim
+        $startTime = microtime(true);
+
         $smtp = SmtpSetting::active();
         if (!$smtp) {
             Log::warning('SendMailJob: No active SMTP setting.');
@@ -37,12 +38,25 @@ class SendMailJob implements ShouldQueue
         try {
             Mail::to($this->to)->send($this->mailable);
             Log::info('SendMailJob: Email terkirim ke ' . $this->to);
+
+            // ── Catat ke completed_jobs ──────────────────────────────────────
+            $runTimeMs = (int) round((microtime(true) - $startTime) * 1000);
+
+            \App\Models\CompletedJob::create([
+                'uuid'         => $this->job?->uuid() ?? \Illuminate\Support\Str::uuid(),
+                'queue'        => $this->job?->getQueue() ?? 'default',
+                'display_name' => static::class,
+                'payload'      => ['to' => $this->to, 'mailable' => class_basename($this->mailable)],
+                'attempts'     => $this->attempts(),
+                'run_time_ms'  => $runTimeMs,
+                'completed_at' => now(),
+            ]);
         } catch (\Throwable $e) {
             Log::error('SendMailJob: Gagal kirim email.', [
                 'to'    => $this->to,
                 'error' => $e->getMessage(),
             ]);
-            throw $e; // lempar ulang agar queue retry
+            throw $e;
         }
     }
 }
