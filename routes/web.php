@@ -295,6 +295,41 @@ Route::middleware(['auth'])->group(function () {
         )
             ->middleware('akses:settings.smtp,index_access')
             ->name('smtp.test');
+
+        Route::get(
+            'queue-monitor',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'index']
+        )
+            ->middleware('akses:settings.queue_monitor,index_access')
+            ->name('queue_monitor.index');
+
+        Route::post(
+            'queue-monitor/retry/{id}',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'retry']
+        )
+            ->middleware('akses:settings.queue_monitor,create_access')
+            ->name('queue_monitor.retry');
+
+        Route::post(
+            'queue-monitor/retry-all',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'retryAll']
+        )
+            ->middleware('akses:settings.queue_monitor,create_access')
+            ->name('queue_monitor.retry_all');
+
+        Route::delete(
+            'queue-monitor/failed/{id}',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'deleteFailed']
+        )
+            ->middleware('akses:settings.queue_monitor,delete_access')
+            ->name('queue_monitor.delete_failed');
+
+        Route::delete(
+            'queue-monitor/flush-failed',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'flushFailed']
+        )
+            ->middleware('akses:settings.queue_monitor,delete_access')
+            ->name('queue_monitor.flush_failed');
     });
 
     Route::prefix('activity-log')->name('activity_log.')->group(function () {

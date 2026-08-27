@@ -29,6 +29,7 @@ class UsersController extends Controller
         'data.submission'      => 'Dokumen – Pengajuan Surat',
         'activity_log'         => 'Log Aktivitas',          // ← tambah menu baru
         'settings.smtp'        => 'SMTP Konfigurasi',
+        'settings.queue_monitor' => 'Queue Monitor',
     ];
 
     public static array $accessTypes = [
