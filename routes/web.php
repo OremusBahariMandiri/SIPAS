@@ -152,23 +152,27 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:master.wilker,delete_access')->name('wilker.destroy');
 
         // TTE
-        Route::get('tte',                   [TteController::class, 'index'])
+        Route::get('tte', [TteController::class, 'index'])
             ->middleware('akses:master.tte,index_access')->name('tte.index');
-        Route::get('tte/create',            [TteController::class, 'create'])
+        Route::get('tte/create', [TteController::class, 'create'])
             ->middleware('akses:master.tte,create_access')->name('tte.create');
-        Route::post('tte',                  [TteController::class, 'store'])
+        Route::post('tte', [TteController::class, 'store'])
             ->middleware('akses:master.tte,create_access')->name('tte.store');
-        Route::get('tte/{tte}',             [TteController::class, 'show'])
+
+        Route::get('tte/user/{user}', [TteController::class, 'showUser'])
+            ->middleware('akses:master.tte,index_access')->name('tte.user.show');
+
+        Route::get('tte/{tte}', [TteController::class, 'show'])
             ->middleware('akses:master.tte,index_access')->name('tte.show');
-        Route::get('tte/{tte}/edit',        [TteController::class, 'edit'])
+        Route::get('tte/{tte}/edit', [TteController::class, 'edit'])
             ->middleware('akses:master.tte,update_access')->name('tte.edit');
-        Route::put('tte/{tte}',             [TteController::class, 'update'])
+        Route::put('tte/{tte}', [TteController::class, 'update'])
             ->middleware('akses:master.tte,update_access')->name('tte.update');
-        Route::delete('tte/{tte}',          [TteController::class, 'destroy'])
+        Route::delete('tte/{tte}', [TteController::class, 'destroy'])
             ->middleware('akses:master.tte,delete_access')->name('tte.destroy');
         Route::post('tte/{tte}/regenerate', [TteController::class, 'regenerate'])
             ->middleware('akses:master.tte,update_access')->name('tte.regenerate');
-        Route::post('tte/{tte}/toggle',     [TteController::class, 'toggleActive'])
+        Route::post('tte/{tte}/toggle', [TteController::class, 'toggleActive'])
             ->middleware('akses:master.tte,update_access')->name('tte.toggle');
 
         // Jenis Dokumen
