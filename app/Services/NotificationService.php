@@ -4,38 +4,17 @@ namespace App\Services;
 
 use App\Models\Data\PengajuanSurat;
 use App\Models\Data\PengajuanTerusan;
-use App\Models\Settings\SmtpSetting;
+use App\Jobs\SendMailJob;
 use App\Mail\ForwardingApprovalRequest;
 use App\Mail\FinalApprovalRequest;
 use App\Mail\SubmissionApproved;
 use App\Mail\SubmissionRejected;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
-    private function applySmtp(): bool
-    {
-        $smtp = SmtpSetting::active();
-        if (!$smtp) {
-            Log::warning('NotificationService: No active SMTP setting found.');
-            return false;
-        }
-        $smtp->applyToMailer();
-        return true;
-    }
-
-    /**
-     * Dipanggil saat submission di-submit.
-     *
-     * FIX 1: Fresh load dari DB agar terusan yang baru disimpan ikut terbaca.
-     * FIX 2: Gunakan koleksi (bukan query builder) supaya tidak kena cache relasi.
-     */
     public function notifyOnSubmit(PengajuanSurat $submission): void
     {
-        if (!$this->applySmtp()) return;
-
-        // Fresh load — wajib agar terusan yang baru disimpan ikut terbaca
         $submission = PengajuanSurat::with([
             'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
         ])->find($submission->id);
@@ -48,14 +27,13 @@ class NotificationService
             'id_kepada'      => $submission->id_kepada,
         ]);
 
-        // Ambil dari koleksi — bukan query builder — supaya tidak terpengaruh cache
         $firstTerusan = $submission->terusans
             ->where('status', 'waiting')
             ->sortBy('urutan')
             ->first();
 
         if ($firstTerusan) {
-            Log::info('NotificationService: Ada terusan urutan ' . $firstTerusan->urutan . ' — kirim ke departemen');
+            Log::info('NotificationService: Ada terusan urutan ' . $firstTerusan->urutan);
             $this->sendToTerusan($submission, $firstTerusan);
         } else {
             Log::info('NotificationService: Tidak ada terusan — langsung ke final approver');
@@ -63,18 +41,8 @@ class NotificationService
         }
     }
 
-    /**
-     * Dipanggil SETELAH terusan diupdate ke 'approved' di DB.
-     *
-     * FIX: Signature diubah — terima $approvedUrutan (int) bukan object terusan,
-     *      agar tidak pakai data stale dari sebelum update.
-     * FIX: Fresh load submission supaya status terusan sudah terupdate.
-     */
     public function notifyOnTerusanApproved(PengajuanSurat $submission, int $approvedUrutan): void
     {
-        if (!$this->applySmtp()) return;
-
-        // Fresh load setelah DB sudah diupdate
         $submission = PengajuanSurat::with([
             'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
         ])->find($submission->id);
@@ -87,7 +55,6 @@ class NotificationService
             'status_terusan'  => $submission->terusans->pluck('status', 'urutan')->toArray(),
         ]);
 
-        // Cari terusan berikutnya yang masih waiting dengan urutan lebih besar
         $nextTerusan = $submission->terusans
             ->where('status', 'waiting')
             ->where('urutan', '>', $approvedUrutan)
@@ -103,14 +70,8 @@ class NotificationService
         }
     }
 
-    /**
-     * Dipanggil setelah final approval di-approve.
-     * Kirim notifikasi ke pengaju bahwa surat disetujui.
-     */
     public function notifyOnFinalApproved(PengajuanSurat $submission): void
     {
-        if (!$this->applySmtp()) return;
-
         $submission = PengajuanSurat::with(['user', 'perusahaan', 'jenisDokumen', 'kepada'])
             ->find($submission->id);
 
@@ -120,31 +81,18 @@ class NotificationService
         if (!$submitter || !$submitter->email) {
             Log::warning('NotificationService: Pengaju tidak punya email.', [
                 'pengajuan_id' => $submission->id,
-                'id_user'      => $submission->id_user,
             ]);
             return;
         }
 
-        Log::info('NotificationService: Kirim approved ke pengaju ' . $submitter->email);
+        Log::info('NotificationService: Queue approved ke ' . $submitter->email);
 
-        try {
-            Mail::to($submitter->email)->send(new SubmissionApproved($submission));
-        } catch (\Throwable $e) {
-            Log::error('NotificationService: Gagal kirim approved email.', [
-                'pengajuan_id' => $submission->id,
-                'error'        => $e->getMessage(),
-            ]);
-        }
+        // Langsung dispatch, tidak perlu applySmtp() — sudah ditangani di dalam Job
+        SendMailJob::dispatch($submitter->email, new SubmissionApproved($submission));
     }
 
-    /**
-     * Dipanggil saat submission di-reject (terusan atau final).
-     * Kirim notifikasi ke pengaju.
-     */
     public function notifyOnRejected(PengajuanSurat $submission, string $catatan, string $rejectedBy): void
     {
-        if (!$this->applySmtp()) return;
-
         $submission = PengajuanSurat::with(['user', 'perusahaan', 'jenisDokumen', 'kepada'])
             ->find($submission->id);
 
@@ -158,30 +106,15 @@ class NotificationService
             return;
         }
 
-        Log::info('NotificationService: Kirim rejected ke pengaju ' . $submitter->email);
+        Log::info('NotificationService: Queue rejected ke ' . $submitter->email);
 
-        try {
-            Mail::to($submitter->email)->send(
-                new SubmissionRejected($submission, $catatan, $rejectedBy)
-            );
-        } catch (\Throwable $e) {
-            Log::error('NotificationService: Gagal kirim rejection email.', [
-                'pengajuan_id' => $submission->id,
-                'error'        => $e->getMessage(),
-            ]);
-        }
+        SendMailJob::dispatch($submitter->email, new SubmissionRejected($submission, $catatan, $rejectedBy));
     }
 
     // ─────────────────────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Kirim ke semua user di departemen terusan.
-     *
-     * FIX: Exclude final approver (id_kepada) dan pengaju (id_user)
-     *      agar mereka tidak menerima email terusan.
-     */
     private function sendToTerusan(PengajuanSurat $submission, PengajuanTerusan $terusan): void
     {
         $users = \App\Models\User::where('id_departemen', $terusan->id_departemen)
@@ -206,17 +139,8 @@ class NotificationService
         }
 
         foreach ($users as $user) {
-            try {
-                Mail::to($user->email)->send(
-                    new ForwardingApprovalRequest($submission, $terusan, $user)
-                );
-                Log::info('NotificationService: Email terusan terkirim ke ' . $user->email);
-            } catch (\Throwable $e) {
-                Log::error('NotificationService: Gagal kirim email terusan.', [
-                    'email' => $user->email,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+            SendMailJob::dispatch($user->email, new ForwardingApprovalRequest($submission, $terusan, $user));
+            Log::info('NotificationService: Queue terusan ke ' . $user->email);
         }
     }
 
@@ -232,15 +156,8 @@ class NotificationService
             return;
         }
 
-        Log::info('NotificationService: Kirim final approval ke ' . $kepada->email);
+        Log::info('NotificationService: Queue final approval ke ' . $kepada->email);
 
-        try {
-            Mail::to($kepada->email)->send(new FinalApprovalRequest($submission, $kepada));
-        } catch (\Throwable $e) {
-            Log::error('NotificationService: Gagal kirim final approval email.', [
-                'pengajuan_id' => $submission->id,
-                'error'        => $e->getMessage(),
-            ]);
-        }
+        SendMailJob::dispatch($kepada->email, new FinalApprovalRequest($submission, $kepada));
     }
 }

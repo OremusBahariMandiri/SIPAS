@@ -1021,9 +1021,8 @@
                 </div>
             @endif
 
-            {{-- ── Settings ── --}}
             @php
-                $showSettings = true; // Profile always accessible for all logged-in users
+                $showSettings = true;
                 $settingsActive = Request::is('settings/*') || Request::is('activity-log*');
             @endphp
 
@@ -1045,6 +1044,13 @@
                         <a href="{{ route('settings.smtp.index') }}"
                             class="nav-item {{ Request::is('settings/smtp*') ? 'active' : '' }}">
                             <span class="nav-item-label">SMTP / Email</span>
+                        </a>
+                    @endif
+
+                    @if (Auth::user()->isAdmin() || Auth::user()->hasAccess('settings.queue_monitor', 'index_access'))
+                        <a href="{{ route('settings.queue_monitor.index') }}"
+                            class="nav-item {{ Request::is('settings/queue-monitor*') ? 'active' : '' }}">
+                            <span class="nav-item-label">Queue Monitor</span>
                         </a>
                     @endif
 
