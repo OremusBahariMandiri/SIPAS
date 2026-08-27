@@ -93,7 +93,7 @@
         .doc-label {
             color: #64748b;
             font-weight: 600;
-            min-width: 110px;
+            min-width: 130px;
             flex-shrink: 0;
         }
 
@@ -176,7 +176,7 @@
                     <span class="doc-value">{{ $submission->perihal }}</span>
                 </div>
                 <div class="doc-row">
-                    <span class="doc-label">Letter Classification</span>
+                    <span class="doc-label">Classification</span>
                     <span class="doc-value">{{ $submission->sifatSurat->nama ?? '-' }}</span>
                 </div>
                 <div class="doc-row">
