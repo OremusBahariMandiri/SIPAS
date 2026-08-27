@@ -75,16 +75,18 @@ class TteController extends Controller
     public function create(Request $request): View
     {
         $this->authorizeAccess($this->menu, 'create_access');
+        $wilayahMap = \App\Models\DataMaster\WilayahKerja::all()
+            ->keyBy(fn($w) => strtolower($w->wilayah_kerja));
+
         $users = User::with(['departemen', 'perusahaan'])
             ->orderBy('nrk')
             ->get()
-            ->each(function ($user) {
+            ->each(function ($user) use ($wilayahMap) {
                 $user->setRelation(
                     'wilayahKerja',
-                    \App\Models\DataMaster\WilayahKerja::where('kode', $user->wilker)->first()
+                    $wilayahMap->get(strtolower($user->wilker))
                 );
             });
-
         $perusahaans = Perusahaan::where('status', 1)->orderBy('nama')->get();
 
         $existingTte = collect();

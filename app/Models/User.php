@@ -63,7 +63,7 @@ class User extends Authenticatable
 
     public function wilayahKerja(): BelongsTo
     {
-        return $this->belongsTo(WilayahKerja::class, 'wilker', 'kode');
+        return $this->belongsTo(WilayahKerja::class, 'wilker', 'wilayah_kerja');
     }
 
     public function ttes(): HasMany
