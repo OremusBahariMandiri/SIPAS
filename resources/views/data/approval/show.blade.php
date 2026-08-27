@@ -294,6 +294,10 @@
                             <td>{{ $pengajuan->perusahaan->nama ?? '-' }}</td>
                         </tr>
                         <tr>
+                            <th>Letter Classification</th>
+                             <td>{{ $pengajuan->sifatSurat->nama ?? '-' }}</td>
+                        </tr>
+                        <tr>
                             <th>Document Type</th>
                             <td>
                                 {{ $pengajuan->jenisDokumen->jenis_dokumen ?? '-' }}
