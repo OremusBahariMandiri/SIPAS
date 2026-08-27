@@ -54,9 +54,9 @@ class QueueMonitorController extends Controller
         if ($search) {
             $failedQuery->where(function ($q) use ($search) {
                 $q->where('payload', 'like', "%{$search}%")
-                  ->orWhere('exception', 'like', "%{$search}%")
-                  ->orWhere('connection', 'like', "%{$search}%")
-                  ->orWhere('queue', 'like', "%{$search}%");
+                    ->orWhere('exception', 'like', "%{$search}%")
+                    ->orWhere('connection', 'like', "%{$search}%")
+                    ->orWhere('queue', 'like', "%{$search}%");
             });
         }
 
@@ -73,11 +73,27 @@ class QueueMonitorController extends Controller
             return $job;
         });
 
+        // ── Completed Jobs ───────────────────────────────────────────────────
+        $completedQuery = \App\Models\CompletedJob::orderByDesc('completed_at');
+
+        if ($search) {
+            $completedQuery->where(function ($q) use ($search) {
+                $q->where('display_name', 'like', "%{$search}%")
+                    ->orWhere('queue', 'like', "%{$search}%")
+                    ->orWhere('payload', 'like', "%{$search}%");
+            });
+        }
+
+        $completedJobs  = $completedQuery->paginate($perPage, ['*'], 'completed_page')->withQueryString();
+        $completedCount = \App\Models\CompletedJob::count();
+
         return view('settings.queue_monitor.index', compact(
             'pendingJobs',
             'failedJobs',
+            'completedJobs',
             'pendingCount',
             'failedCount',
+            'completedCount',
             'workerStatus',
             'perPage',
             'search',
