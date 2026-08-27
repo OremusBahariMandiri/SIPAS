@@ -33,7 +33,6 @@
             <form action="{{ route('master.tte.store') }}" method="POST">
                 @csrf
                 <div class="form-grid">
-
                     {{-- User --}}
                     <div class="form-group form-span-2">
                         <label class="form-label">User <span class="req">*</span></label>
@@ -43,7 +42,9 @@
                                 <option value="{{ $user->id }}"
                                     {{ old('id_user', request('user_id')) == $user->id ? 'selected' : '' }}>
                                     {{ $user->nama_karyawan ?? '-' }} | {{ $user->departemen->singkatan ?? '-' }} |
-                                    {{ $user->jabatan ?? '-' }} | {{ $user->perusahaan->singkatan ?? '-' }} | {{ $user->wilker ?? '-' }} | {{ $user->nrk ?? '-' }}
+                                    {{ $user->jabatan ?? '-' }} | {{ $user->perusahaan->singkatan ?? '-' }} |
+                                    {{ $user->wilayahKerja->skt_wilayah_kerja ?? '-' }} -
+                                    {{ $user->wilayahKerja->skt_area_kerja ?? '-' }} | {{ $user->nrk ?? '-' }}
                                 </option>
                             @endforeach
                         </select>
@@ -126,8 +127,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
         /* ════════════════════════════════════════════════
-               SELECT2 OVERRIDES  (same as submission/create)
-            ════════════════════════════════════════════════ */
+                       SELECT2 OVERRIDES  (same as submission/create)
+                    ════════════════════════════════════════════════ */
         .select2-container--default .select2-selection--single {
             height: 38px !important;
             border: 1px solid var(--border) !important;
