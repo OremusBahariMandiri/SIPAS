@@ -93,7 +93,7 @@
                             <option value="">— Select Recipient —</option>
                             @foreach ($kepadas as $k)
                                 <option value="{{ $k->id }}" {{ old('id_kepada') == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_karyawan }} — {{ $k->jabatan }}
+                                    {{ $k->nama_karyawan }} | {{ $k->departemen->singkatan }} | {{ $k->jabatan }}
                                 </option>
                             @endforeach
                         </select>

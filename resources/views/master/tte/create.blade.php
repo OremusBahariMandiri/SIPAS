@@ -43,7 +43,7 @@
                                 <option value="{{ $user->id }}"
                                     {{ old('id_user', request('user_id')) == $user->id ? 'selected' : '' }}>
                                     {{ $user->nrk ?? '-' }} | {{ $user->nama_karyawan ?? '-' }} | {{ $user->departemen->singkatan ?? '-' }} |
-                                    {{ $user->jabatan ?? '-' }} | {{ $user->perusahaan->nama ?? '-' }}|  {{ $user->wilker ?? '-' }} |
+                                    {{ $user->jabatan ?? '-' }} | {{ $user->perusahaan->nama ?? '-' }} |  {{ $user->wilker ?? '-' }} |
                                 </option>
                             @endforeach
                         </select>
