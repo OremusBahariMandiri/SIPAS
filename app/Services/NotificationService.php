@@ -16,7 +16,11 @@ class NotificationService
     public function notifyOnSubmit(PengajuanSurat $submission): void
     {
         $submission = PengajuanSurat::with([
-            'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
+            'terusans',
+            'kepada',
+            'user',
+            'perusahaan',
+            'jenisDokumen',
         ])->find($submission->id);
 
         if (!$submission) return;
@@ -44,7 +48,11 @@ class NotificationService
     public function notifyOnTerusanApproved(PengajuanSurat $submission, int $approvedUrutan): void
     {
         $submission = PengajuanSurat::with([
-            'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
+            'terusans',
+            'kepada',
+            'user',
+            'perusahaan',
+            'jenisDokumen',
         ])->find($submission->id);
 
         if (!$submission) return;
@@ -117,31 +125,22 @@ class NotificationService
 
     private function sendToTerusan(PengajuanSurat $submission, PengajuanTerusan $terusan): void
     {
-        $users = \App\Models\User::where('id_departemen', $terusan->id_departemen)
-            ->whereNotNull('email')
+        // Kirim ke user CC yang spesifik, bukan seluruh departemen
+        $user = \App\Models\User::whereNotNull('email')
             ->where('email', '!=', '')
-            ->get();
+            ->where('id', $terusan->id_user)
+            ->first();
 
-        Log::info('NotificationService: sendToTerusan', [
-            'pengajuan_id'  => $submission->id,
-            'id_departemen' => $terusan->id_departemen,
-            'urutan'        => $terusan->urutan,
-            'jumlah_user'   => $users->count(),
-            'emails'        => $users->pluck('email')->toArray(),
-        ]);
-
-        if ($users->isEmpty()) {
-            Log::warning('NotificationService: Tidak ada user dengan email di departemen ini.', [
-                'id_departemen' => $terusan->id_departemen,
-                'pengajuan_id'  => $submission->id,
+        if (!$user) {
+            Log::warning('NotificationService: CC user tidak punya email.', [
+                'pengajuan_id' => $submission->id,
+                'id_user'      => $terusan->id_user,
             ]);
             return;
         }
 
-        foreach ($users as $user) {
-            SendMailJob::dispatch($user->email, new ForwardingApprovalRequest($submission, $terusan, $user));
-            Log::info('NotificationService: Queue terusan ke ' . $user->email);
-        }
+        Log::info('NotificationService: Queue terusan ke ' . $user->email);
+        SendMailJob::dispatch($user->email, new ForwardingApprovalRequest($submission, $terusan, $user));
     }
 
     private function sendToFinalApprover(PengajuanSurat $submission): void
@@ -159,5 +158,45 @@ class NotificationService
         Log::info('NotificationService: Queue final approval ke ' . $kepada->email);
 
         SendMailJob::dispatch($kepada->email, new FinalApprovalRequest($submission, $kepada));
+    }
+
+    /**
+     * Dipanggil saat CC approve atau reject — kirim info ke pengaju.
+     */
+    public function notifySubmitterOnTerusanAction(
+        PengajuanSurat $submission,
+        string $aksi,           // 'approve' | 'reject'
+        string $actorName,
+        ?string $catatan = null
+    ): void {
+        if (!$this->applySmtp()) return;
+
+        $submission = PengajuanSurat::with(['user', 'perusahaan', 'jenisDokumen'])
+            ->find($submission->id);
+
+        if (!$submission) return;
+
+        $submitter = $submission->user;
+        if (!$submitter || !$submitter->email) {
+            Log::warning('NotificationService: Pengaju tidak punya email untuk notif terusan action.', [
+                'pengajuan_id' => $submission->id,
+            ]);
+            return;
+        }
+
+        Log::info("NotificationService: Queue terusan-{$aksi} info ke pengaju " . $submitter->email);
+
+        if ($aksi === 'reject') {
+            SendMailJob::dispatch(
+                $submitter->email,
+                new SubmissionRejected($submission, $catatan ?? '-', $actorName)
+            );
+        } else {
+            // Gunakan mailable baru khusus info progress CC
+            SendMailJob::dispatch(
+                $submitter->email,
+                new \App\Mail\TerusanApprovedInfo($submission, $actorName)
+            );
+        }
     }
 }
