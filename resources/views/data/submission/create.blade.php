@@ -122,6 +122,15 @@
                                 <button type="button" class="scf-tte-count-btn"
                                     onclick="adjustTteCount('require_tte_kepada',1,0)">+</button>
                             </div>
+                            <small
+                                style="width:100%;font-size:.75rem;color:var(--muted);
+                      display:flex;align-items:center;gap:.35rem;
+                      padding-top:.6rem;margin-top:.6rem;
+                      border-top:1px dashed var(--border);">
+                                <i class="bi bi-info-circle" style="flex-shrink:0;"></i>
+                                Number of TTE signatures required from the recipient. Set to <strong>0</strong> if no
+                                signature is needed.
+                            </small>
                         </div>
                     </div>
 
@@ -220,8 +229,10 @@
                         </div>
 
                         {{-- ▸ TTE TOGGLE BUTTON — muncul setelah upload berhasil --}}
-                        <div id="ttePengajuToggleWrap" style="{{ old('tmp_key') ? '' : 'display:none;' }} margin-top:.75rem;">
-                            <button type="button" id="btnToggleTte" class="scf-btn-tte-toggle" onclick="toggleTtePengajuSection()">
+                        <div id="ttePengajuToggleWrap"
+                            style="{{ old('tmp_key') ? '' : 'display:none;' }} margin-top:.75rem;">
+                            <button type="button" id="btnToggleTte" class="scf-btn-tte-toggle"
+                                onclick="toggleTtePengajuSection()">
                                 <span class="scf-btn-tte-toggle-icon" id="btnToggleTteIcon">
                                     <i class="bi bi-pen-fill"></i>
                                 </span>
@@ -570,8 +581,8 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
     <style>
         /* ════════════════════════════════════════════════
-           FILE UPLOAD
-        ════════════════════════════════════════════════ */
+               FILE UPLOAD
+            ════════════════════════════════════════════════ */
         .scf-file-wrap {
             position: relative;
         }
@@ -640,8 +651,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           TTE TOGGLE BUTTON
-        ════════════════════════════════════════════════ */
+               TTE TOGGLE BUTTON
+            ════════════════════════════════════════════════ */
         .scf-btn-tte-toggle {
             display: inline-flex;
             align-items: center;
@@ -687,7 +698,7 @@
         }
 
         .scf-btn-tte-toggle.is-open .scf-btn-tte-toggle-icon {
-            background: rgba(255,255,255,.5);
+            background: rgba(255, 255, 255, .5);
         }
 
         .scf-btn-tte-toggle-text {
@@ -721,8 +732,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           TTE COUNT STEPPER
-        ════════════════════════════════════════════════ */
+               TTE COUNT STEPPER
+            ════════════════════════════════════════════════ */
         .scf-tte-count-wrap {
             display: flex;
             align-items: center;
@@ -831,8 +842,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           SECTION & TOGGLE
-        ════════════════════════════════════════════════ */
+               SECTION & TOGGLE
+            ════════════════════════════════════════════════ */
         .scf-section {
             margin-top: 1.75rem;
             padding-top: 1.25rem;
@@ -862,8 +873,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           TERUSAN ROW
-        ════════════════════════════════════════════════ */
+               TERUSAN ROW
+            ════════════════════════════════════════════════ */
         .scf-terusan-row {
             display: flex;
             align-items: center;
@@ -959,8 +970,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           ACTIONS
-        ════════════════════════════════════════════════ */
+               ACTIONS
+            ════════════════════════════════════════════════ */
         .scf-actions {
             margin-top: 1.75rem;
             padding-top: 1.25rem;
@@ -994,8 +1005,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           TTE PENGAJU — CANVAS CARD
-        ════════════════════════════════════════════════ */
+               TTE PENGAJU — CANVAS CARD
+            ════════════════════════════════════════════════ */
         .scf-tte-canvas-card {
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -1282,8 +1293,8 @@
         }
 
         /* ════════════════════════════════════════════════
-           SELECT2 OVERRIDES
-        ════════════════════════════════════════════════ */
+               SELECT2 OVERRIDES
+            ════════════════════════════════════════════════ */
         .select2-container--default .select2-selection--single {
             height: 38px !important;
             border: 1px solid var(--border) !important;
@@ -1474,10 +1485,10 @@
             window.toggleTtePengajuSection = function() {
                 tteSectionOpen = !tteSectionOpen;
 
-                const section   = document.getElementById('sectionTtePengaju');
-                const btn       = document.getElementById('btnToggleTte');
-                const chevron   = document.getElementById('btnToggleTteChevron');
-                const textEl    = document.getElementById('btnToggleTteText');
+                const section = document.getElementById('sectionTtePengaju');
+                const btn = document.getElementById('btnToggleTte');
+                const chevron = document.getElementById('btnToggleTteChevron');
+                const textEl = document.getElementById('btnToggleTteText');
 
                 if (tteSectionOpen) {
                     section.style.display = '';
@@ -1504,13 +1515,15 @@
 
             /* Helper: perbarui badge di tombol toggle */
             window.refreshTteToggleBadge = function() {
-                const badge      = document.getElementById('btnToggleTteBadge');
+                const badge = document.getElementById('btnToggleTteBadge');
                 const badgeCount = document.getElementById('btnToggleTteBadgeCount');
                 if (!badge || !badgeCount) return;
 
-                const placed = (typeof pengajuSlots !== 'undefined')
-                    ? pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length
-                    : 0;
+                const placed = (typeof pengajuSlots !== 'undefined') ?
+                    pengajuSlots.filter(function(s) {
+                        return s.pdfX !== null;
+                    }).length :
+                    0;
 
                 if (placed > 0) {
                     badgeCount.textContent = placed;
@@ -1579,14 +1592,14 @@
                FILE INPUT → AJAX TEMP UPLOAD
             ══════════════════════════════════════════════════ */
             document.getElementById('file_dokumen').addEventListener('change', function() {
-                const label      = document.getElementById('scfFileName');
-                const lWrap      = document.getElementById('scfFileLabel');
-                const icon       = document.getElementById('scfFileIcon');
-                const prog       = document.getElementById('uploadProgress');
-                const bar        = document.getElementById('uploadProgressBar');
-                const txt        = document.getElementById('uploadProgressText');
+                const label = document.getElementById('scfFileName');
+                const lWrap = document.getElementById('scfFileLabel');
+                const icon = document.getElementById('scfFileIcon');
+                const prog = document.getElementById('uploadProgress');
+                const bar = document.getElementById('uploadProgressBar');
+                const txt = document.getElementById('uploadProgressText');
                 const toggleWrap = document.getElementById('ttePengajuToggleWrap');
-                const section    = document.getElementById('sectionTtePengaju');
+                const section = document.getElementById('sectionTtePengaju');
 
                 const oldHint = document.getElementById('scfFileReplaceHint');
                 if (oldHint) oldHint.remove();
@@ -1645,7 +1658,11 @@
 
                     if (xhr.status === 200) {
                         let res;
-                        try { res = JSON.parse(xhr.responseText); } catch (e) { return; }
+                        try {
+                            res = JSON.parse(xhr.responseText);
+                        } catch (e) {
+                            return;
+                        }
 
                         lWrap.classList.add('has-file');
                         if (icon) icon.className = 'bi bi-file-earmark-check';
@@ -1706,9 +1723,9 @@
             /* ══════════════════════════════════════════════════
                SUBMIT MODAL
             ══════════════════════════════════════════════════ */
-            const modal      = document.getElementById('submitModal');
+            const modal = document.getElementById('submitModal');
             const formAction = document.getElementById('formAction');
-            const form       = document.getElementById('scfForm');
+            const form = document.getElementById('scfForm');
 
             function openModal() {
                 modal.style.display = 'flex';
@@ -1733,8 +1750,11 @@
                 const tgl = document.getElementById('tanggal_surat').value;
                 document.getElementById('smryTanggal').textContent = tgl ?
                     new Date(tgl).toLocaleString('en-GB', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     }) : '—';
 
                 const perusahaan = $('#id_perusahaan').select2('data');
@@ -1753,7 +1773,9 @@
                 document.getElementById('smryKepada').textContent =
                     (kepada && kepada[0] && kepada[0].id) ? kepada[0].text : '—';
 
-                const placedCount = pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length;
+                const placedCount = pengajuSlots.filter(function(s) {
+                    return s.pdfX !== null;
+                }).length;
                 const tteEl = document.getElementById('smryTte');
                 if (placedCount > 0) {
                     tteEl.innerHTML =
@@ -1777,7 +1799,9 @@
             });
 
             document.getElementById('submitModalNo').addEventListener('click', closeModal);
-            modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
             });
@@ -1822,11 +1846,11 @@
         let terusanCount = 0;
 
         window.addTerusan = function(userId, requireTte, tteCount) {
-            userId     = userId     || null;
+            userId = userId || null;
             requireTte = requireTte || false;
-            tteCount   = tteCount   || 1;
+            tteCount = tteCount || 1;
 
-            const idx  = terusanCount;
+            const idx = terusanCount;
             const tmpl = document.getElementById('tmplTerusan').innerHTML.replaceAll('IDX', idx);
 
             const div = document.createElement('div');
@@ -1853,23 +1877,25 @@
             terusanCount++;
             reorderTerusan();
 
-            const $newSel   = $(row).find('.scf-select2-terusan');
+            const $newSel = $(row).find('.scf-select2-terusan');
             const nativeSel = $newSel[0];
 
             $newSel.select2({
-                    placeholder : '— Select User —',
-                    allowClear  : true,
-                    width       : '100%',
-                    language    : {
+                    placeholder: '— Select User —',
+                    allowClear: true,
+                    width: '100%',
+                    language: {
                         noResults: () =>
                             '<span style="padding:.5rem .85rem;display:block;' +
                             'font-size:.82rem;color:var(--muted);">No results found</span>',
                     },
-                    escapeMarkup  : m => m,
+                    escapeMarkup: m => m,
                     templateResult: function(data) {
                         if (!data.id) return $('<span>' + data.text + '</span>');
                         const nativeOpt = Array.from(nativeSel.options)
-                            .find(function(o) { return o.value === String(data.id); });
+                            .find(function(o) {
+                                return o.value === String(data.id);
+                            });
                         const isDisabled = nativeOpt && nativeOpt.disabled;
                         if (isDisabled) {
                             return $(
@@ -1888,8 +1914,12 @@
                         return $('<span>' + data.text + '</span>');
                     },
                 })
-                .on('change', function() { syncCcDisabledOptions(); })
-                .on('select2:clear', function() { setTimeout(syncCcDisabledOptions, 0); });
+                .on('change', function() {
+                    syncCcDisabledOptions();
+                })
+                .on('select2:clear', function() {
+                    setTimeout(syncCcDisabledOptions, 0);
+                });
 
             syncCcDisabledOptions();
         };
@@ -1932,13 +1962,13 @@
             });
 
             document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
-                const $sel       = $(sel);
+                const $sel = $(sel);
                 const currentVal = $sel.val();
 
                 Array.from(sel.options).forEach(function(opt) {
                     if (!opt.value) return;
                     const isRecipient = opt.value === recipientId;
-                    const isOtherCc   = selectedCcIds.includes(opt.value) && opt.value !== currentVal;
+                    const isOtherCc = selectedCcIds.includes(opt.value) && opt.value !== currentVal;
                     opt.disabled = isRecipient || isOtherCc;
                 });
 
@@ -1946,19 +1976,21 @@
                     $sel.select2('destroy');
                     (function(nativeSel, $s) {
                         $s.select2({
-                                placeholder  : '— Select User —',
-                                allowClear   : true,
-                                width        : '100%',
-                                language     : {
+                                placeholder: '— Select User —',
+                                allowClear: true,
+                                width: '100%',
+                                language: {
                                     noResults: () =>
                                         '<span style="padding:.5rem .85rem;display:block;' +
                                         'font-size:.82rem;color:var(--muted);">No results found</span>',
                                 },
-                                escapeMarkup  : m => m,
+                                escapeMarkup: m => m,
                                 templateResult: function(data) {
                                     if (!data.id) return $('<span>' + data.text + '</span>');
                                     const nativeOpt = Array.from(nativeSel.options)
-                                        .find(function(o) { return o.value === String(data.id); });
+                                        .find(function(o) {
+                                            return o.value === String(data.id);
+                                        });
                                     const isDisabled = nativeOpt && nativeOpt.disabled;
                                     if (isDisabled) {
                                         return $(
@@ -1980,8 +2012,12 @@
                             .val(currentVal)
                             .trigger('change.select2')
                             .off('change.syncCc select2:clear.syncCc')
-                            .on('change.syncCc', function() { syncCcDisabledOptions(); })
-                            .on('select2:clear.syncCc', function() { setTimeout(syncCcDisabledOptions, 0); });
+                            .on('change.syncCc', function() {
+                                syncCcDisabledOptions();
+                            })
+                            .on('select2:clear.syncCc', function() {
+                                setTimeout(syncCcDisabledOptions, 0);
+                            });
                     })(sel, $sel);
                 }
             });
@@ -1994,26 +2030,26 @@
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         const PLACE_SCALE = 0.8;
-        const QR_PT       = 40;
+        const QR_PT = 40;
 
-        let pengajuPdfDoc      = null;
-        let pengajuViewport    = null;
-        let pengajuPlacePage   = 1;
-        let pengajuPageNatW    = 0;
-        let pengajuPageNatH    = 0;
+        let pengajuPdfDoc = null;
+        let pengajuViewport = null;
+        let pengajuPlacePage = 1;
+        let pengajuPageNatW = 0;
+        let pengajuPageNatH = 0;
 
-        let pengajuSlots       = [];
+        let pengajuSlots = [];
         let pengajuSlotCounter = 0;
-        let pengajuActiveIdx   = null;
+        let pengajuActiveIdx = null;
 
-        let pengajuDraft         = null;
-        let pengajuDraftGhostEl  = null;
+        let pengajuDraft = null;
+        let pengajuDraftGhostEl = null;
 
         /* ── Event delegation — slot card buttons ── */
         document.getElementById('pengajuSigSlots').addEventListener('click', function(e) {
-            const btnExit     = e.target.closest('[data-action="slot-exit"]');
+            const btnExit = e.target.closest('[data-action="slot-exit"]');
             const btnActivate = e.target.closest('[data-action="slot-activate"]');
-            const btnDelete   = e.target.closest('[data-action="slot-delete"]');
+            const btnDelete = e.target.closest('[data-action="slot-delete"]');
 
             if (btnExit) {
                 e.stopPropagation();
@@ -2035,12 +2071,12 @@
 
         /* ── Load PDF (background, tidak langsung tampil canvas) ── */
         window.pengajuLoadPdf = function(url) {
-            pengajuPdfDoc      = null;
-            pengajuPlacePage   = 1;
-            pengajuSlots       = [];
+            pengajuPdfDoc = null;
+            pengajuPlacePage = 1;
+            pengajuSlots = [];
             pengajuSlotCounter = 0;
-            pengajuActiveIdx   = null;
-            pengajuDraft       = null;
+            pengajuActiveIdx = null;
+            pengajuDraft = null;
 
             const gl = document.getElementById('pengajuGhostLayer');
             if (gl) gl.innerHTML = '';
@@ -2050,22 +2086,30 @@
             const canvasWrap = document.getElementById('ttePengajuCanvas');
             if (canvasWrap) canvasWrap.style.display = 'none';
 
-            pdfjsLib.getDocument({ url }).promise.then(function(doc) {
+            pdfjsLib.getDocument({
+                url
+            }).promise.then(function(doc) {
                 pengajuPdfDoc = doc;
                 document.getElementById('pengajuPageCount').textContent = doc.numPages;
 
                 // Buat satu slot default (tapi canvas belum ditampilkan)
                 pengajuSlots.push({
                     id: pengajuSlotCounter++,
-                    page: null, pdfX: null, pdfY: null,
-                    cssX: null, cssY: null, ghostEl: null,
+                    page: null,
+                    pdfX: null,
+                    pdfY: null,
+                    cssX: null,
+                    cssY: null,
+                    ghostEl: null,
                 });
                 pengajuRenderSlotsUI();
 
                 // Tampilkan canvas HANYA jika section sudah terbuka oleh user
                 if (typeof tteSectionOpen !== 'undefined' && tteSectionOpen) {
                     let perusahaanId = '';
-                    try { perusahaanId = $('#id_perusahaan').val() || ''; } catch(e) {}
+                    try {
+                        perusahaanId = $('#id_perusahaan').val() || '';
+                    } catch (e) {}
                     const tte = perusahaanId && TTE_MAP[perusahaanId];
                     if (tte && tte.valid && canvasWrap) {
                         canvasWrap.style.display = 'block';
@@ -2081,36 +2125,46 @@
         function pengajuRenderPage(num) {
             if (!pengajuPdfDoc) return;
             pengajuPdfDoc.getPage(num).then(function(page) {
-                const dpr  = window.devicePixelRatio || 1;
-                const vp1  = page.getViewport({ scale: 1 });
+                const dpr = window.devicePixelRatio || 1;
+                const vp1 = page.getViewport({
+                    scale: 1
+                });
                 pengajuPageNatW = vp1.width;
                 pengajuPageNatH = vp1.height;
 
-                pengajuViewport = page.getViewport({ scale: PLACE_SCALE });
+                pengajuViewport = page.getViewport({
+                    scale: PLACE_SCALE
+                });
                 const cssW = Math.floor(pengajuViewport.width);
                 const cssH = Math.floor(pengajuViewport.height);
 
                 const canvas = document.getElementById('pengajuPlaceCanvas');
-                const ctx    = canvas.getContext('2d');
-                canvas.width        = cssW * dpr;
-                canvas.height       = cssH * dpr;
-                canvas.style.width  = cssW + 'px';
+                const ctx = canvas.getContext('2d');
+                canvas.width = cssW * dpr;
+                canvas.height = cssH * dpr;
+                canvas.style.width = cssW + 'px';
                 canvas.style.height = cssH + 'px';
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
                 const wrapper = document.getElementById('pengajuPlaceWrapper');
-                wrapper.style.width  = cssW + 'px';
+                wrapper.style.width = cssW + 'px';
                 wrapper.style.height = cssH + 'px';
 
                 ['pengajuClickLayer', 'pengajuGhostLayer'].forEach(function(id) {
                     const el = document.getElementById(id);
-                    if (el) { el.style.width = cssW + 'px'; el.style.height = cssH + 'px'; }
+                    if (el) {
+                        el.style.width = cssW + 'px';
+                        el.style.height = cssH + 'px';
+                    }
                 });
 
                 const scroll = document.getElementById('pengajuPlacementScroll');
                 if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
-                page.render({ canvasContext: ctx, viewport: pengajuViewport })
+                page.render({
+                        canvasContext: ctx,
+                        viewport: pengajuViewport
+                    })
                     .promise.then(function() {
                         document.getElementById('pengajuPageNum').textContent = num;
                         pengajuRedrawGhosts();
@@ -2119,11 +2173,15 @@
         }
 
         window.pengajuPlacePrev = function() {
-            if (pengajuPlacePage > 1) { pengajuPlacePage--; pengajuRenderPage(pengajuPlacePage); }
+            if (pengajuPlacePage > 1) {
+                pengajuPlacePage--;
+                pengajuRenderPage(pengajuPlacePage);
+            }
         };
         window.pengajuPlaceNext = function() {
             if (pengajuPdfDoc && pengajuPlacePage < pengajuPdfDoc.numPages) {
-                pengajuPlacePage++; pengajuRenderPage(pengajuPlacePage);
+                pengajuPlacePage++;
+                pengajuRenderPage(pengajuPlacePage);
             }
         };
 
@@ -2131,15 +2189,21 @@
         window.pengajuSlotAdd = function() {
             pengajuSlots.push({
                 id: pengajuSlotCounter++,
-                page: null, pdfX: null, pdfY: null,
-                cssX: null, cssY: null, ghostEl: null,
+                page: null,
+                pdfX: null,
+                pdfY: null,
+                cssX: null,
+                cssY: null,
+                ghostEl: null,
             });
             pengajuRenderSlotsUI();
             pengajuActivateSlot(pengajuSlots.length - 1);
         };
 
         window.pengajuSlotDelete = function(id) {
-            const i = pengajuSlots.findIndex(function(s) { return s.id === id; });
+            const i = pengajuSlots.findIndex(function(s) {
+                return s.id === id;
+            });
             if (i === -1) return;
             if (pengajuSlots[i].ghostEl && pengajuSlots[i].ghostEl.parentNode)
                 pengajuSlots[i].ghostEl.parentNode.removeChild(pengajuSlots[i].ghostEl);
@@ -2152,7 +2216,10 @@
         };
 
         function pengajuActivateSlot(idx) {
-            if (pengajuActiveIdx === idx) { pengajuExitTapMode(); return; }
+            if (pengajuActiveIdx === idx) {
+                pengajuExitTapMode();
+                return;
+            }
             pengajuActiveIdx = idx;
             pengajuEnterTapMode();
         }
@@ -2173,21 +2240,24 @@
             if (bar) bar.style.display = 'none';
             pengajuHideFloatBar();
             pengajuRemoveDraftGhost();
-            if (rerender) { pengajuRenderSlotsUI(); pengajuRefreshIdleBar(); }
+            if (rerender) {
+                pengajuRenderSlotsUI();
+                pengajuRefreshIdleBar();
+            }
         };
 
         /* ── Placement handler ── */
         function pengajuHandlePlacement(clientX, clientY) {
             if (pengajuActiveIdx === null || !pengajuViewport || !pengajuPageNatH) return;
 
-            const wrapper  = document.getElementById('pengajuPlaceWrapper');
+            const wrapper = document.getElementById('pengajuPlaceWrapper');
             const wrapRect = wrapper.getBoundingClientRect();
-            const scroll   = document.getElementById('pengajuPlacementScroll');
+            const scroll = document.getElementById('pengajuPlacementScroll');
             const scrollLeft = scroll ? scroll.scrollLeft : 0;
-            const scrollTop  = scroll ? scroll.scrollTop  : 0;
+            const scrollTop = scroll ? scroll.scrollTop : 0;
 
             const cssX = (clientX - wrapRect.left) + scrollLeft;
-            const cssY = (clientY - wrapRect.top)  + scrollTop;
+            const cssY = (clientY - wrapRect.top) + scrollTop;
             const cssW = wrapRect.width;
             const cssH = wrapRect.height;
 
@@ -2213,10 +2283,10 @@
 
         /* ── Draft ghost ── */
         function pengajuDrawDraftGhost(cx, cy) {
-            const layer    = document.getElementById('pengajuGhostLayer');
+            const layer = document.getElementById('pengajuGhostLayer');
             const wrapRect = document.getElementById('pengajuPlaceWrapper').getBoundingClientRect();
-            const scaleX   = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
-            const ghostPx  = QR_PT * scaleX;
+            const scaleX = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
+            const ghostPx = QR_PT * scaleX;
             const x = Math.max(0, cx - ghostPx / 2);
             const y = Math.max(0, cy - ghostPx / 2);
 
@@ -2233,10 +2303,10 @@
                 layer.appendChild(el);
                 pengajuDraftGhostEl = el;
             }
-            pengajuDraftGhostEl.style.left    = x + 'px';
-            pengajuDraftGhostEl.style.top     = y + 'px';
-            pengajuDraftGhostEl.style.width   = ghostPx + 'px';
-            pengajuDraftGhostEl.style.height  = ghostPx + 'px';
+            pengajuDraftGhostEl.style.left = x + 'px';
+            pengajuDraftGhostEl.style.top = y + 'px';
+            pengajuDraftGhostEl.style.width = ghostPx + 'px';
+            pengajuDraftGhostEl.style.height = ghostPx + 'px';
             pengajuDraftGhostEl.style.display = 'flex';
         }
 
@@ -2247,16 +2317,16 @@
 
         /* ── Floating bar ── */
         function pengajuShowFloatBar(idx) {
-            const idle    = document.getElementById('pengajuFloatIdle');
-            const bar     = document.getElementById('pengajuFloatBar');
-            const label   = document.getElementById('pengajuFloatSlotName');
+            const idle = document.getElementById('pengajuFloatIdle');
+            const bar = document.getElementById('pengajuFloatBar');
+            const label = document.getElementById('pengajuFloatSlotName');
             const btnSave = document.getElementById('pengajuFloatSave');
-            const btnAdd  = document.getElementById('pengajuFloatAdd');
+            const btnAdd = document.getElementById('pengajuFloatAdd');
             if (idle) idle.classList.remove('visible');
             if (!bar) return;
-            if (label)   label.textContent = 'TTD #' + (idx + 1);
-            if (btnSave) btnSave.disabled  = true;
-            if (btnAdd)  btnAdd.disabled   = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
+            if (label) label.textContent = 'TTD #' + (idx + 1);
+            if (btnSave) btnSave.disabled = true;
+            if (btnAdd) btnAdd.disabled = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
             bar.classList.add('visible');
         }
 
@@ -2266,9 +2336,11 @@
         }
 
         function pengajuRefreshIdleBar() {
-            const placed = pengajuSlots.filter(function(s) { return s.pdfX !== null; }).length;
-            const idle   = document.getElementById('pengajuFloatIdle');
-            const label  = document.getElementById('pengajuFloatIdleLabel');
+            const placed = pengajuSlots.filter(function(s) {
+                return s.pdfX !== null;
+            }).length;
+            const idle = document.getElementById('pengajuFloatIdle');
+            const label = document.getElementById('pengajuFloatIdleLabel');
             if (!idle) return;
             if (placed > 0 && pengajuActiveIdx === null) {
                 if (label) label.textContent = placed + ' signature' + (placed > 1 ? 's' : '') + ' placed';
@@ -2334,18 +2406,20 @@
             e.preventDefault();
             const touch = e.changedTouches[0];
             if (touch) pengajuHandlePlacement(touch.clientX, touch.clientY);
-        }, { passive: false });
+        }, {
+            passive: false
+        });
 
         /* ── Draw confirmed ghost ── */
         function pengajuDrawGhost(idx) {
-            const slot    = pengajuSlots[idx];
+            const slot = pengajuSlots[idx];
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect   = wrapper.getBoundingClientRect();
-            const scaleX  = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
+            const wRect = wrapper.getBoundingClientRect();
+            const scaleX = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
             const ghostPx = QR_PT * scaleX;
-            const x       = Math.max(0, slot.cssX - ghostPx / 2);
-            const y       = Math.max(0, slot.cssY - ghostPx / 2);
-            const visible  = slot.page === pengajuPlacePage;
+            const x = Math.max(0, slot.cssX - ghostPx / 2);
+            const y = Math.max(0, slot.cssY - ghostPx / 2);
+            const visible = slot.page === pengajuPlacePage;
             const isActive = pengajuActiveIdx === idx;
 
             if (!slot.ghostEl) {
@@ -2362,22 +2436,22 @@
                 slot.ghostEl = el;
             }
 
-            slot.ghostEl.style.left       = x + 'px';
-            slot.ghostEl.style.top        = y + 'px';
-            slot.ghostEl.style.width      = ghostPx + 'px';
-            slot.ghostEl.style.height     = ghostPx + 'px';
-            slot.ghostEl.style.display    = visible ? 'flex' : 'none';
-            slot.ghostEl.style.border     = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
+            slot.ghostEl.style.left = x + 'px';
+            slot.ghostEl.style.top = y + 'px';
+            slot.ghostEl.style.width = ghostPx + 'px';
+            slot.ghostEl.style.height = ghostPx + 'px';
+            slot.ghostEl.style.display = visible ? 'flex' : 'none';
+            slot.ghostEl.style.border = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
             slot.ghostEl.style.background = isActive ? 'rgba(245,158,11,.2)' : 'rgba(37,99,235,.15)';
-            slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
+            slot.ghostEl.style.color = isActive ? '#d97706' : '#1d4ed8';
         }
 
         function pengajuRedrawGhosts() {
             if (!pengajuViewport || !pengajuPageNatH) return;
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect   = wrapper.getBoundingClientRect();
-            const cssW    = wRect.width;
-            const cssH    = wRect.height;
+            const wRect = wrapper.getBoundingClientRect();
+            const cssW = wRect.width;
+            const cssH = wRect.height;
 
             pengajuSlots.forEach(function(slot, idx) {
                 if (slot.pdfX === null) return;
@@ -2420,7 +2494,7 @@
                     delBtn.className = 'rv-sig-del';
                     delBtn.title = 'Remove';
                     delBtn.dataset.action = 'slot-delete';
-                    delBtn.dataset.id     = slot.id;
+                    delBtn.dataset.id = slot.id;
                     delBtn.innerHTML = '<i class="bi bi-trash" style="pointer-events:none;"></i>';
                     hdr.appendChild(delBtn);
                 }
@@ -2430,7 +2504,8 @@
                 const meta = document.createElement('div');
                 meta.className = 'rv-sig-meta' + (isPlaced ? ' placed' : '');
                 meta.innerHTML = isPlaced ?
-                    '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page + ' — placed' :
+                    '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page +
+                    ' — placed' :
                     '<i class="bi bi-circle" style="pointer-events:none;"></i> Not placed yet';
                 card.appendChild(meta);
 
@@ -2470,7 +2545,7 @@
                         'background:var(--card);color:var(--muted);' +
                         'font-size:.78rem;font-weight:600;cursor:pointer;';
                     btn.dataset.action = 'slot-activate';
-                    btn.dataset.idx    = idx;
+                    btn.dataset.idx = idx;
 
                     row.appendChild(btn);
                     card.appendChild(row);
@@ -2486,7 +2561,7 @@
             const addBtn = document.getElementById('btnPengajuAddSlot');
             if (addBtn) {
                 addBtn.disabled = blockAdd;
-                addBtn.title    = blockAdd ? 'Place the current signature first' : '';
+                addBtn.title = blockAdd ? 'Place the current signature first' : '';
             }
         }
 
@@ -2499,17 +2574,17 @@
             pengajuSlots.forEach(function(slot) {
                 if (slot.pdfX === null) return;
                 const fields = {
-                    ['pengaju_placements[' + i + '][halaman]'] : slot.page,
-                    ['pengaju_placements[' + i + '][pos_x]']   : slot.pdfX,
-                    ['pengaju_placements[' + i + '][pos_y]']   : slot.pdfY,
-                    ['pengaju_placements[' + i + '][lebar]']   : QR_PT,
-                    ['pengaju_placements[' + i + '][tinggi]']  : QR_PT,
+                    ['pengaju_placements[' + i + '][halaman]']: slot.page,
+                    ['pengaju_placements[' + i + '][pos_x]']: slot.pdfX,
+                    ['pengaju_placements[' + i + '][pos_y]']: slot.pdfY,
+                    ['pengaju_placements[' + i + '][lebar]']: QR_PT,
+                    ['pengaju_placements[' + i + '][tinggi]']: QR_PT,
                 };
                 Object.entries(fields).forEach(function([name, value]) {
-                    const inp   = document.createElement('input');
-                    inp.type    = 'hidden';
-                    inp.name    = name;
-                    inp.value   = value;
+                    const inp = document.createElement('input');
+                    inp.type = 'hidden';
+                    inp.name = name;
+                    inp.value = value;
                     container.appendChild(inp);
                 });
                 i++;
@@ -2521,7 +2596,7 @@
         ════════════════════════════════════════════════ */
         @if (old('tmp_key'))
             (function restoreValidationState() {
-                const OLD_TMP_KEY    = @json(old('tmp_key'));
+                const OLD_TMP_KEY = @json(old('tmp_key'));
                 const OLD_PERUSAHAAN = @json(old('id_perusahaan'));
                 const OLD_PREVIEW_URL =
                     '{{ route('data.submission.tempPreview', ['key' => old('tmp_key', '__PH__')]) }}'

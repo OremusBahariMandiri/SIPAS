@@ -179,8 +179,6 @@
                 ? 'You <strong>approved</strong> this document at this stage.'
                 : 'You <strong>rejected</strong> this document at this stage.';
 
-        // Hanya tampilkan flow sampai tahap approval ini saja
-        // Kumpulkan steps: pengaju + terusan sebelum/sama dengan tahap ini + kepada jika tahap kepada
         $flowSteps = [];
 
         // Step 1: Pemilik Surat
@@ -193,54 +191,57 @@
             'note' => null,
         ];
 
-        if ($approval->tahap === 'terusan') {
-            // Tampilkan terusan sampai dengan yang di-approve/reject ini saja
-            foreach ($pengajuan->terusans as $terusan) {
-                $isCurrent = $terusan->id === $approval->id_ref;
+        // Semua terusan dengan status aktual
+        foreach ($pengajuan->terusans as $terusan) {
+            $isCurrent = $approval->tahap === 'terusan' && $terusan->id === $approval->id_ref;
 
-                $flowSteps[] = [
-                    'label' => 'Carbon Copy',
-                    'name' => $terusan->user->nama_karyawan ?? '-',
-                    'sub' => $terusan->user->jabatan ?? null,
-                    'status' => $isCurrent
-                        ? ($approval->aksi === 'approve'
-                            ? 'approved'
-                            : 'rejected')
-                        : ($terusan->status === 'approved'
-                            ? 'approved'
-                            : 'pending'),
-                    'time' => $isCurrent ? $approval->acted_at : null,
-                    'note' => $isCurrent && $approval->aksi === 'reject' ? $approval->catatan : null,
-                ];
-
-                // Berhenti di terusan yang sedang di-review ini
-                if ($isCurrent) {
-                    break;
-                }
-            }
-        } elseif ($approval->tahap === 'kepada') {
-            // Tampilkan semua terusan (sudah approved semua) lalu kepada
-            foreach ($pengajuan->terusans as $terusan) {
-                $flowSteps[] = [
-                    'label' => 'Carbon Copy',
-                    'name' => $terusan->user->nama_karyawan ?? '-',
-                    'sub' => $terusan->user->jabatan ?? null,
-                    'status' => 'approved',
-                    'time' => $terusan->approved_at ?? null,
-                    'note' => null,
-                ];
+            if ($isCurrent) {
+                $status = $approval->aksi === 'approve' ? 'approved' : 'rejected';
+                $time = $approval->acted_at;
+                $note = $approval->aksi === 'reject' ? $approval->catatan : null;
+            } else {
+                $status = match ($terusan->status) {
+                    'approved' => 'approved',
+                    'rejected' => 'rejected',
+                    default => 'pending',
+                };
+                $time = $terusan->approved_at ?? null;
+                $note = $terusan->catatan ?? null;
             }
 
-            // Step kepada (final)
             $flowSteps[] = [
-                'label' => 'Final Approval',
-                'name' => $approver->nama_karyawan ?? '-',
-                'sub' => $approver->jabatan ?? null,
-                'status' => $approval->aksi === 'approve' ? 'approved' : 'rejected',
-                'time' => $approval->acted_at,
-                'note' => $approval->aksi === 'reject' ? $approval->catatan : null,
+                'label' => 'Carbon Copy',
+                'name' => $terusan->user->nama_karyawan ?? '-',
+                'sub' => $terusan->user->jabatan ?? null,
+                'status' => $status,
+                'time' => $time,
+                'note' => $note,
             ];
         }
+
+        // Step Final Approval (kepada) — selalu tampil
+        if ($approval->tahap === 'kepada') {
+            $finalStatus = $approval->aksi === 'approve' ? 'approved' : 'rejected';
+            $finalTime = $approval->acted_at;
+            $finalNote = $approval->aksi === 'reject' ? $approval->catatan : null;
+        } else {
+            $finalStatus = match ($pengajuan->status) {
+                'approved' => 'approved',
+                'rejected' => 'rejected',
+                default => 'pending',
+            };
+            $finalTime = null;
+            $finalNote = null;
+        }
+
+        $flowSteps[] = [
+            'label' => 'Final Approval',
+            'name' => $pengajuan->kepada->nama_karyawan ?? '-',
+            'sub' => $pengajuan->kepada->jabatan ?? null,
+            'status' => $finalStatus,
+            'time' => $finalTime,
+            'note' => $finalNote,
+        ];
     @endphp
 
     {{-- PAGE HEADER --}}
