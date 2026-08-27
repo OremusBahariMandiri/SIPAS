@@ -9,6 +9,7 @@ use App\Models\Data\PengajuanApproval;
 use App\Models\Data\PengajuanTtePlacement;
 use App\Services\TteService;
 use App\Services\ActivityLogService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -414,15 +415,22 @@ class ApprovalController extends Controller
             // ── Log TTE placed (jika ada) ────────────────────────────────────
             if ($newPlacements->isNotEmpty()) {
                 ActivityLogService::ttePlaced($submission, $tahapLabel, $newPlacements->count());
-
-                // Log setiap placement sebagai signed
                 foreach ($newPlacements as $placement) {
                     ActivityLogService::tteSigned($submission, $placement);
                 }
             }
 
-            (new \App\Services\NotificationService())
-                ->notifyOnTerusanApproved($submission, $approvedUrutan);
+            $notif = new NotificationService();
+
+            // Notif ke CC berikutnya atau final approver
+            $notif->notifyOnTerusanApproved($submission, $approvedUrutan);
+
+            // Notif ke pengaju — info bahwa CC ini sudah approve
+            $notif->notifySubmitterOnTerusanAction(
+                $submission,
+                'approve',
+                $user->nama_karyawan ?? $user->nrk,
+            );
 
             return redirect()->route('data.approval.index')
                 ->with('success', 'Forwarding approval has been submitted.');
@@ -445,13 +453,12 @@ class ApprovalController extends Controller
             // ── Log TTE placed & signed (jika ada) ──────────────────────────
             if ($newPlacements->isNotEmpty()) {
                 ActivityLogService::ttePlaced($submission, 'kepada', $newPlacements->count());
-
                 foreach ($newPlacements as $placement) {
                     ActivityLogService::tteSigned($submission, $placement);
                 }
             }
 
-            (new \App\Services\NotificationService())->notifyOnFinalApproved($submission);
+            (new NotificationService())->notifyOnFinalApproved($submission);
 
             return redirect()->route('data.approval.index')
                 ->with('success', 'Submission has been fully approved and signed.');
@@ -515,7 +522,8 @@ class ApprovalController extends Controller
         // ── Log rejection ────────────────────────────────────────────────────
         ActivityLogService::rejected($submission, $tahapLabel, $request->catatan);
 
-        (new \App\Services\NotificationService())->notifyOnRejected(
+        // ── Notifikasi rejection ke pengaju ─────────────────────────────────
+        (new NotificationService())->notifyOnRejected(
             $submission,
             $request->catatan,
             $user->nama_karyawan ?? $user->nrk
