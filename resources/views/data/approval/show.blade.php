@@ -165,7 +165,7 @@
         $approver = $approval->approver;
 
         $tahapLabels = [
-            'terusan' => 'Carbon Copy',
+            'terusan' => 'Additional Approval',
             'kepada' => 'Final Approval',
         ];
 
@@ -183,7 +183,7 @@
 
         // Step 1: Pemilik Surat
         $flowSteps[] = [
-            'label' => 'Pemilik Surat',
+            'label' => 'Submitted By',
             'name' => $pengajuan->user->nama_karyawan ?? ($pengajuan->user->nrk ?? '-'),
             'sub' => $pengajuan->user->jabatan ?? null,
             'status' => 'approved',
@@ -210,7 +210,7 @@
             }
 
             $flowSteps[] = [
-                'label' => 'Carbon Copy',
+                'label' => 'Additional Approval',
                 'name' => $terusan->user->nama_karyawan ?? '-',
                 'sub' => $terusan->user->jabatan ?? null,
                 'status' => $status,
@@ -295,7 +295,7 @@
                         </tr>
                         <tr>
                             <th>Letter Classification</th>
-                             <td>{{ $pengajuan->sifatSurat->nama ?? '-' }}</td>
+                            <td>{{ $pengajuan->sifatSurat->nama ?? '-' }}</td>
                         </tr>
                         <tr>
                             <th>Document Type</th>
@@ -329,6 +329,48 @@
                         <tr>
                             <th>Submitted At</th>
                             <td>{{ $pengajuan->created_at->format('d M Y, H:i') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Document</th>
+                            <td>
+                                @if ($approval->tahap === 'kepada' && $pengajuan->file_signed)
+                                    <span
+                                        style="font-size:.72rem;font-weight:600;
+                                        padding:.2rem .5rem;border-radius:20px;
+                                        background:#f0fdf4;border:1px solid #86efac;
+                                        color:#14532d;display:inline-flex;align-items:center;gap:.3rem;
+                                        margin-bottom:.4rem;">
+                                        <i class="bi bi-patch-check-fill"></i> Fully Signed
+                                    </span><br>
+                                @elseif ($pengajuan->file_current)
+                                    <span
+                                        style="font-size:.72rem;font-weight:600;
+                                        padding:.2rem .5rem;border-radius:20px;
+                                        background:var(--accent-light);border:1px solid var(--accent);
+                                        color:var(--accent);display:inline-flex;align-items:center;gap:.3rem;
+                                        margin-bottom:.4rem;">
+                                        <i class="bi bi-pen"></i> With Signatures So Far
+                                    </span><br>
+                                @else
+                                    <span
+                                        style="font-size:.72rem;font-weight:600;
+                                        padding:.2rem .5rem;border-radius:20px;
+                                        background:var(--bg);border:1px solid var(--border);
+                                        color:var(--muted);display:inline-flex;align-items:center;gap:.3rem;
+                                        margin-bottom:.4rem;">
+                                        <i class="bi bi-file-earmark"></i> Original
+                                    </span><br>
+                                @endif
+                                <a href="{{ route('data.approval.showFile', $approval) }}" target="_blank"
+                                    style="display:inline-flex;align-items:center;gap:.35rem;
+                                        font-size:.8rem;font-weight:600;
+                                        padding:.35rem .8rem;border-radius:7px;
+                                        background:var(--primary);color:#fff;
+                                        text-decoration:none;transition:opacity .15s;"
+                                    onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                                    <i class="bi bi-file-earmark-pdf"></i> Open Document
+                                </a>
+                            </td>
                         </tr>
                     </table>
                 </div>
@@ -374,6 +416,7 @@
                                 </td>
                             </tr>
                         @endif
+                        // BARU
                         @if ($isAdmin)
                             <tr>
                                 <th>Approver</th>
@@ -462,107 +505,10 @@
                 </div>
             </div>
 
-            {{-- ── PDF VIEWER ── --}}
-            <div class="sdv-card" style="margin-top:1.25rem;">
-                <div class="sdv-card-head">
-                    <h2 class="sdv-card-title">
-                        <i class="bi bi-file-earmark-pdf" style="color:#DC2626;"></i>
-                        Document
-                    </h2>
-                    <div style="display:flex;align-items:center;gap:.5rem;">
-                        {{-- Label versi file --}}
-                        @if ($approval->tahap === 'kepada' && $pengajuan->file_signed)
-                            <span
-                                style="font-size:.72rem;font-weight:600;
-                                 padding:.2rem .55rem;border-radius:20px;
-                                 background:#f0fdf4;border:1px solid #86efac;color:#14532d;">
-                                <i class="bi bi-patch-check-fill"></i> Fully Signed
-                            </span>
-                        @elseif($pengajuan->file_current)
-                            <span
-                                style="font-size:.72rem;font-weight:600;
-                                 padding:.2rem .55rem;border-radius:20px;
-                                 background:var(--accent-light);border:1px solid var(--accent);
-                                 color:var(--accent);">
-                                <i class="bi bi-pen"></i> With Signatures So Far
-                            </span>
-                        @else
-                            <span
-                                style="font-size:.72rem;font-weight:600;
-                                 padding:.2rem .55rem;border-radius:20px;
-                                 background:var(--bg);border:1px solid var(--border);
-                                 color:var(--muted);">
-                                <i class="bi bi-file-earmark"></i> Original
-                            </span>
-                        @endif
-
-                        {{-- Tombol download --}}
-                        <a href="{{ route('data.approval.showFile', $approval) }}" target="_blank"
-                            style="display:inline-flex;align-items:center;gap:.3rem;
-  font-size:.76rem;font-weight:600;
-  padding:.3rem .7rem;border-radius:7px;
-  background:var(--primary);color:#fff;
-  text-decoration:none;transition:opacity .15s;"
-                            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                            <i class="bi bi-box-arrow-up-right"></i> Open
-                        </a>
-                    </div>
-                </div>
-
-                {{-- PDF.js embed --}}
-                <div style="background:#525659;padding:.75rem;">
-                    <div id="apvPdfWrap"
-                        style="position:relative;display:flex;
-                        flex-direction:column;align-items:center;gap:.75rem;">
-
-                        {{-- Page nav --}}
-                        <div
-                            style="display:flex;align-items:center;gap:.5rem;
-                            background:rgba(0,0,0,.35);border-radius:30px;
-                            padding:.3rem .75rem;position:sticky;top:8px;z-index:10;">
-                            <button type="button" class="btn-action" id="apvPrevPage"
-                                style="color:#fff;background:none;border:none;
-                                   cursor:pointer;font-size:.9rem;padding:.2rem .4rem;">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <span style="font-size:.76rem;color:rgba(255,255,255,.85);white-space:nowrap;">
-                                Page <strong id="apvPageNum">1</strong> / <strong id="apvPageCount">—</strong>
-                            </span>
-                            <button type="button" class="btn-action" id="apvNextPage"
-                                style="color:#fff;background:none;border:none;
-                                   cursor:pointer;font-size:.9rem;padding:.2rem .4rem;">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                        </div>
-
-                        <canvas id="apvCanvas"
-                            style="display:block;max-width:100%;
-                               box-shadow:0 2px 16px rgba(0,0,0,.45);">
-                        </canvas>
-
-                        {{-- Loading state --}}
-                        <div id="apvLoading"
-                            style="position:absolute;inset:0;display:flex;
-                            align-items:center;justify-content:center;
-                            flex-direction:column;gap:.5rem;color:rgba(255,255,255,.7);
-                            font-size:.84rem;">
-                            <div
-                                style="width:28px;height:28px;border:3px solid rgba(255,255,255,.2);
-                                border-top-color:rgba(255,255,255,.8);border-radius:50%;
-                                animation:apv-spin .7s linear infinite;">
-                            </div>
-                            Loading document…
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
         </div>{{-- /kolom kanan --}}
 
     </div>{{-- /sdv-layout --}}
     @push('scripts')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
         <script>
             pdfjsLib.GlobalWorkerOptions.workerSrc =
                 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';

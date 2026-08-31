@@ -324,7 +324,7 @@
             ])->all();
 
             $flowSteps[] = [
-                'label'   => 'Carbon Copy (CC) #' . $urutan,
+                'label'   => 'Additional Approval #' . $urutan,
                 'name'    => $name,
                 'sub'     => $sub,
                 'status'  => $status,

@@ -42,6 +42,7 @@ class ApprovalController extends Controller
             ])
                 ->where('id_user', $user->id)
                 ->where('status', 'waiting')
+                ->where('is_monitoring', false)
                 ->whereHas('pengajuan', function ($q) {
                     $q->whereIn('status', ['waiting', 'in_review']);
                 })
@@ -64,7 +65,8 @@ class ApprovalController extends Controller
                 ->where('id_kepada', $user->id)
                 ->whereIn('status', ['waiting', 'in_review'])
                 ->whereDoesntHave('terusans', function ($q) {
-                    $q->where('status', 'waiting');
+                    $q->where('status', 'waiting')
+                        ->where('is_monitoring', false);
                 })
                 ->get();
         }
@@ -86,6 +88,30 @@ class ApprovalController extends Controller
                     'pengajuan.perusahaan',
                     'pengajuan.jenisDokumen',
                 ])->where('id_approver', $user->id);
+
+            if (!$isAdmin && $activeTab === 'history') {
+                $pendingMonitorings = PengajuanTerusan::with('pengajuan')
+                    ->where('id_user', $user->id)
+                    ->where('status', 'waiting')
+                    ->where('is_monitoring', true)
+                    ->whereHas('pengajuan', function ($q) {
+                        $q->whereIn('status', ['waiting', 'in_review']);
+                    })
+                    ->orderBy('urutan')
+                    ->get();
+
+                foreach ($pendingMonitorings as $mon) {
+                    $prevBlocking = $mon->pengajuan->terusans()
+                        ->where('urutan', '<', $mon->urutan)
+                        ->where('status', '!=', 'approved')
+                        ->where('is_monitoring', false)
+                        ->exists();
+
+                    if (!$prevBlocking) {
+                        $this->autoApproveMonitoring($mon, $mon->pengajuan);
+                    }
+                }
+            }
 
             if ($search = $request->get('search')) {
                 $query->whereHas('pengajuan', function ($q) use ($search) {
@@ -232,6 +258,7 @@ class ApprovalController extends Controller
             ->where('status', 'waiting')
             ->first();
 
+        // BARU
         if ($activeTerusan) {
             $prevPending = $submission->terusans()
                 ->where('urutan', '<', $activeTerusan->urutan)
@@ -242,12 +269,43 @@ class ApprovalController extends Controller
                 abort(403, 'Previous forwarding steps have not been approved yet.');
             }
 
+            // Jika monitoring: auto-approve di sini, lalu lanjut ke step berikutnya
+            if ($activeTerusan->is_monitoring) {
+                $this->autoApproveMonitoring($activeTerusan, $submission);
+                return redirect()->route('data.approval.index')
+                    ->with('info', 'You are set as monitoring on this document. It has been forwarded automatically.');
+            }
+
             $tahap   = 'terusan';
             $idRef   = $activeTerusan->id;
             $needTte = (bool) $activeTerusan->require_tte;
         } elseif ($submission->id_kepada === $user->id) {
+            // Auto-approve semua monitoring yang masih waiting sebelum cek pending
+            $pendingMonitorings = $submission->terusans()
+                ->where('status', 'waiting')
+                ->where('is_monitoring', true)
+                ->orderBy('urutan')
+                ->get();
+
+            foreach ($pendingMonitorings as $mon) {
+                // Pastikan semua sebelumnya sudah approved
+                $prevBlocking = $submission->terusans()
+                    ->where('urutan', '<', $mon->urutan)
+                    ->where('status', '!=', 'approved')
+                    ->where('is_monitoring', false)
+                    ->exists();
+
+                if ($prevBlocking) break;
+
+                $this->autoApproveMonitoring($mon, $submission);
+            }
+
+            $submission->refresh();
+
+            // Sekarang cek apakah masih ada CC non-monitoring yang waiting
             $pendingTerusan = $submission->terusans()
                 ->where('status', 'waiting')
+                ->where('is_monitoring', false)
                 ->exists();
 
             if ($pendingTerusan) {
@@ -408,7 +466,11 @@ class ApprovalController extends Controller
             $submission->update(['status' => 'in_review']);
             $submission->refresh();
 
-            // ── Log approve terusan ──────────────────────────────────────────
+            // ── Auto-approve terusan monitoring yang antri setelah urutan ini ──
+            $this->autoApproveNextMonitorings($submission, $approvedUrutan);
+            $submission->refresh();
+
+            // ── Log approve terusan ──
             $tahapLabel = "terusan-{$approvedUrutan}";
             ActivityLogService::approved($submission, $tahapLabel, $request->catatan);
 
@@ -557,6 +619,57 @@ class ApprovalController extends Controller
                 'error'        => $e->getMessage(),
             ]);
             return null;
+        }
+    }
+
+    // TAMBAH sebelum penutup class (setelah createSnapshot)
+
+    private function autoApproveMonitoring(PengajuanTerusan $terusan, PengajuanSurat $submission): void
+    {
+        $terusan->update([
+            'status'      => 'approved',
+            'approved_by' => $terusan->id_user,  // user monitoring itu sendiri
+            'approved_at' => now(),
+            'catatan'     => 'Auto-approved (monitoring only)',
+        ]);
+
+        PengajuanApproval::create([
+            'id_pengajuan'  => $submission->id,
+            'tahap'         => 'terusan',
+            'id_ref'        => $terusan->id,
+            'id_approver'   => $terusan->id_user,
+            'aksi'          => 'approve',
+            'catatan'       => 'Monitoring — passed through automatically',
+            'acted_at'      => now(),
+            'file_snapshot' => $this->createSnapshot($submission),
+        ]);
+
+        $submission->loadMissing('user');
+        ActivityLogService::approved(
+            $submission,
+            "terusan-{$terusan->urutan}",
+            'Monitoring — passed through automatically'
+        );
+    }
+
+    private function autoApproveNextMonitorings(PengajuanSurat $submission, int $afterUrutan): void
+    {
+        // Ambil semua terusan monitoring yang menunggu setelah urutan yang baru saja approved,
+        // secara berurutan, selama tidak ada non-monitoring yang waiting di antaranya
+        $nextTerusans = $submission->terusans()
+            ->where('urutan', '>', $afterUrutan)
+            ->where('status', 'waiting')
+            ->orderBy('urutan')
+            ->get();
+
+        foreach ($nextTerusans as $terusan) {
+            if (!$terusan->is_monitoring) {
+                // Ada non-monitoring menunggu — berhenti, biarkan dia yang approve manual
+                break;
+            }
+
+            $this->autoApproveMonitoring($terusan, $submission);
+            $submission->refresh();
         }
     }
 }

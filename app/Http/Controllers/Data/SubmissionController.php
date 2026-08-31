@@ -208,6 +208,7 @@ class SubmissionController extends Controller
                 'terusan.*.id_user'            => ['nullable', 'exists:users,id'],
                 'terusan.*.require_tte'        => ['nullable', 'boolean'],
                 'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan.*.is_monitoring'      => ['nullable', 'boolean'],
                 'pengaju_placements'           => ['nullable', 'array'],
                 'pengaju_placements.*.halaman' => ['nullable', 'integer', 'min:1'],
                 'pengaju_placements.*.pos_x'   => ['nullable', 'numeric'],
@@ -234,6 +235,7 @@ class SubmissionController extends Controller
                 'terusan.*.id_user'            => ['required_with:terusan', 'exists:users,id'],
                 'terusan.*.require_tte'        => ['nullable', 'boolean'],
                 'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan.*.is_monitoring'      => ['nullable', 'boolean'],
                 'pengaju_placements'           => ['nullable', 'array'],
                 'pengaju_placements.*.halaman' => ['required_with:pengaju_placements', 'integer', 'min:1'],
                 'pengaju_placements.*.pos_x'   => ['required_with:pengaju_placements', 'numeric'],
@@ -243,7 +245,7 @@ class SubmissionController extends Controller
             ], $this->messages());
         }
 
-        // Validasi CC
+        // ── Validasi CC ──────────────────────────────────────────────────────
         if ($request->filled('terusan') && $request->filled('id_kepada')) {
             $ccUsers = collect($request->terusan)->pluck('id_user')->filter()->values();
 
@@ -301,14 +303,24 @@ class SubmissionController extends Controller
                 $targetUser = User::where('id', $t['id_user'])->where('is_admin', '!=', 1)->first();
                 if (!$targetUser) continue;
 
-                $requireTte = isset($t['require_tte']) ? 1 : 0;
+                $isMonitoring = isset($t['is_monitoring']) ? 1 : 0;
+
+                // Jika monitoring, TTE tidak diperlukan (pass-through)
+                if ($isMonitoring) {
+                    $requireTte      = 0;
+                    $requireTteCount = 0;
+                } else {
+                    $requireTte      = isset($t['require_tte']) ? 1 : 0;
+                    $requireTteCount = $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0;
+                }
 
                 PengajuanTerusan::create([
                     'id_pengajuan'      => $pengajuan->id,
                     'id_user'           => $targetUser->id,
                     'urutan'            => $urutan + 1,
                     'require_tte'       => $requireTte,
-                    'require_tte_count' => $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0,
+                    'require_tte_count' => $requireTteCount,
+                    'is_monitoring'     => $isMonitoring,
                     'status'            => 'waiting',
                 ]);
             }
@@ -349,8 +361,6 @@ class SubmissionController extends Controller
                             ->get();
 
                         (new TteService())->injectStageTteToPdf($pengajuan, $freshPlacements);
-
-                        // ── Log TTE placed ───────────────────────────────
                         ActivityLogService::ttePlaced($pengajuan, 'pengaju', $newPlacements->count());
                     } catch (\Throwable $e) {
                         \Log::error('TTE inject pengaju failed on store', [
@@ -373,11 +383,13 @@ class SubmissionController extends Controller
             }
         }
 
-        // ── Log submission ───────────────────────────────────────────────────
+        // ── Log & Notifikasi ─────────────────────────────────────────────────
         ActivityLogService::submissionCreated($pengajuan, $isDraft);
 
-        // ── Notifikasi ───────────────────────────────────────────────────────
+        // BARU
         if (!$isDraft) {
+            $this->autoApproveLeadingMonitorings($pengajuan);
+
             (new \App\Services\NotificationService())->notifyOnSubmit($pengajuan);
         }
 
@@ -470,9 +482,7 @@ class SubmissionController extends Controller
 
         $isDraft      = $request->action !== 'submit';
         $statusBefore = $submission->status;
-
-        // Simpan snapshot sebelum update
-        $original = $submission->toArray();
+        $original     = $submission->toArray();
 
         $hasTmpFile = $request->filled('tmp_key')
             && session('tmp_pdf_' . $request->tmp_key)
@@ -493,6 +503,7 @@ class SubmissionController extends Controller
                 'terusan.*.id_user'            => ['nullable', 'exists:users,id'],
                 'terusan.*.require_tte'        => ['nullable', 'boolean'],
                 'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan.*.is_monitoring'      => ['nullable', 'boolean'],
                 'pengaju_placements'           => ['nullable', 'array'],
                 'pengaju_placements.*.halaman' => ['nullable', 'integer', 'min:1'],
                 'pengaju_placements.*.pos_x'   => ['nullable', 'numeric'],
@@ -523,6 +534,7 @@ class SubmissionController extends Controller
                 'terusan.*.id_user'            => ['required_with:terusan', 'exists:users,id'],
                 'terusan.*.require_tte'        => ['nullable', 'boolean'],
                 'terusan.*.require_tte_count'  => ['nullable', 'integer', 'min:0', 'max:10'],
+                'terusan.*.is_monitoring'      => ['nullable', 'boolean'],
                 'pengaju_placements'           => ['nullable', 'array'],
                 'pengaju_placements.*.halaman' => ['required_with:pengaju_placements', 'integer', 'min:1'],
                 'pengaju_placements.*.pos_x'   => ['required_with:pengaju_placements', 'numeric'],
@@ -534,7 +546,7 @@ class SubmissionController extends Controller
             ]));
         }
 
-        // Validasi CC
+        // ── Validasi CC ──────────────────────────────────────────────────────
         if ($request->filled('terusan') && $request->filled('id_kepada')) {
             $ccUsers = collect($request->terusan)->pluck('id_user')->filter()->values();
 
@@ -601,14 +613,23 @@ class SubmissionController extends Controller
                 $targetUser = User::where('id', $t['id_user'])->where('is_admin', '!=', 1)->first();
                 if (!$targetUser) continue;
 
-                $requireTte = isset($t['require_tte']) ? 1 : 0;
+                $isMonitoring = isset($t['is_monitoring']) ? 1 : 0;
+
+                if ($isMonitoring) {
+                    $requireTte      = 0;
+                    $requireTteCount = 0;
+                } else {
+                    $requireTte      = isset($t['require_tte']) ? 1 : 0;
+                    $requireTteCount = $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0;
+                }
 
                 PengajuanTerusan::create([
                     'id_pengajuan'      => $submission->id,
                     'id_user'           => $targetUser->id,
                     'urutan'            => $urutan + 1,
                     'require_tte'       => $requireTte,
-                    'require_tte_count' => $requireTte ? (int) ($t['require_tte_count'] ?? 1) : 0,
+                    'require_tte_count' => $requireTteCount,
+                    'is_monitoring'     => $isMonitoring,
                     'status'            => 'waiting',
                 ]);
             }
@@ -653,8 +674,6 @@ class SubmissionController extends Controller
                             ->get();
 
                         (new TteService())->injectStageTteToPdf($submission, $freshPlacements);
-
-                        // ── Log TTE placed ───────────────────────────────
                         ActivityLogService::ttePlaced($submission, 'pengaju', $newPlacements->count());
                     } catch (\Throwable $e) {
                         \Log::error('TTE inject pengaju failed on update', [
@@ -676,12 +695,14 @@ class SubmissionController extends Controller
             }
         }
 
-        // ── Log submission ───────────────────────────────────────────────────
+        // ── Log & Notifikasi ─────────────────────────────────────────────────
         $submission->refresh();
         ActivityLogService::submissionUpdated($submission, $original, $isDraft, $statusBefore);
 
-        // ── Notifikasi ───────────────────────────────────────────────────────
+        // BARU
         if (!$isDraft) {
+            $this->autoApproveLeadingMonitorings($submission);
+
             (new \App\Services\NotificationService())->notifyOnSubmit($submission);
         }
 
@@ -714,7 +735,6 @@ class SubmissionController extends Controller
             }
         }
 
-        // ── Log sebelum dihapus ──────────────────────────────────────────────
         ActivityLogService::submissionDeleted($submission);
 
         if ($submission->file_original) Storage::disk('local')->delete($submission->file_original);
@@ -784,5 +804,43 @@ class SubmissionController extends Controller
             'file_dokumen.max'           => 'Document size must not exceed 10 MB.',
             'require_tte_kepada.integer' => 'TTE recipient count must be a number.',
         ];
+    }
+
+    // TAMBAH — setelah method messages(), sebelum penutup class
+    private function autoApproveLeadingMonitorings(PengajuanSurat $pengajuan): void
+    {
+        $terusans = $pengajuan->terusans()
+            ->where('status', 'waiting')
+            ->orderBy('urutan')
+            ->get();
+
+        foreach ($terusans as $terusan) {
+            // Berhenti di CC non-monitoring pertama
+            if (!$terusan->is_monitoring) break;
+
+            $terusan->update([
+                'status'      => 'approved',
+                'approved_by' => $terusan->id_user,
+                'approved_at' => now(),
+                'catatan'     => 'Auto-approved (monitoring only)',
+            ]);
+
+            PengajuanApproval::create([
+                'id_pengajuan' => $pengajuan->id,
+                'tahap'        => 'terusan',
+                'id_ref'       => $terusan->id,
+                'id_approver'  => $terusan->id_user,
+                'aksi'         => 'approve',
+                'catatan'      => 'Monitoring — passed through automatically',
+                'acted_at'     => now(),
+                'file_snapshot' => null,
+            ]);
+
+            ActivityLogService::approved(
+                $pengajuan,
+                "terusan-{$terusan->urutan}",
+                'Monitoring — passed through automatically'
+            );
+        }
     }
 }
