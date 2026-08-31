@@ -4,7 +4,6 @@
 
 @section('content')
 
-
     <div class="sdv-header" style="align-items:center;">
         <a href="{{ route('data.submission.index') }}" class="sdv-back" title="Back">
             <i class="bi bi-arrow-left"></i>
@@ -228,7 +227,7 @@
                             </span>
                         </div>
 
-                        {{-- ▸ TTE TOGGLE BUTTON — muncul setelah upload berhasil --}}
+                        {{-- TTE TOGGLE BUTTON --}}
                         <div id="ttePengajuToggleWrap"
                             style="{{ old('tmp_key') ? '' : 'display:none;' }} margin-top:.75rem;">
                             <button type="button" id="btnToggleTte" class="scf-btn-tte-toggle"
@@ -244,7 +243,6 @@
                                 <i class="bi bi-chevron-down scf-btn-tte-toggle-chevron" id="btnToggleTteChevron"></i>
                             </button>
                         </div>
-
                     </div>
 
                 </div>{{-- /form-grid --}}
@@ -269,14 +267,12 @@
 
                     <div id="ttePengajuCanvas" style="display:none;">
 
-                        {{-- Slot cards --}}
                         <div id="pengajuSigSlots" style="margin-bottom:.5rem;position:relative;z-index:1;"></div>
                         <button type="button" class="rv-btn-add-slot" id="btnPengajuAddSlot"
                             onclick="pengajuSlotAdd()">
                             <i class="bi bi-plus-circle"></i> Add another signature
                         </button>
 
-                        {{-- PDF.js canvas card --}}
                         <div class="scf-tte-canvas-card">
                             <div class="scf-tte-canvas-head">
                                 <div style="display:flex;align-items:center;gap:.5rem;">
@@ -330,7 +326,6 @@
                                             pointer-events:none;z-index:20;">
                                     </div>
 
-                                    {{-- Floating bar: active --}}
                                     <div class="tte-float-bar" id="pengajuFloatBar">
                                         <div class="tte-float-label">
                                             <i class="bi bi-record-circle"></i>
@@ -351,7 +346,6 @@
                                         </button>
                                     </div>
 
-                                    {{-- Floating bar: idle --}}
                                     <div class="tte-float-bar" id="pengajuFloatIdle">
                                         <div class="tte-float-label" style="padding-left:.6rem;">
                                             <i class="bi bi-check-circle-fill" style="color:#22c55e;animation:none;"></i>
@@ -375,7 +369,7 @@
                 </div>{{-- /sectionTtePengaju --}}
 
                 {{-- ═══════════════════════════════════════════════════════════
-                     FORWARDING SECTION
+                     FORWARDING / CC SECTION
                 ═══════════════════════════════════════════════════════════ --}}
                 <div class="scf-section">
                     <div class="scf-section-head">
@@ -386,7 +380,7 @@
                                     <span class="toggle-thumb"></span>
                                 </span>
                             </span>
-                            <span class="toggle-label">Add Carbon Copy (CC)</span>
+                            <span class="toggle-label">Additional Approval</span>
                         </label>
                         <span class="scf-section-hint">
                             Route the document through one or more users before final approval.
@@ -399,6 +393,19 @@
                                 <div>{{ $message }}</div>
                             </div>
                         @enderror
+
+                        {{-- Monitoring legend --}}
+                        <div class="scf-cc-legend">
+                            <div class="scf-cc-legend-item">
+                                <span class="scf-cc-legend-dot" style="background:var(--primary);"></span>
+                                <span><strong>Approval</strong> — user must review &amp; approve before forwarding</span>
+                            </div>
+                            <div class="scf-cc-legend-item">
+                                <span class="scf-cc-legend-dot" style="background:#2563EB;"></span>
+                                <span><strong>Monitoring</strong> — user receives a copy for visibility only, document passes through automatically</span>
+                            </div>
+                        </div>
+
                         <div id="terusanList"></div>
                         <button type="button" class="scf-btn-add" onclick="addTerusan()">
                             <i class="bi bi-plus-lg"></i> Add User
@@ -452,43 +459,30 @@
                         Submit this document?
                     </p>
 
-                    {{-- Ringkasan --}}
                     <div
                         style="background:var(--bg);border:1px solid var(--border);border-radius:9px;
             padding:.65rem .85rem;margin-bottom:.75rem;display:flex;flex-direction:column;gap:.4rem;">
 
-                        {{-- Letter No. --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Letter No.</span>
                             <span id="smryNomor" style="font-weight:600;color:var(--text);word-break:break-all;">—</span>
                         </div>
-
-                        {{-- Subject --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Subject</span>
-                            <span id="smryPerihal"
-                                style="font-weight:600;color:var(--text);word-break:break-all;">—</span>
+                            <span id="smryPerihal" style="font-weight:600;color:var(--text);word-break:break-all;">—</span>
                         </div>
-
-                        {{-- Date --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Date</span>
                             <span id="smryTanggal" style="font-weight:600;color:var(--text);">—</span>
                         </div>
-
-                        {{-- Company --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Company</span>
                             <span id="smryPerusahaan" style="font-weight:600;color:var(--text);">—</span>
                         </div>
-
-                        {{-- Document Type --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Doc. Type</span>
                             <span id="smryJenis" style="font-weight:600;color:var(--text);">—</span>
                         </div>
-
-                        {{-- Classification --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Classification</span>
                             <span id="smrySifat" style="font-weight:600;color:var(--text);">—</span>
@@ -496,21 +490,18 @@
 
                         <div style="border-top:1px solid var(--border);margin:.2rem 0;"></div>
 
-                        {{-- Recipient --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Recipient</span>
                             <span id="smryKepada" style="font-weight:600;color:var(--text);">—</span>
                         </div>
-
-                        {{-- My TTE --}}
                         <div style="display:flex;gap:.5rem;font-size:.78rem;">
                             <span style="color:var(--muted);min-width:110px;flex-shrink:0;">My Signature</span>
                             <span id="smryTte" style="font-weight:600;color:var(--text);">—</span>
                         </div>
 
-                        {{-- CC --}}
-                        <div style="display:flex;gap:.5rem;font-size:.78rem;">
-                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Carbon Copy</span>
+                        {{-- CC summary (approval + monitoring) --}}
+                        <div style="display:flex;gap:.5rem;font-size:.78rem;align-items:flex-start;">
+                            <span style="color:var(--muted);min-width:110px;flex-shrink:0;">Additional Approval</span>
                             <span id="smryCc" style="font-weight:600;color:var(--text);">—</span>
                         </div>
 
@@ -552,22 +543,40 @@
                     @endforeach
                 </select>
             </div>
-            <div class="scf-tte-terusan-group">
-                <label class="scf-tte-label">
-                    <input type="checkbox" name="terusan[IDX][require_tte]" value="1" class="scf-tte-chk"
-                        onchange="toggleTteCount(this)">
-                    <span>Require TTE</span>
+
+            {{-- Mode group: monitoring toggle + TTE --}}
+            <div class="scf-terusan-mode-group">
+
+                {{-- Monitoring toggle --}}
+                <label class="scf-tte-label scf-monitoring-label" title="Monitoring only — document passes through automatically">
+                    <input type="checkbox" name="terusan[IDX][is_monitoring]" value="1"
+                        class="scf-tte-chk scf-monitoring-chk"
+                        onchange="toggleMonitoringMode(this)">
+                    <i class="bi bi-eye" style="font-size:.8rem;color:var(--muted);"></i>
+                    <span>Monitoring</span>
+                    <span class="scf-monitoring-badge">pass-through</span>
                 </label>
-                <div class="scf-tte-count-mini" style="display:none;">
-                    <span class="scf-tte-count-mini-label">Count:</span>
-                    <button type="button" class="scf-tte-count-btn scf-tte-count-btn-sm"
-                        onclick="adjustTteCountEl(this.nextElementSibling,-1,1)">−</button>
-                    <input type="number" name="terusan[IDX][require_tte_count]" value="1" min="1"
-                        max="10" class="scf-tte-count-field scf-tte-count-field-sm">
-                    <button type="button" class="scf-tte-count-btn scf-tte-count-btn-sm"
-                        onclick="adjustTteCountEl(this.previousElementSibling,1,1)">+</button>
+
+                {{-- TTE group — hidden when monitoring is active --}}
+                <div class="scf-tte-terusan-group scf-tte-group-inner">
+                    <label class="scf-tte-label">
+                        <input type="checkbox" name="terusan[IDX][require_tte]" value="1" class="scf-tte-chk"
+                            onchange="toggleTteCount(this)">
+                        <span>Require TTE</span>
+                    </label>
+                    <div class="scf-tte-count-mini" style="display:none;">
+                        <span class="scf-tte-count-mini-label">Count:</span>
+                        <button type="button" class="scf-tte-count-btn scf-tte-count-btn-sm"
+                            onclick="adjustTteCountEl(this.nextElementSibling,-1,1)">−</button>
+                        <input type="number" name="terusan[IDX][require_tte_count]" value="1" min="1"
+                            max="10" class="scf-tte-count-field scf-tte-count-field-sm">
+                        <button type="button" class="scf-tte-count-btn scf-tte-count-btn-sm"
+                            onclick="adjustTteCountEl(this.previousElementSibling,1,1)">+</button>
+                    </div>
                 </div>
+
             </div>
+
             <button type="button" class="scf-btn-remove" onclick="removeTerusan(this)" title="Remove">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -583,9 +592,7 @@
         /* ════════════════════════════════════════════════
                FILE UPLOAD
             ════════════════════════════════════════════════ */
-        .scf-file-wrap {
-            position: relative;
-        }
+        .scf-file-wrap { position: relative; }
 
         .scf-file-input {
             position: absolute;
@@ -614,10 +621,7 @@
             user-select: none;
         }
 
-        .scf-file-label i {
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
+        .scf-file-label i { font-size: 1rem; flex-shrink: 0; }
 
         .scf-file-label:hover {
             border-color: var(--primary);
@@ -701,9 +705,7 @@
             background: rgba(255, 255, 255, .5);
         }
 
-        .scf-btn-tte-toggle-text {
-            flex: 1;
-        }
+        .scf-btn-tte-toggle-text { flex: 1; }
 
         .scf-btn-tte-toggle-badge {
             display: inline-flex;
@@ -756,10 +758,7 @@
             white-space: nowrap;
         }
 
-        .scf-tte-count-label i {
-            color: var(--accent);
-            font-size: .8rem;
-        }
+        .scf-tte-count-label i { color: var(--accent); font-size: .8rem; }
 
         .scf-tte-count-input {
             display: inline-flex;
@@ -785,10 +784,7 @@
             transition: background .12s;
         }
 
-        .scf-tte-count-btn:hover {
-            background: var(--primary-light);
-            color: var(--primary);
-        }
+        .scf-tte-count-btn:hover { background: var(--primary-light); color: var(--primary); }
 
         .scf-tte-count-field {
             width: 42px;
@@ -805,11 +801,8 @@
         }
 
         .scf-tte-count-field::-webkit-inner-spin-button,
-        .scf-tte-count-field::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-        }
+        .scf-tte-count-field::-webkit-outer-spin-button { -webkit-appearance: none; }
 
-        /* Mini variant */
         .scf-tte-terusan-group {
             display: flex;
             flex-direction: column;
@@ -817,11 +810,7 @@
             flex-shrink: 0;
         }
 
-        .scf-tte-count-mini {
-            display: flex;
-            align-items: center;
-            gap: .3rem;
-        }
+        .scf-tte-count-mini { display: flex; align-items: center; gap: .3rem; }
 
         .scf-tte-count-mini-label {
             font-size: .72rem;
@@ -829,17 +818,8 @@
             white-space: nowrap;
         }
 
-        .scf-tte-count-btn-sm {
-            width: 22px !important;
-            height: 22px !important;
-            font-size: .82rem !important;
-        }
-
-        .scf-tte-count-field-sm {
-            width: 32px !important;
-            height: 22px !important;
-            font-size: .78rem !important;
-        }
+        .scf-tte-count-btn-sm { width: 22px !important; height: 22px !important; font-size: .82rem !important; }
+        .scf-tte-count-field-sm { width: 32px !important; height: 22px !important; font-size: .78rem !important; }
 
         /* ════════════════════════════════════════════════
                SECTION & TOGGLE
@@ -866,14 +846,39 @@
             user-select: none;
         }
 
-        .scf-section-hint {
-            font-size: .77rem;
+        .scf-section-hint { font-size: .77rem; color: var(--muted); flex: 1; }
+
+        /* ════════════════════════════════════════════════
+               CC LEGEND
+            ════════════════════════════════════════════════ */
+        .scf-cc-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .65rem 1.5rem;
+            padding: .5rem .75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: .85rem;
+        }
+
+        .scf-cc-legend-item {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            font-size: .76rem;
             color: var(--muted);
-            flex: 1;
+        }
+
+        .scf-cc-legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
         /* ════════════════════════════════════════════════
-               TERUSAN ROW
+               TERUSAN ROW + MONITORING
             ════════════════════════════════════════════════ */
         .scf-terusan-row {
             display: flex;
@@ -885,6 +890,13 @@
             border-radius: 9px;
             margin-bottom: .6rem;
             flex-wrap: wrap;
+            transition: border-color .18s, background .18s;
+        }
+
+        /* Monitoring state — row gets a blue tint */
+        .scf-terusan-row.is-monitoring {
+            border-color: #BFDBFE;
+            background: #EFF6FF;
         }
 
         .scf-terusan-num {
@@ -899,11 +911,72 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            transition: background .18s;
         }
 
-        .scf-terusan-body {
-            flex: 1;
-            min-width: 160px;
+        /* Monitoring badge on number circle */
+        .scf-terusan-row.is-monitoring .scf-terusan-num {
+            background: #2563EB;
+        }
+
+        .scf-terusan-body { flex: 1; min-width: 160px; }
+
+        /* Mode group: monitoring + TTE controls stacked */
+        .scf-terusan-mode-group {
+            display: flex;
+            flex-direction: column;
+            gap: .45rem;
+            flex-shrink: 0;
+        }
+
+        .scf-monitoring-label {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            font-size: .8rem;
+            cursor: pointer;
+            user-select: none;
+            color: var(--text);
+        }
+
+        .scf-monitoring-label:hover { color: #2563EB; }
+
+        /* Badge pill next to "Monitoring" text */
+        .scf-monitoring-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: .66rem;
+            font-weight: 700;
+            padding: .1rem .4rem;
+            border-radius: 20px;
+            background: #EFF6FF;
+            color: #1E40AF;
+            border: 1px solid #BFDBFE;
+            white-space: nowrap;
+            letter-spacing: .02em;
+        }
+
+        /* When monitoring is active, hide TTE controls */
+        .scf-terusan-row.is-monitoring .scf-tte-group-inner {
+            display: none !important;
+        }
+
+        /* Monitoring indicator — shown inside row when monitoring is on */
+        .scf-monitoring-indicator {
+            display: none;
+            align-items: center;
+            gap: .35rem;
+            font-size: .73rem;
+            color: #1E40AF;
+            font-weight: 500;
+            padding: .2rem .55rem;
+            background: #DBEAFE;
+            border-radius: 6px;
+            border: 1px solid #BFDBFE;
+        }
+
+        .scf-terusan-row.is-monitoring .scf-monitoring-indicator {
+            display: inline-flex;
         }
 
         .scf-tte-label {
@@ -978,18 +1051,9 @@
             border-top: 1px solid var(--border);
         }
 
-        .scf-action-group {
-            display: flex;
-            flex-direction: column;
-            gap: .55rem;
-        }
+        .scf-action-group { display: flex; flex-direction: column; gap: .55rem; }
 
-        .scf-btns {
-            display: flex;
-            align-items: center;
-            gap: .65rem;
-            flex-wrap: wrap;
-        }
+        .scf-btns { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
 
         .scf-action-note {
             display: inline-flex;
@@ -999,13 +1063,10 @@
             color: var(--muted);
         }
 
-        .scf-action-note i {
-            font-size: .72rem;
-            flex-shrink: 0;
-        }
+        .scf-action-note i { font-size: .72rem; flex-shrink: 0; }
 
         /* ════════════════════════════════════════════════
-               TTE PENGAJU — CANVAS CARD
+               TTE CANVAS CARD
             ════════════════════════════════════════════════ */
         .scf-tte-canvas-card {
             border: 1px solid var(--border);
@@ -1025,7 +1086,6 @@
             background: var(--card);
         }
 
-        /* Signature slot cards */
         .rv-sig-slot {
             border: 1.5px solid var(--border);
             border-radius: 10px;
@@ -1034,17 +1094,9 @@
             margin-bottom: .6rem;
         }
 
-        .rv-sig-slot.active {
-            border-color: var(--accent);
-            background: var(--accent-light);
-        }
+        .rv-sig-slot.active { border-color: var(--accent); background: var(--accent-light); }
 
-        .rv-sig-slot-header {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            margin-bottom: .4rem;
-        }
+        .rv-sig-slot-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
 
         .rv-sig-num {
             width: 22px;
@@ -1061,17 +1113,9 @@
             transition: background .15s, color .15s;
         }
 
-        .rv-sig-slot.active .rv-sig-num {
-            background: var(--accent);
-            color: #fff;
-        }
+        .rv-sig-slot.active .rv-sig-num { background: var(--accent); color: #fff; }
 
-        .rv-sig-label {
-            flex: 1;
-            font-size: .8rem;
-            font-weight: 600;
-            color: var(--text);
-        }
+        .rv-sig-label { flex: 1; font-size: .8rem; font-weight: 600; color: var(--text); }
 
         .rv-sig-del {
             background: none;
@@ -1085,9 +1129,7 @@
             flex-shrink: 0;
         }
 
-        .rv-sig-del:hover {
-            color: #DC2626;
-        }
+        .rv-sig-del:hover { color: #DC2626; }
 
         .rv-sig-meta {
             font-size: .74rem;
@@ -1097,9 +1139,7 @@
             gap: .35rem;
         }
 
-        .rv-sig-meta.placed {
-            color: #16A34A;
-        }
+        .rv-sig-meta.placed { color: #16A34A; }
 
         .rv-sig-hint {
             font-size: .72rem;
@@ -1113,15 +1153,8 @@
         }
 
         @keyframes rv-pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: .4;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: .4; }
         }
 
         .rv-btn-add-slot {
@@ -1149,10 +1182,7 @@
             background: var(--accent-light);
         }
 
-        .rv-btn-add-slot:disabled {
-            opacity: .4;
-            cursor: not-allowed;
-        }
+        .rv-btn-add-slot:disabled { opacity: .4; cursor: not-allowed; }
 
         /* Floating bars */
         .tte-float-bar {
@@ -1173,9 +1203,7 @@
             pointer-events: all;
         }
 
-        .tte-float-bar.visible {
-            display: flex;
-        }
+        .tte-float-bar.visible { display: flex; }
 
         .tte-float-label {
             font-size: .72rem;
@@ -1187,10 +1215,7 @@
             gap: .3rem;
         }
 
-        .tte-float-label i {
-            color: #f59e0b;
-            animation: rv-pulse 1.2s ease-in-out infinite;
-        }
+        .tte-float-label i { color: #f59e0b; animation: rv-pulse 1.2s ease-in-out infinite; }
 
         .tte-float-btn {
             border: none;
@@ -1205,19 +1230,9 @@
             transition: filter .15s;
         }
 
-        .tte-float-btn:active {
-            filter: brightness(.85);
-        }
-
-        .tte-float-btn-cancel {
-            background: rgba(255, 255, 255, .12);
-            color: rgba(255, 255, 255, .75);
-        }
-
-        .tte-float-btn-save {
-            background: #22c55e;
-            color: #fff;
-        }
+        .tte-float-btn:active { filter: brightness(.85); }
+        .tte-float-btn-cancel { background: rgba(255, 255, 255, .12); color: rgba(255, 255, 255, .75); }
+        .tte-float-btn-save { background: #22c55e; color: #fff; }
 
         .tte-float-btn-save:disabled {
             background: rgba(255, 255, 255, .15);
@@ -1225,12 +1240,7 @@
             cursor: not-allowed;
         }
 
-        .tte-float-divider {
-            width: 1px;
-            height: 20px;
-            background: rgba(255, 255, 255, .18);
-            flex-shrink: 0;
-        }
+        .tte-float-divider { width: 1px; height: 20px; background: rgba(255, 255, 255, .18); flex-shrink: 0; }
 
         .tte-float-btn-add {
             background: rgba(255, 255, 255, .12);
@@ -1246,16 +1256,9 @@
             flex-shrink: 0;
         }
 
-        .tte-float-btn-add:hover {
-            background: rgba(255, 255, 255, .22);
-        }
+        .tte-float-btn-add:hover { background: rgba(255, 255, 255, .22); }
+        .tte-float-btn-add:disabled { opacity: .35; cursor: not-allowed; }
 
-        .tte-float-btn-add:disabled {
-            opacity: .35;
-            cursor: not-allowed;
-        }
-
-        /* TTE info badges */
         .scf-tte-info-ok {
             display: flex;
             align-items: center;
@@ -1351,9 +1354,7 @@
             z-index: 1 !important;
         }
 
-        .select2-container--default .select2-selection--single .select2-selection__clear:hover {
-            color: #DC2626 !important;
-        }
+        .select2-container--default .select2-selection--single .select2-selection__clear:hover { color: #DC2626 !important; }
 
         .select2-container--default.select2-container--focus .select2-selection--single,
         .select2-container--default.select2-container--open .select2-selection--single {
@@ -1361,18 +1362,8 @@
             box-shadow: 0 0 0 3px rgba(63, 93, 120, .12) !important;
         }
 
-        .select2-container--default.select2-container--open.select2-container--above .select2-selection--single {
-            border-radius: 0 0 8px 8px !important;
-        }
-
-        .select2-container--default.select2-container--open.select2-container--below .select2-selection--single {
-            border-radius: 8px 8px 0 0 !important;
-        }
-
-        .is-invalid+.select2-container--default .select2-selection--single,
-        .select2-container.is-invalid .select2-selection--single {
-            border-color: #E53935 !important;
-        }
+        .select2-container--default.select2-container--open.select2-container--above .select2-selection--single { border-radius: 0 0 8px 8px !important; }
+        .select2-container--default.select2-container--open.select2-container--below .select2-selection--single { border-radius: 8px 8px 0 0 !important; }
 
         .select2-dropdown {
             border: 1px solid var(--border) !important;
@@ -1421,24 +1412,14 @@
             border-bottom: 1px solid var(--border) !important;
         }
 
-        .select2-results__options {
-            max-height: 220px !important;
-        }
+        .select2-results__options { max-height: 220px !important; }
 
-        @media (max-width: 500px) {
-            .scf-btns {
-                flex-direction: column;
-            }
-
-            .scf-btns .sdv-btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .scf-tte-count-wrap {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        @media (max-width: 600px) {
+            .scf-btns { flex-direction: column; }
+            .scf-btns .sdv-btn { width: 100%; justify-content: center; }
+            .scf-tte-count-wrap { flex-direction: column; align-items: flex-start; }
+            .scf-terusan-row { flex-direction: column; align-items: flex-start; }
+            .scf-terusan-mode-group { flex-direction: row; flex-wrap: wrap; }
         }
     </style>
 @endpush
@@ -1465,37 +1446,33 @@
                     width: '100%',
                     language: {
                         noResults: () =>
-                            '<span style="padding:.5rem .85rem;display:block;' +
-                            'font-size:.82rem;color:var(--muted);">No results found</span>',
+                            '<span style="padding:.5rem .85rem;display:block;font-size:.82rem;color:var(--muted);">No results found</span>',
                     },
                     escapeMarkup: m => m,
                 });
             }
 
-            initSelect2('#id_perusahaan', '— Select Company —');
-            initSelect2('#id_kepada', '— Select Recipient —');
+            initSelect2('#id_perusahaan',    '— Select Company —');
+            initSelect2('#id_kepada',        '— Select Recipient —');
             initSelect2('#id_jenis_dokumen', '— Select Document Type —');
-            initSelect2('#id_sifat_surat', '— Select Classification —');
+            initSelect2('#id_sifat_surat',   '— Select Classification —');
 
             /* ══════════════════════════════════════════════════
-               TTE TOGGLE SECTION — buka/tutup canvas
+               TTE TOGGLE SECTION
             ══════════════════════════════════════════════════ */
             let tteSectionOpen = false;
 
             window.toggleTtePengajuSection = function() {
                 tteSectionOpen = !tteSectionOpen;
 
-                const section = document.getElementById('sectionTtePengaju');
-                const btn = document.getElementById('btnToggleTte');
-                const chevron = document.getElementById('btnToggleTteChevron');
-                const textEl = document.getElementById('btnToggleTteText');
+                const section  = document.getElementById('sectionTtePengaju');
+                const btn      = document.getElementById('btnToggleTte');
+                const textEl   = document.getElementById('btnToggleTteText');
 
                 if (tteSectionOpen) {
                     section.style.display = '';
                     btn.classList.add('is-open');
                     textEl.textContent = 'Hide My Signature (TTE)';
-
-                    // Inisialisasi TTE info & canvas kalau PDF sudah ada
                     window.updateTtePengajuInfo($('#id_perusahaan').val());
                     if (pengajuPdfDoc) {
                         const canvasWrap = document.getElementById('ttePengajuCanvas');
@@ -1513,17 +1490,14 @@
                 }
             };
 
-            /* Helper: perbarui badge di tombol toggle */
             window.refreshTteToggleBadge = function() {
-                const badge = document.getElementById('btnToggleTteBadge');
+                const badge      = document.getElementById('btnToggleTteBadge');
                 const badgeCount = document.getElementById('btnToggleTteBadgeCount');
                 if (!badge || !badgeCount) return;
 
-                const placed = (typeof pengajuSlots !== 'undefined') ?
-                    pengajuSlots.filter(function(s) {
-                        return s.pdfX !== null;
-                    }).length :
-                    0;
+                const placed = (typeof pengajuSlots !== 'undefined')
+                    ? pengajuSlots.filter(s => s.pdfX !== null).length
+                    : 0;
 
                 if (placed > 0) {
                     badgeCount.textContent = placed;
@@ -1542,8 +1516,7 @@
 
                 if (!perusahaanId) {
                     el.innerHTML =
-                        '<div class="scf-tte-info-none">' +
-                        '<i class="bi bi-info-circle"></i>' +
+                        '<div class="scf-tte-info-none"><i class="bi bi-info-circle"></i>' +
                         ' Select a company to check your TTE status.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
                     return;
@@ -1552,24 +1525,20 @@
                 const tte = TTE_MAP[perusahaanId];
                 if (!tte) {
                     el.innerHTML =
-                        '<div class="scf-tte-info-warn">' +
-                        '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                        '<div class="scf-tte-info-warn"><i class="bi bi-exclamation-triangle-fill"></i>' +
                         ' You have no TTE registered for this company. Contact admin.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
                 } else if (!tte.valid) {
                     el.innerHTML =
-                        '<div class="scf-tte-info-warn">' +
-                        '<i class="bi bi-exclamation-triangle-fill"></i>' +
+                        '<div class="scf-tte-info-warn"><i class="bi bi-exclamation-triangle-fill"></i>' +
                         ' TTE "<strong>' + tte.nama + '</strong>" is expired or inactive.</div>';
                     document.getElementById('ttePengajuCanvas').style.display = 'none';
                 } else {
                     const until = tte.valid_until ? ' &mdash; valid until ' + tte.valid_until : '';
                     el.innerHTML =
-                        '<div class="scf-tte-info-ok">' +
-                        '<i class="bi bi-shield-check-fill"></i>' +
+                        '<div class="scf-tte-info-ok"><i class="bi bi-shield-check-fill"></i>' +
                         ' TTE active: <strong>' + tte.nama + '</strong>' + until + '</div>';
 
-                    // Tampilkan canvas hanya jika section sedang terbuka
                     if (pengajuPdfDoc && tteSectionOpen) {
                         document.getElementById('ttePengajuCanvas').style.display = 'block';
                         pengajuRenderPage(pengajuPlacePage);
@@ -1578,10 +1547,7 @@
             };
 
             $('#id_perusahaan').on('change', function() {
-                // Hanya update info TTE jika section sudah terbuka
-                if (tteSectionOpen) {
-                    window.updateTtePengajuInfo($(this).val());
-                }
+                if (tteSectionOpen) window.updateTtePengajuInfo($(this).val());
             });
 
             $('#id_kepada').on('change', function() {
@@ -1589,17 +1555,17 @@
             });
 
             /* ══════════════════════════════════════════════════
-               FILE INPUT → AJAX TEMP UPLOAD
+               FILE UPLOAD → AJAX TEMP UPLOAD
             ══════════════════════════════════════════════════ */
             document.getElementById('file_dokumen').addEventListener('change', function() {
-                const label = document.getElementById('scfFileName');
-                const lWrap = document.getElementById('scfFileLabel');
-                const icon = document.getElementById('scfFileIcon');
-                const prog = document.getElementById('uploadProgress');
-                const bar = document.getElementById('uploadProgressBar');
-                const txt = document.getElementById('uploadProgressText');
+                const label      = document.getElementById('scfFileName');
+                const lWrap      = document.getElementById('scfFileLabel');
+                const icon       = document.getElementById('scfFileIcon');
+                const prog       = document.getElementById('uploadProgress');
+                const bar        = document.getElementById('uploadProgressBar');
+                const txt        = document.getElementById('uploadProgressText');
                 const toggleWrap = document.getElementById('ttePengajuToggleWrap');
-                const section = document.getElementById('sectionTtePengaju');
+                const section    = document.getElementById('sectionTtePengaju');
 
                 const oldHint = document.getElementById('scfFileReplaceHint');
                 if (oldHint) oldHint.remove();
@@ -1608,7 +1574,6 @@
                     label.textContent = 'Click to upload or drag & drop';
                     if (icon) icon.className = 'bi bi-cloud-upload';
                     lWrap.classList.remove('has-file', 'uploading');
-                    // Sembunyikan toggle button dan tutup section TTE
                     if (toggleWrap) toggleWrap.style.display = 'none';
                     section.style.display = 'none';
                     tteSectionOpen = false;
@@ -1628,7 +1593,6 @@
                 bar.style.width = '0%';
                 txt.textContent = 'Uploading…';
 
-                // Sembunyikan toggle saat sedang upload ulang
                 if (toggleWrap) toggleWrap.style.display = 'none';
                 section.style.display = 'none';
                 tteSectionOpen = false;
@@ -1658,33 +1622,26 @@
 
                     if (xhr.status === 200) {
                         let res;
-                        try {
-                            res = JSON.parse(xhr.responseText);
-                        } catch (e) {
-                            return;
-                        }
+                        try { res = JSON.parse(xhr.responseText); } catch (e) { return; }
 
                         lWrap.classList.add('has-file');
                         if (icon) icon.className = 'bi bi-file-earmark-check';
                         document.getElementById('tmpKey').value = res.key;
 
                         // Reset slot setelah upload file baru
-                        pengajuPdfDoc = null;
-                        pengajuSlots = [];
-                        pengajuSlotCounter = 0;
-                        pengajuActiveIdx = null;
-                        pengajuDraft = null;
+                        pengajuPdfDoc        = null;
+                        pengajuSlots         = [];
+                        pengajuSlotCounter   = 0;
+                        pengajuActiveIdx     = null;
+                        pengajuDraft         = null;
                         const gl = document.getElementById('pengajuGhostLayer');
                         if (gl) gl.innerHTML = '';
-                        pengajuDraftGhostEl = null;
+                        pengajuDraftGhostEl  = null;
                         document.getElementById('ttePengajuCanvas').style.display = 'none';
                         document.getElementById('pengajuPlacementsInput').innerHTML = '';
                         window.refreshTteToggleBadge();
 
-                        // Load PDF di background (belum tampilkan canvas)
                         pengajuLoadPdf(res.preview_url);
-
-                        // Tampilkan tombol toggle TTE
                         if (toggleWrap) toggleWrap.style.display = '';
 
                     } else {
@@ -1709,7 +1666,7 @@
             });
 
             /* ══════════════════════════════════════════════════
-               FORWARDING TOGGLE
+               CC / FORWARDING TOGGLE
             ══════════════════════════════════════════════════ */
             document.getElementById('chkTerusan').addEventListener('change', function() {
                 const section = document.getElementById('terusanSection');
@@ -1723,38 +1680,34 @@
             /* ══════════════════════════════════════════════════
                SUBMIT MODAL
             ══════════════════════════════════════════════════ */
-            const modal = document.getElementById('submitModal');
+            const modal      = document.getElementById('submitModal');
             const formAction = document.getElementById('formAction');
-            const form = document.getElementById('scfForm');
+            const form       = document.getElementById('scfForm');
 
-            function openModal() {
-                modal.style.display = 'flex';
-                modal.style.pointerEvents = 'all';
+            function openModal()  {
+                modal.style.display        = 'flex';
+                modal.style.pointerEvents  = 'all';
                 document.body.style.overflow = 'hidden';
                 document.getElementById('submitModalYes').focus();
             }
 
             function closeModal() {
-                modal.style.display = 'none';
-                modal.style.pointerEvents = 'none';
+                modal.style.display        = 'none';
+                modal.style.pointerEvents  = 'none';
                 document.body.style.overflow = '';
             }
 
             document.getElementById('btnSubmitTrigger').addEventListener('click', function() {
-
                 document.getElementById('smryNomor').textContent =
                     document.getElementById('nomor_surat').value || '—';
                 document.getElementById('smryPerihal').textContent =
                     document.getElementById('perihal').value || '—';
 
                 const tgl = document.getElementById('tanggal_surat').value;
-                document.getElementById('smryTanggal').textContent = tgl ?
-                    new Date(tgl).toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                document.getElementById('smryTanggal').textContent = tgl
+                    ? new Date(tgl).toLocaleString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
                     }) : '—';
 
                 const perusahaan = $('#id_perusahaan').select2('data');
@@ -1773,35 +1726,56 @@
                 document.getElementById('smryKepada').textContent =
                     (kepada && kepada[0] && kepada[0].id) ? kepada[0].text : '—';
 
-                const placedCount = pengajuSlots.filter(function(s) {
-                    return s.pdfX !== null;
-                }).length;
+                const placedCount = pengajuSlots.filter(s => s.pdfX !== null).length;
                 const tteEl = document.getElementById('smryTte');
                 if (placedCount > 0) {
                     tteEl.innerHTML =
-                        '<span style="color:#16A34A;">' +
-                        '<i class="bi bi-check-circle-fill"></i> Yes — ' +
-                        placedCount + ' signature' + (placedCount > 1 ? 's' : '') + ' placed' +
-                        '</span>';
+                        '<span style="color:#16A34A;"><i class="bi bi-check-circle-fill"></i> Yes — ' +
+                        placedCount + ' signature' + (placedCount > 1 ? 's' : '') + ' placed</span>';
                 } else {
                     tteEl.innerHTML = '<span style="color:var(--muted);">No</span>';
                 }
 
-                const ccTexts = [];
-                document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
+                /* CC summary: show approval vs monitoring separately */
+                const approvalTexts   = [];
+                const monitoringTexts = [];
+
+                document.querySelectorAll('.scf-terusan-row').forEach(function(row) {
+                    const isMonitoring = row.classList.contains('is-monitoring');
+                    const sel = row.querySelector('.scf-select2-terusan');
+                    if (!sel) return;
                     const data = $(sel).select2('data');
-                    if (data && data[0] && data[0].id) ccTexts.push(data[0].text);
+                    if (data && data[0] && data[0].id) {
+                        const name = data[0].text.split('—')[0].trim();
+                        if (isMonitoring) monitoringTexts.push(name);
+                        else approvalTexts.push(name);
+                    }
                 });
-                document.getElementById('smryCc').textContent =
-                    ccTexts.length > 0 ? ccTexts.join(', ') : 'None';
+
+                const ccEl = document.getElementById('smryCc');
+                if (approvalTexts.length === 0 && monitoringTexts.length === 0) {
+                    ccEl.innerHTML = '<span style="color:var(--muted);">None</span>';
+                } else {
+                    let html = '';
+                    if (approvalTexts.length) {
+                        html += '<div style="margin-bottom:.15rem;">' +
+                            '<span style="font-size:.7rem;color:var(--muted);font-weight:400;">Approval: </span>' +
+                            approvalTexts.join(', ') + '</div>';
+                    }
+                    if (monitoringTexts.length) {
+                        html += '<div>' +
+                            '<span style="font-size:.7rem;color:#2563EB;font-weight:400;">' +
+                            '<i class="bi bi-eye"></i> Monitoring: </span>' +
+                            monitoringTexts.join(', ') + '</div>';
+                    }
+                    ccEl.innerHTML = html;
+                }
 
                 openModal();
             });
 
             document.getElementById('submitModalNo').addEventListener('click', closeModal);
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) closeModal();
-            });
+            modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
             });
@@ -1830,7 +1804,7 @@
         };
 
         window.toggleTteCount = function(chk) {
-            const row = chk.closest('.scf-terusan-row');
+            const row  = chk.closest('.scf-terusan-row');
             const mini = row ? row.querySelector('.scf-tte-count-mini') : null;
             if (!mini) return;
             mini.style.display = chk.checked ? 'flex' : 'none';
@@ -1841,29 +1815,53 @@
         };
 
         /* ════════════════════════════════════════════════
+           MONITORING MODE TOGGLE
+        ════════════════════════════════════════════════ */
+        window.toggleMonitoringMode = function(chk) {
+            const row = chk.closest('.scf-terusan-row');
+            if (!row) return;
+
+            const isOn = chk.checked;
+            row.classList.toggle('is-monitoring', isOn);
+
+            if (isOn) {
+                /* When monitoring is on: uncheck & hide TTE require */
+                const tteChk = row.querySelector('.scf-tte-chk:not(.scf-monitoring-chk)');
+                if (tteChk) {
+                    tteChk.checked = false;
+                    toggleTteCount(tteChk);
+                }
+            }
+        };
+
+        /* ════════════════════════════════════════════════
            FORWARDING ROWS
         ════════════════════════════════════════════════ */
         let terusanCount = 0;
 
-        window.addTerusan = function(userId, requireTte, tteCount) {
-            userId = userId || null;
-            requireTte = requireTte || false;
-            tteCount = tteCount || 1;
+        window.addTerusan = function(userId, requireTte, tteCount, isMonitoring) {
+            userId       = userId       || null;
+            requireTte   = requireTte   || false;
+            tteCount     = tteCount     || 1;
+            isMonitoring = isMonitoring || false;
 
-            const idx = terusanCount;
+            const idx  = terusanCount;
             const tmpl = document.getElementById('tmplTerusan').innerHTML.replaceAll('IDX', idx);
 
             const div = document.createElement('div');
             div.innerHTML = tmpl;
             const row = div.firstElementChild;
 
-            if (userId) {
-                const sel = row.querySelector('select');
-                if (sel) sel.value = userId;
-            }
-
-            if (requireTte) {
-                const chk = row.querySelector('.scf-tte-chk');
+            /* Restore monitoring state */
+            if (isMonitoring) {
+                const monChk = row.querySelector('.scf-monitoring-chk');
+                if (monChk) {
+                    monChk.checked = true;
+                    row.classList.add('is-monitoring');
+                }
+            } else if (requireTte) {
+                /* Restore TTE state only when NOT monitoring */
+                const chk = row.querySelector('.scf-tte-chk:not(.scf-monitoring-chk)');
                 if (chk) {
                     chk.checked = true;
                     const mini = row.querySelector('.scf-tte-count-mini');
@@ -1877,49 +1875,40 @@
             terusanCount++;
             reorderTerusan();
 
-            const $newSel = $(row).find('.scf-select2-terusan');
+            const $newSel  = $(row).find('.scf-select2-terusan');
             const nativeSel = $newSel[0];
 
             $newSel.select2({
-                    placeholder: '— Select User —',
-                    allowClear: true,
-                    width: '100%',
-                    language: {
-                        noResults: () =>
-                            '<span style="padding:.5rem .85rem;display:block;' +
-                            'font-size:.82rem;color:var(--muted);">No results found</span>',
-                    },
-                    escapeMarkup: m => m,
-                    templateResult: function(data) {
-                        if (!data.id) return $('<span>' + data.text + '</span>');
-                        const nativeOpt = Array.from(nativeSel.options)
-                            .find(function(o) {
-                                return o.value === String(data.id);
-                            });
-                        const isDisabled = nativeOpt && nativeOpt.disabled;
-                        if (isDisabled) {
-                            return $(
-                                '<span style="display:flex;align-items:center;' +
-                                'justify-content:space-between;gap:.5rem;' +
-                                'color:var(--muted);cursor:not-allowed;">' +
-                                '<span>' + data.text + '</span>' +
-                                '<span style="font-size:.68rem;font-weight:600;' +
-                                'padding:.1rem .45rem;border-radius:20px;' +
-                                'background:var(--bg);border:1px solid var(--border);' +
-                                'color:var(--muted);white-space:nowrap;">' +
-                                'Already assigned</span>' +
-                                '</span>'
-                            );
-                        }
-                        return $('<span>' + data.text + '</span>');
-                    },
-                })
-                .on('change', function() {
-                    syncCcDisabledOptions();
-                })
-                .on('select2:clear', function() {
-                    setTimeout(syncCcDisabledOptions, 0);
-                });
+                placeholder: '— Select User —',
+                allowClear: true,
+                width: '100%',
+                language: {
+                    noResults: () =>
+                        '<span style="padding:.5rem .85rem;display:block;font-size:.82rem;color:var(--muted);">No results found</span>',
+                },
+                escapeMarkup: m => m,
+                templateResult: function(data) {
+                    if (!data.id) return $('<span>' + data.text + '</span>');
+                    const nativeOpt = Array.from(nativeSel.options).find(o => o.value === String(data.id));
+                    if (nativeOpt && nativeOpt.disabled) {
+                        return $(
+                            '<span style="display:flex;align-items:center;justify-content:space-between;' +
+                            'gap:.5rem;color:var(--muted);cursor:not-allowed;">' +
+                            '<span>' + data.text + '</span>' +
+                            '<span style="font-size:.68rem;font-weight:600;padding:.1rem .45rem;' +
+                            'border-radius:20px;background:var(--bg);border:1px solid var(--border);' +
+                            'color:var(--muted);white-space:nowrap;">Already assigned</span></span>'
+                        );
+                    }
+                    return $('<span>' + data.text + '</span>');
+                },
+            })
+            .on('change', function() { syncCcDisabledOptions(); })
+            .on('select2:clear', function() { setTimeout(syncCcDisabledOptions, 0); });
+
+            if (userId) {
+                $newSel.val(userId).trigger('change');
+            }
 
             syncCcDisabledOptions();
         };
@@ -1939,7 +1928,7 @@
             });
         }
 
-        /* Restore terusan setelah validation error */
+        /* Restore terusan after validation error */
         @if (old('terusan'))
             document.getElementById('chkTerusan').checked = true;
             document.getElementById('terusanSection').style.display = '';
@@ -1947,77 +1936,64 @@
                 addTerusan(
                     '{{ $t['id_user'] ?? '' }}',
                     {{ isset($t['require_tte']) ? 'true' : 'false' }},
-                    {{ (int) ($t['require_tte_count'] ?? 1) }}
+                    {{ (int) ($t['require_tte_count'] ?? 1) }},
+                    {{ isset($t['is_monitoring']) ? 'true' : 'false' }}
                 );
             @endforeach
         @endif
 
         function syncCcDisabledOptions() {
-            const recipientId = $('#id_kepada').val();
-
+            const recipientId  = $('#id_kepada').val();
             const selectedCcIds = [];
+
             document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
                 const val = $(sel).val();
                 if (val) selectedCcIds.push(val);
             });
 
             document.querySelectorAll('.scf-select2-terusan').forEach(function(sel) {
-                const $sel = $(sel);
+                const $sel      = $(sel);
                 const currentVal = $sel.val();
 
                 Array.from(sel.options).forEach(function(opt) {
                     if (!opt.value) return;
-                    const isRecipient = opt.value === recipientId;
-                    const isOtherCc = selectedCcIds.includes(opt.value) && opt.value !== currentVal;
-                    opt.disabled = isRecipient || isOtherCc;
+                    opt.disabled = (opt.value === recipientId) ||
+                        (selectedCcIds.includes(opt.value) && opt.value !== currentVal);
                 });
 
                 if ($sel.data('select2')) {
                     $sel.select2('destroy');
                     (function(nativeSel, $s) {
                         $s.select2({
-                                placeholder: '— Select User —',
-                                allowClear: true,
-                                width: '100%',
-                                language: {
-                                    noResults: () =>
-                                        '<span style="padding:.5rem .85rem;display:block;' +
-                                        'font-size:.82rem;color:var(--muted);">No results found</span>',
-                                },
-                                escapeMarkup: m => m,
-                                templateResult: function(data) {
-                                    if (!data.id) return $('<span>' + data.text + '</span>');
-                                    const nativeOpt = Array.from(nativeSel.options)
-                                        .find(function(o) {
-                                            return o.value === String(data.id);
-                                        });
-                                    const isDisabled = nativeOpt && nativeOpt.disabled;
-                                    if (isDisabled) {
-                                        return $(
-                                            '<span style="display:flex;align-items:center;' +
-                                            'justify-content:space-between;gap:.5rem;' +
-                                            'color:var(--muted);cursor:not-allowed;">' +
-                                            '<span>' + data.text + '</span>' +
-                                            '<span style="font-size:.68rem;font-weight:600;' +
-                                            'padding:.1rem .45rem;border-radius:20px;' +
-                                            'background:var(--bg);border:1px solid var(--border);' +
-                                            'color:var(--muted);white-space:nowrap;">' +
-                                            'Already assigned</span>' +
-                                            '</span>'
-                                        );
-                                    }
-                                    return $('<span>' + data.text + '</span>');
-                                },
-                            })
-                            .val(currentVal)
-                            .trigger('change.select2')
-                            .off('change.syncCc select2:clear.syncCc')
-                            .on('change.syncCc', function() {
-                                syncCcDisabledOptions();
-                            })
-                            .on('select2:clear.syncCc', function() {
-                                setTimeout(syncCcDisabledOptions, 0);
-                            });
+                            placeholder: '— Select User —',
+                            allowClear: true,
+                            width: '100%',
+                            language: {
+                                noResults: () =>
+                                    '<span style="padding:.5rem .85rem;display:block;font-size:.82rem;color:var(--muted);">No results found</span>',
+                            },
+                            escapeMarkup: m => m,
+                            templateResult: function(data) {
+                                if (!data.id) return $('<span>' + data.text + '</span>');
+                                const nativeOpt = Array.from(nativeSel.options).find(o => o.value === String(data.id));
+                                if (nativeOpt && nativeOpt.disabled) {
+                                    return $(
+                                        '<span style="display:flex;align-items:center;justify-content:space-between;' +
+                                        'gap:.5rem;color:var(--muted);cursor:not-allowed;">' +
+                                        '<span>' + data.text + '</span>' +
+                                        '<span style="font-size:.68rem;font-weight:600;padding:.1rem .45rem;' +
+                                        'border-radius:20px;background:var(--bg);border:1px solid var(--border);' +
+                                        'color:var(--muted);white-space:nowrap;">Already assigned</span></span>'
+                                    );
+                                }
+                                return $('<span>' + data.text + '</span>');
+                            },
+                        })
+                        .val(currentVal)
+                        .trigger('change.select2')
+                        .off('change.syncCc select2:clear.syncCc')
+                        .on('change.syncCc', function() { syncCcDisabledOptions(); })
+                        .on('select2:clear.syncCc', function() { setTimeout(syncCcDisabledOptions, 0); });
                     })(sel, $sel);
                 }
             });
@@ -2030,26 +2006,26 @@
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         const PLACE_SCALE = 0.8;
-        const QR_PT = 40;
+        const QR_PT       = 40;
 
-        let pengajuPdfDoc = null;
-        let pengajuViewport = null;
+        let pengajuPdfDoc    = null;
+        let pengajuViewport  = null;
         let pengajuPlacePage = 1;
-        let pengajuPageNatW = 0;
-        let pengajuPageNatH = 0;
+        let pengajuPageNatW  = 0;
+        let pengajuPageNatH  = 0;
 
-        let pengajuSlots = [];
+        let pengajuSlots       = [];
         let pengajuSlotCounter = 0;
-        let pengajuActiveIdx = null;
+        let pengajuActiveIdx   = null;
 
-        let pengajuDraft = null;
+        let pengajuDraft        = null;
         let pengajuDraftGhostEl = null;
 
         /* ── Event delegation — slot card buttons ── */
         document.getElementById('pengajuSigSlots').addEventListener('click', function(e) {
-            const btnExit = e.target.closest('[data-action="slot-exit"]');
+            const btnExit     = e.target.closest('[data-action="slot-exit"]');
             const btnActivate = e.target.closest('[data-action="slot-activate"]');
-            const btnDelete = e.target.closest('[data-action="slot-delete"]');
+            const btnDelete   = e.target.closest('[data-action="slot-delete"]');
 
             if (btnExit) {
                 e.stopPropagation();
@@ -2069,56 +2045,43 @@
             }
         });
 
-        /* ── Load PDF (background, tidak langsung tampil canvas) ── */
+        /* ── Load PDF (background) ── */
         window.pengajuLoadPdf = function(url) {
-            pengajuPdfDoc = null;
-            pengajuPlacePage = 1;
-            pengajuSlots = [];
-            pengajuSlotCounter = 0;
-            pengajuActiveIdx = null;
-            pengajuDraft = null;
+            pengajuPdfDoc        = null;
+            pengajuPlacePage     = 1;
+            pengajuSlots         = [];
+            pengajuSlotCounter   = 0;
+            pengajuActiveIdx     = null;
+            pengajuDraft         = null;
 
             const gl = document.getElementById('pengajuGhostLayer');
             if (gl) gl.innerHTML = '';
             pengajuDraftGhostEl = null;
 
-            // Jangan tampilkan canvas di sini — tunggu user buka section TTE
             const canvasWrap = document.getElementById('ttePengajuCanvas');
             if (canvasWrap) canvasWrap.style.display = 'none';
 
-            pdfjsLib.getDocument({
-                url
-            }).promise.then(function(doc) {
+            pdfjsLib.getDocument({ url }).promise.then(function(doc) {
                 pengajuPdfDoc = doc;
                 document.getElementById('pengajuPageCount').textContent = doc.numPages;
 
-                // Buat satu slot default (tapi canvas belum ditampilkan)
                 pengajuSlots.push({
                     id: pengajuSlotCounter++,
-                    page: null,
-                    pdfX: null,
-                    pdfY: null,
-                    cssX: null,
-                    cssY: null,
-                    ghostEl: null,
+                    page: null, pdfX: null, pdfY: null,
+                    cssX: null, cssY: null, ghostEl: null,
                 });
                 pengajuRenderSlotsUI();
 
-                // Tampilkan canvas HANYA jika section sudah terbuka oleh user
                 if (typeof tteSectionOpen !== 'undefined' && tteSectionOpen) {
                     let perusahaanId = '';
-                    try {
-                        perusahaanId = $('#id_perusahaan').val() || '';
-                    } catch (e) {}
+                    try { perusahaanId = $('#id_perusahaan').val() || ''; } catch (e) {}
                     const tte = perusahaanId && TTE_MAP[perusahaanId];
                     if (tte && tte.valid && canvasWrap) {
                         canvasWrap.style.display = 'block';
                         pengajuRenderPage(pengajuPlacePage);
                     }
                 }
-            }).catch(function(err) {
-                console.error('PDF.js pengaju error:', err);
-            });
+            }).catch(function(err) { console.error('PDF.js pengaju error:', err); });
         };
 
         /* ── Render page ── */
@@ -2126,45 +2089,35 @@
             if (!pengajuPdfDoc) return;
             pengajuPdfDoc.getPage(num).then(function(page) {
                 const dpr = window.devicePixelRatio || 1;
-                const vp1 = page.getViewport({
-                    scale: 1
-                });
+                const vp1 = page.getViewport({ scale: 1 });
                 pengajuPageNatW = vp1.width;
                 pengajuPageNatH = vp1.height;
 
-                pengajuViewport = page.getViewport({
-                    scale: PLACE_SCALE
-                });
+                pengajuViewport = page.getViewport({ scale: PLACE_SCALE });
                 const cssW = Math.floor(pengajuViewport.width);
                 const cssH = Math.floor(pengajuViewport.height);
 
                 const canvas = document.getElementById('pengajuPlaceCanvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = cssW * dpr;
+                const ctx    = canvas.getContext('2d');
+                canvas.width  = cssW * dpr;
                 canvas.height = cssH * dpr;
-                canvas.style.width = cssW + 'px';
+                canvas.style.width  = cssW + 'px';
                 canvas.style.height = cssH + 'px';
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
                 const wrapper = document.getElementById('pengajuPlaceWrapper');
-                wrapper.style.width = cssW + 'px';
+                wrapper.style.width  = cssW + 'px';
                 wrapper.style.height = cssH + 'px';
 
                 ['pengajuClickLayer', 'pengajuGhostLayer'].forEach(function(id) {
                     const el = document.getElementById(id);
-                    if (el) {
-                        el.style.width = cssW + 'px';
-                        el.style.height = cssH + 'px';
-                    }
+                    if (el) { el.style.width = cssW + 'px'; el.style.height = cssH + 'px'; }
                 });
 
                 const scroll = document.getElementById('pengajuPlacementScroll');
                 if (scroll) scroll.style.height = (cssH + 24) + 'px';
 
-                page.render({
-                        canvasContext: ctx,
-                        viewport: pengajuViewport
-                    })
+                page.render({ canvasContext: ctx, viewport: pengajuViewport })
                     .promise.then(function() {
                         document.getElementById('pengajuPageNum').textContent = num;
                         pengajuRedrawGhosts();
@@ -2173,10 +2126,7 @@
         }
 
         window.pengajuPlacePrev = function() {
-            if (pengajuPlacePage > 1) {
-                pengajuPlacePage--;
-                pengajuRenderPage(pengajuPlacePage);
-            }
+            if (pengajuPlacePage > 1) { pengajuPlacePage--; pengajuRenderPage(pengajuPlacePage); }
         };
         window.pengajuPlaceNext = function() {
             if (pengajuPdfDoc && pengajuPlacePage < pengajuPdfDoc.numPages) {
@@ -2189,21 +2139,15 @@
         window.pengajuSlotAdd = function() {
             pengajuSlots.push({
                 id: pengajuSlotCounter++,
-                page: null,
-                pdfX: null,
-                pdfY: null,
-                cssX: null,
-                cssY: null,
-                ghostEl: null,
+                page: null, pdfX: null, pdfY: null,
+                cssX: null, cssY: null, ghostEl: null,
             });
             pengajuRenderSlotsUI();
             pengajuActivateSlot(pengajuSlots.length - 1);
         };
 
         window.pengajuSlotDelete = function(id) {
-            const i = pengajuSlots.findIndex(function(s) {
-                return s.id === id;
-            });
+            const i = pengajuSlots.findIndex(s => s.id === id);
             if (i === -1) return;
             if (pengajuSlots[i].ghostEl && pengajuSlots[i].ghostEl.parentNode)
                 pengajuSlots[i].ghostEl.parentNode.removeChild(pengajuSlots[i].ghostEl);
@@ -2216,10 +2160,7 @@
         };
 
         function pengajuActivateSlot(idx) {
-            if (pengajuActiveIdx === idx) {
-                pengajuExitTapMode();
-                return;
-            }
+            if (pengajuActiveIdx === idx) { pengajuExitTapMode(); return; }
             pengajuActiveIdx = idx;
             pengajuEnterTapMode();
         }
@@ -2240,24 +2181,21 @@
             if (bar) bar.style.display = 'none';
             pengajuHideFloatBar();
             pengajuRemoveDraftGhost();
-            if (rerender) {
-                pengajuRenderSlotsUI();
-                pengajuRefreshIdleBar();
-            }
+            if (rerender) { pengajuRenderSlotsUI(); pengajuRefreshIdleBar(); }
         };
 
         /* ── Placement handler ── */
         function pengajuHandlePlacement(clientX, clientY) {
             if (pengajuActiveIdx === null || !pengajuViewport || !pengajuPageNatH) return;
 
-            const wrapper = document.getElementById('pengajuPlaceWrapper');
+            const wrapper  = document.getElementById('pengajuPlaceWrapper');
             const wrapRect = wrapper.getBoundingClientRect();
-            const scroll = document.getElementById('pengajuPlacementScroll');
+            const scroll   = document.getElementById('pengajuPlacementScroll');
             const scrollLeft = scroll ? scroll.scrollLeft : 0;
-            const scrollTop = scroll ? scroll.scrollTop : 0;
+            const scrollTop  = scroll ? scroll.scrollTop  : 0;
 
             const cssX = (clientX - wrapRect.left) + scrollLeft;
-            const cssY = (clientY - wrapRect.top) + scrollTop;
+            const cssY = (clientY - wrapRect.top)  + scrollTop;
             const cssW = wrapRect.width;
             const cssH = wrapRect.height;
 
@@ -2271,8 +2209,7 @@
                 page: pengajuPlacePage,
                 pdfX: +pdfX.toFixed(4),
                 pdfY: +pdfY.toFixed(4),
-                cssX: cx,
-                cssY: cy,
+                cssX: cx, cssY: cy,
             };
 
             pengajuDrawDraftGhost(cx, cy);
@@ -2283,10 +2220,10 @@
 
         /* ── Draft ghost ── */
         function pengajuDrawDraftGhost(cx, cy) {
-            const layer = document.getElementById('pengajuGhostLayer');
+            const layer    = document.getElementById('pengajuGhostLayer');
             const wrapRect = document.getElementById('pengajuPlaceWrapper').getBoundingClientRect();
-            const scaleX = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
-            const ghostPx = QR_PT * scaleX;
+            const scaleX   = pengajuPageNatW > 0 ? wrapRect.width / pengajuPageNatW : PLACE_SCALE;
+            const ghostPx  = QR_PT * scaleX;
             const x = Math.max(0, cx - ghostPx / 2);
             const y = Math.max(0, cy - ghostPx / 2);
 
@@ -2303,10 +2240,10 @@
                 layer.appendChild(el);
                 pengajuDraftGhostEl = el;
             }
-            pengajuDraftGhostEl.style.left = x + 'px';
-            pengajuDraftGhostEl.style.top = y + 'px';
-            pengajuDraftGhostEl.style.width = ghostPx + 'px';
-            pengajuDraftGhostEl.style.height = ghostPx + 'px';
+            pengajuDraftGhostEl.style.left    = x + 'px';
+            pengajuDraftGhostEl.style.top     = y + 'px';
+            pengajuDraftGhostEl.style.width   = ghostPx + 'px';
+            pengajuDraftGhostEl.style.height  = ghostPx + 'px';
             pengajuDraftGhostEl.style.display = 'flex';
         }
 
@@ -2317,16 +2254,16 @@
 
         /* ── Floating bar ── */
         function pengajuShowFloatBar(idx) {
-            const idle = document.getElementById('pengajuFloatIdle');
-            const bar = document.getElementById('pengajuFloatBar');
-            const label = document.getElementById('pengajuFloatSlotName');
+            const idle   = document.getElementById('pengajuFloatIdle');
+            const bar    = document.getElementById('pengajuFloatBar');
+            const label  = document.getElementById('pengajuFloatSlotName');
             const btnSave = document.getElementById('pengajuFloatSave');
-            const btnAdd = document.getElementById('pengajuFloatAdd');
+            const btnAdd  = document.getElementById('pengajuFloatAdd');
             if (idle) idle.classList.remove('visible');
             if (!bar) return;
-            if (label) label.textContent = 'TTD #' + (idx + 1);
-            if (btnSave) btnSave.disabled = true;
-            if (btnAdd) btnAdd.disabled = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
+            if (label)   label.textContent  = 'TTD #' + (idx + 1);
+            if (btnSave) btnSave.disabled   = true;
+            if (btnAdd)  btnAdd.disabled    = (pengajuSlots[idx] && pengajuSlots[idx].pdfX === null);
             bar.classList.add('visible');
         }
 
@@ -2336,11 +2273,9 @@
         }
 
         function pengajuRefreshIdleBar() {
-            const placed = pengajuSlots.filter(function(s) {
-                return s.pdfX !== null;
-            }).length;
-            const idle = document.getElementById('pengajuFloatIdle');
-            const label = document.getElementById('pengajuFloatIdleLabel');
+            const placed = pengajuSlots.filter(s => s.pdfX !== null).length;
+            const idle   = document.getElementById('pengajuFloatIdle');
+            const label  = document.getElementById('pengajuFloatIdleLabel');
             if (!idle) return;
             if (placed > 0 && pengajuActiveIdx === null) {
                 if (label) label.textContent = placed + ' signature' + (placed > 1 ? 's' : '') + ' placed';
@@ -2354,11 +2289,11 @@
             if (!pengajuDraft || pengajuActiveIdx === null) return;
             const slot = pengajuSlots[pengajuActiveIdx];
             if (!slot) return;
-            slot.page = pengajuDraft.page;
-            slot.pdfX = pengajuDraft.pdfX;
-            slot.pdfY = pengajuDraft.pdfY;
-            slot.cssX = pengajuDraft.cssX;
-            slot.cssY = pengajuDraft.cssY;
+            slot.page  = pengajuDraft.page;
+            slot.pdfX  = pengajuDraft.pdfX;
+            slot.pdfY  = pengajuDraft.pdfY;
+            slot.cssX  = pengajuDraft.cssX;
+            slot.cssY  = pengajuDraft.cssY;
             pengajuRemoveDraftGhost();
             pengajuHideFloatBar();
             pengajuExitTapMode(false);
@@ -2366,7 +2301,7 @@
             pengajuRenderSlotsUI();
             pengajuSyncInputs();
             pengajuRefreshIdleBar();
-            window.refreshTteToggleBadge(); // ← update badge di tombol toggle
+            window.refreshTteToggleBadge();
         }
 
         function pengajuCancelFloat() {
@@ -2406,19 +2341,17 @@
             e.preventDefault();
             const touch = e.changedTouches[0];
             if (touch) pengajuHandlePlacement(touch.clientX, touch.clientY);
-        }, {
-            passive: false
-        });
+        }, { passive: false });
 
         /* ── Draw confirmed ghost ── */
         function pengajuDrawGhost(idx) {
-            const slot = pengajuSlots[idx];
+            const slot    = pengajuSlots[idx];
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect = wrapper.getBoundingClientRect();
-            const scaleX = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
+            const wRect   = wrapper.getBoundingClientRect();
+            const scaleX  = pengajuPageNatW > 0 ? wRect.width / pengajuPageNatW : PLACE_SCALE;
             const ghostPx = QR_PT * scaleX;
-            const x = Math.max(0, slot.cssX - ghostPx / 2);
-            const y = Math.max(0, slot.cssY - ghostPx / 2);
+            const x       = Math.max(0, slot.cssX - ghostPx / 2);
+            const y       = Math.max(0, slot.cssY - ghostPx / 2);
             const visible = slot.page === pengajuPlacePage;
             const isActive = pengajuActiveIdx === idx;
 
@@ -2426,32 +2359,30 @@
                 const el = document.createElement('div');
                 el.style.cssText =
                     'position:absolute;border-radius:6px;pointer-events:none;' +
-                    'display:flex;align-items:center;justify-content:center;' +
-                    'flex-direction:column;gap:2px;';
+                    'display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;';
                 el.innerHTML =
                     '<i class="bi bi-qr-code" style="font-size:1rem;pointer-events:none;"></i>' +
-                    '<span style="font-size:.5rem;font-weight:700;pointer-events:none;">' +
-                    '#' + (idx + 1) + '</span>';
+                    '<span style="font-size:.5rem;font-weight:700;pointer-events:none;">#' + (idx + 1) + '</span>';
                 document.getElementById('pengajuGhostLayer').appendChild(el);
                 slot.ghostEl = el;
             }
 
-            slot.ghostEl.style.left = x + 'px';
-            slot.ghostEl.style.top = y + 'px';
-            slot.ghostEl.style.width = ghostPx + 'px';
-            slot.ghostEl.style.height = ghostPx + 'px';
-            slot.ghostEl.style.display = visible ? 'flex' : 'none';
-            slot.ghostEl.style.border = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
+            slot.ghostEl.style.left       = x + 'px';
+            slot.ghostEl.style.top        = y + 'px';
+            slot.ghostEl.style.width      = ghostPx + 'px';
+            slot.ghostEl.style.height     = ghostPx + 'px';
+            slot.ghostEl.style.display    = visible ? 'flex' : 'none';
+            slot.ghostEl.style.border     = isActive ? '2px dashed #f59e0b' : '2px dashed #2563eb';
             slot.ghostEl.style.background = isActive ? 'rgba(245,158,11,.2)' : 'rgba(37,99,235,.15)';
-            slot.ghostEl.style.color = isActive ? '#d97706' : '#1d4ed8';
+            slot.ghostEl.style.color      = isActive ? '#d97706' : '#1d4ed8';
         }
 
         function pengajuRedrawGhosts() {
             if (!pengajuViewport || !pengajuPageNatH) return;
             const wrapper = document.getElementById('pengajuPlaceWrapper');
-            const wRect = wrapper.getBoundingClientRect();
-            const cssW = wRect.width;
-            const cssH = wRect.height;
+            const wRect   = wrapper.getBoundingClientRect();
+            const cssW    = wRect.width;
+            const cssH    = wRect.height;
 
             pengajuSlots.forEach(function(slot, idx) {
                 if (slot.pdfX === null) return;
@@ -2468,21 +2399,21 @@
             container.innerHTML = '';
 
             pengajuSlots.forEach(function(slot, idx) {
-                const isActive = pengajuActiveIdx === idx;
-                const isPlaced = slot.pdfX !== null;
+                const isActive  = pengajuActiveIdx === idx;
+                const isPlaced  = slot.pdfX !== null;
 
                 const card = document.createElement('div');
                 card.className = 'rv-sig-slot' + (isActive ? ' active' : '');
 
-                const hdr = document.createElement('div');
+                const hdr    = document.createElement('div');
                 hdr.className = 'rv-sig-slot-header';
 
                 const numEl = document.createElement('div');
-                numEl.className = 'rv-sig-num';
+                numEl.className   = 'rv-sig-num';
                 numEl.textContent = idx + 1;
 
                 const labelEl = document.createElement('div');
-                labelEl.className = 'rv-sig-label';
+                labelEl.className   = 'rv-sig-label';
                 labelEl.textContent = 'Signature #' + (idx + 1);
 
                 hdr.appendChild(numEl);
@@ -2490,11 +2421,11 @@
 
                 if (pengajuSlots.length > 1) {
                     const delBtn = document.createElement('button');
-                    delBtn.type = 'button';
+                    delBtn.type      = 'button';
                     delBtn.className = 'rv-sig-del';
-                    delBtn.title = 'Remove';
+                    delBtn.title     = 'Remove';
                     delBtn.dataset.action = 'slot-delete';
-                    delBtn.dataset.id = slot.id;
+                    delBtn.dataset.id     = slot.id;
                     delBtn.innerHTML = '<i class="bi bi-trash" style="pointer-events:none;"></i>';
                     hdr.appendChild(delBtn);
                 }
@@ -2503,10 +2434,9 @@
 
                 const meta = document.createElement('div');
                 meta.className = 'rv-sig-meta' + (isPlaced ? ' placed' : '');
-                meta.innerHTML = isPlaced ?
-                    '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page +
-                    ' — placed' :
-                    '<i class="bi bi-circle" style="pointer-events:none;"></i> Not placed yet';
+                meta.innerHTML = isPlaced
+                    ? '<i class="bi bi-check-circle-fill" style="pointer-events:none;"></i> Page ' + slot.page + ' — placed'
+                    : '<i class="bi bi-circle" style="pointer-events:none;"></i> Not placed yet';
                 card.appendChild(meta);
 
                 const row = document.createElement('div');
@@ -2518,16 +2448,15 @@
                 if (isActive) {
                     btn.innerHTML = '<i class="bi bi-check-lg" style="pointer-events:none;"></i> Save placement';
                     btn.style.cssText =
-                        'flex:1;display:inline-flex;align-items:center;' +
-                        'justify-content:center;gap:.35rem;padding:.4rem .75rem;' +
-                        'border-radius:8px;border:none;background:var(--accent);' +
+                        'flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;' +
+                        'padding:.4rem .75rem;border-radius:8px;border:none;background:var(--accent);' +
                         'color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;';
                     btn.dataset.action = 'slot-exit';
 
                     const hint = document.createElement('div');
-                    hint.className = 'rv-sig-hint';
+                    hint.className   = 'rv-sig-hint';
                     hint.style.marginTop = '.4rem';
-                    hint.innerHTML =
+                    hint.innerHTML   =
                         '<i class="bi bi-hand-index" style="pointer-events:none;"></i>' +
                         ' Click the canvas to place — click again to move';
 
@@ -2535,17 +2464,15 @@
                     card.appendChild(row);
                     card.appendChild(hint);
                 } else {
-                    btn.innerHTML = isPlaced ?
-                        '<i class="bi bi-arrows-move" style="pointer-events:none;"></i> Reposition' :
-                        '<i class="bi bi-crosshair" style="pointer-events:none;"></i> Place on canvas';
+                    btn.innerHTML = isPlaced
+                        ? '<i class="bi bi-arrows-move" style="pointer-events:none;"></i> Reposition'
+                        : '<i class="bi bi-crosshair" style="pointer-events:none;"></i> Place on canvas';
                     btn.style.cssText =
-                        'flex:1;display:inline-flex;align-items:center;' +
-                        'justify-content:center;gap:.35rem;padding:.4rem .75rem;' +
-                        'border-radius:8px;border:1px solid var(--border);' +
-                        'background:var(--card);color:var(--muted);' +
-                        'font-size:.78rem;font-weight:600;cursor:pointer;';
+                        'flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;' +
+                        'padding:.4rem .75rem;border-radius:8px;border:1px solid var(--border);' +
+                        'background:var(--card);color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;';
                     btn.dataset.action = 'slot-activate';
-                    btn.dataset.idx = idx;
+                    btn.dataset.idx    = idx;
 
                     row.appendChild(btn);
                     card.appendChild(row);
@@ -2561,7 +2488,7 @@
             const addBtn = document.getElementById('btnPengajuAddSlot');
             if (addBtn) {
                 addBtn.disabled = blockAdd;
-                addBtn.title = blockAdd ? 'Place the current signature first' : '';
+                addBtn.title    = blockAdd ? 'Place the current signature first' : '';
             }
         }
 
@@ -2575,15 +2502,15 @@
                 if (slot.pdfX === null) return;
                 const fields = {
                     ['pengaju_placements[' + i + '][halaman]']: slot.page,
-                    ['pengaju_placements[' + i + '][pos_x]']: slot.pdfX,
-                    ['pengaju_placements[' + i + '][pos_y]']: slot.pdfY,
-                    ['pengaju_placements[' + i + '][lebar]']: QR_PT,
-                    ['pengaju_placements[' + i + '][tinggi]']: QR_PT,
+                    ['pengaju_placements[' + i + '][pos_x]']:   slot.pdfX,
+                    ['pengaju_placements[' + i + '][pos_y]']:   slot.pdfY,
+                    ['pengaju_placements[' + i + '][lebar]']:   QR_PT,
+                    ['pengaju_placements[' + i + '][tinggi]']:  QR_PT,
                 };
                 Object.entries(fields).forEach(function([name, value]) {
                     const inp = document.createElement('input');
-                    inp.type = 'hidden';
-                    inp.name = name;
+                    inp.type  = 'hidden';
+                    inp.name  = name;
                     inp.value = value;
                     container.appendChild(inp);
                 });
@@ -2592,34 +2519,25 @@
         }
 
         /* ════════════════════════════════════════════════
-           RESTORE STATE SETELAH VALIDATION ERROR
+           RESTORE STATE AFTER VALIDATION ERROR
         ════════════════════════════════════════════════ */
         @if (old('tmp_key'))
             (function restoreValidationState() {
-                const OLD_TMP_KEY = @json(old('tmp_key'));
-                const OLD_PERUSAHAAN = @json(old('id_perusahaan'));
+                const OLD_TMP_KEY    = @json(old('tmp_key'));
                 const OLD_PREVIEW_URL =
                     '{{ route('data.submission.tempPreview', ['key' => old('tmp_key', '__PH__')]) }}'
                     .replace('__PH__', OLD_TMP_KEY);
 
                 function doRestore() {
-                    // Tampilkan tombol toggle TTE (karena file sudah ada)
                     const toggleWrap = document.getElementById('ttePengajuToggleWrap');
                     if (toggleWrap) toggleWrap.style.display = '';
-
-                    // Load PDF di background (canvas belum terbuka)
                     if (typeof window.pengajuLoadPdf === 'function') {
                         window.pengajuLoadPdf(OLD_PREVIEW_URL);
                     }
-
-                    // Jangan buka section TTE secara otomatis —
-                    // biarkan user yang memutuskan apakah mau TTE atau tidak
                 }
 
                 if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', function() {
-                        setTimeout(doRestore, 350);
-                    });
+                    document.addEventListener('DOMContentLoaded', function() { setTimeout(doRestore, 350); });
                 } else {
                     setTimeout(doRestore, 350);
                 }

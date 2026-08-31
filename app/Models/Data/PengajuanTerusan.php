@@ -15,6 +15,7 @@ class PengajuanTerusan extends Model
         'id_user',          // ← ganti dari id_departemen
         'urutan',
         'require_tte',
+        'is_monitoring',
         'require_tte_count',
         'status',
         'approved_by',
@@ -24,6 +25,7 @@ class PengajuanTerusan extends Model
 
     protected $casts = [
         'require_tte' => 'boolean',
+        'is_monitoring' => 'boolean',
         'approved_at' => 'datetime',
     ];
 
@@ -61,5 +63,9 @@ class PengajuanTerusan extends Model
     public function isRejected(): bool
     {
         return $this->status === 'rejected';
+    }
+    public function isMonitoring(): bool
+    {
+        return (bool) $this->is_monitoring;
     }
 }
