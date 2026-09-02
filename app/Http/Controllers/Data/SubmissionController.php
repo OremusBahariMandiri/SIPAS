@@ -806,7 +806,6 @@ class SubmissionController extends Controller
         ];
     }
 
-    // TAMBAH — setelah method messages(), sebelum penutup class
     private function autoApproveLeadingMonitorings(PengajuanSurat $pengajuan): void
     {
         $terusans = $pengajuan->terusans()
@@ -815,7 +814,6 @@ class SubmissionController extends Controller
             ->get();
 
         foreach ($terusans as $terusan) {
-            // Berhenti di CC non-monitoring pertama
             if (!$terusan->is_monitoring) break;
 
             $terusan->update([
@@ -841,6 +839,8 @@ class SubmissionController extends Controller
                 "terusan-{$terusan->urutan}",
                 'Monitoring — passed through automatically'
             );
+
+            (new \App\Services\NotificationService())->notifyMonitoringPassed($pengajuan, $terusan);
         }
     }
 }

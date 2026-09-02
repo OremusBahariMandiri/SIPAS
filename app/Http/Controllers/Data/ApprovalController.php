@@ -628,7 +628,7 @@ class ApprovalController extends Controller
     {
         $terusan->update([
             'status'      => 'approved',
-            'approved_by' => $terusan->id_user,  // user monitoring itu sendiri
+            'approved_by' => $terusan->id_user,
             'approved_at' => now(),
             'catatan'     => 'Auto-approved (monitoring only)',
         ]);
@@ -650,6 +650,9 @@ class ApprovalController extends Controller
             "terusan-{$terusan->urutan}",
             'Monitoring — passed through automatically'
         );
+
+        // ← TAMBAH
+        (new \App\Services\NotificationService())->notifyMonitoringPassed($submission, $terusan);
     }
 
     private function autoApproveNextMonitorings(PengajuanSurat $submission, int $afterUrutan): void

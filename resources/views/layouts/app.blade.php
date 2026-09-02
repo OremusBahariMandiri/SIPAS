@@ -977,6 +977,7 @@
                     $user = Auth::user();
                     $pendingTerusan = \App\Models\Data\PengajuanTerusan::where('id_user', $user->id)
                         ->where('status', 'waiting')
+                        ->where('is_monitoring', false)
                         ->whereHas('pengajuan', fn($q) => $q->whereIn('status', ['waiting', 'in_review']))
                         ->count();
 
