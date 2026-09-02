@@ -11,6 +11,7 @@ use App\Mail\FinalApprovalRequest;
 use App\Mail\SubmissionApproved;
 use App\Mail\SubmissionRejected;
 use App\Mail\TerusanApprovedInfo;
+use App\Mail\MonitoringPassedInfo;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -38,7 +39,11 @@ class NotificationService
         if (!$this->applySmtp()) return;
 
         $submission = PengajuanSurat::with([
-            'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
+            'terusans',
+            'kepada',
+            'user',
+            'perusahaan',
+            'jenisDokumen',
         ])->find($submission->id);
 
         if (!$submission) return;
@@ -71,7 +76,11 @@ class NotificationService
         if (!$this->applySmtp()) return;
 
         $submission = PengajuanSurat::with([
-            'terusans', 'kepada', 'user', 'perusahaan', 'jenisDokumen',
+            'terusans',
+            'kepada',
+            'user',
+            'perusahaan',
+            'jenisDokumen',
         ])->find($submission->id);
 
         if (!$submission) return;
@@ -236,5 +245,34 @@ class NotificationService
         Log::info('NotificationService: Queue final approval ke ' . $kepada->email);
 
         SendMailJob::dispatch($kepada->email, new FinalApprovalRequest($submission, $kepada));
+    }
+
+    public function notifyMonitoringPassed(PengajuanSurat $submission, PengajuanTerusan $terusan): void
+    {
+        if (!$this->applySmtp()) return;
+
+        $user = \App\Models\User::where('id', $terusan->id_user)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->first();
+
+        if (!$user) {
+            Log::warning('NotificationService: Monitoring user tidak punya email.', [
+                'pengajuan_id' => $submission->id,
+                'id_user'      => $terusan->id_user,
+                'urutan'       => $terusan->urutan,
+            ]);
+            return;
+        }
+
+        Log::info('NotificationService: Queue monitoring-passed ke ' . $user->email, [
+            'pengajuan_id' => $submission->id,
+            'urutan'       => $terusan->urutan,
+        ]);
+
+        SendMailJob::dispatch(
+            $user->email,
+            new MonitoringPassedInfo($submission, $terusan, $user),
+        );
     }
 }
