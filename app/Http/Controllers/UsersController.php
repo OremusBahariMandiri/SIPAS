@@ -24,6 +24,7 @@ class UsersController extends Controller
         'master.wilker'        => 'Master – Wilayah Kerja',
         'master.jenis-dokumen' => 'Master – Jenis Dokumen',
         'master.tte'           => 'Master – TTE',
+        'master.sifat-surat'   => 'Master – Sifat Surat',
         'users'                => 'Manajemen – Pengguna',
         'users.akses'          => 'Manajemen – Hak Akses',
         'data.submission'      => 'Dokumen – Pengajuan Surat',
