@@ -1,23 +1,15 @@
 @extends('layouts.app')
-
-@section('title', 'Tambah Pengguna')
-@section('page-title', 'Tambah Pengguna')
-
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-@endpush
+@section('title', 'Add User')
+@section('page-title', 'Add User')
 
 @section('content')
-    <div class="page-header">
-        <div class="page-header-row">
-            <a href="{{ route('users.index') }}" class="btn-back">
-                <i class="bi bi-arrow-left"></i>
-            </a>
-            <div class="page-header-text">
-                <h1 class="page-title">Tambah Pengguna</h1>
-                <p class="page-subtitle">Buat akun pengguna baru.</p>
-            </div>
-        </div>
+
+
+    <div class="sdv-header" style="align-items:center;">
+        <a href="{{ route('users.index') }}" class="sdv-back" title="Back">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="sdv-header-title" style="margin:0;">Add User</h1>
     </div>
 
     <div>
@@ -27,10 +19,10 @@
                 <div class="flash-error">
                     <i class="bi bi-exclamation-circle-fill" style="color:#dc2626;flex-shrink:0;"></i>
                     <div>
-                        <strong>Terdapat kesalahan:</strong>
-                        <ul style="margin:0.25rem 0 0 1rem;padding:0;">
+                        <strong>There is an error:</strong>
+                        <ul style="margin:.25rem 0 0 1rem;padding:0;">
                             @foreach ($errors->all() as $e)
-                                <li style="font-size:0.82rem;">{{ $e }}</li>
+                                <li style="font-size:.82rem;">{{ $e }}</li>
                             @endforeach
                         </ul>
                     </div>
@@ -43,21 +35,37 @@
                 <div class="form-grid">
 
                     {{-- NRK --}}
-                    <div class="form-group form-span-2">
+                    <div class="form-group">
                         <label class="form-label">NRK <span class="req">*</span></label>
                         <input type="text" name="nrk" value="{{ old('nrk') }}"
-                            class="form-control @error('nrk') is-invalid @enderror" placeholder="Nomor Registrasi Karyawan">
+                            class="form-control @error('nrk') is-invalid @enderror">
                         @error('nrk')
                             <div class="invalid-msg">{{ $message }}</div>
                         @enderror
                     </div>
 
+                    {{-- Email --}}
+                    <div class="form-group">
+                        <label class="form-label">
+                            Email
+                        </label>
+                        <input type="email" name="email" value="{{ old('email') }}"
+                            class="form-control @error('email') is-invalid @enderror">
+                        @error('email')
+                            <div class="invalid-msg">{{ $message }}</div>
+                        @enderror
+                        <small class="form-hint">
+                            <i class="bi bi-info-circle"></i>
+
+                            Email is used for approval notifications. It is optional but recommended.
+                        </small>
+                    </div>
+
                     {{-- Nama Karyawan --}}
                     <div class="form-group form-span-2">
-                        <label class="form-label">Nama Karyawan <span class="req">*</span></label>
+                        <label class="form-label">Employee name <span class="req">*</span></label>
                         <input type="text" name="nama_karyawan" value="{{ old('nama_karyawan') }}"
-                            class="form-control @error('nama_karyawan') is-invalid @enderror"
-                            placeholder="Nama lengkap karyawan">
+                            class="form-control @error('nama_karyawan') is-invalid @enderror">
                         @error('nama_karyawan')
                             <div class="invalid-msg">{{ $message }}</div>
                         @enderror
@@ -69,7 +77,8 @@
                         <div class="pw-wrap">
                             <input type="password" name="password" id="inputPassword"
                                 class="form-control @error('password') is-invalid @enderror"
-                                placeholder="Minimal 8 karakter" required>
+                                placeholder="
+Minimum of 8 characters" required>
                             <button type="button" class="btn-toggle-pw" onclick="togglePw('inputPassword','iconPw1')">
                                 <i class="bi bi-eye" id="iconPw1"></i>
                             </button>
@@ -81,10 +90,10 @@
 
                     {{-- Konfirmasi Password --}}
                     <div class="form-group">
-                        <label class="form-label">Konfirmasi Password <span class="req">*</span></label>
+                        <label class="form-label">Confirm Password <span class="req">*</span></label>
                         <div class="pw-wrap">
                             <input type="password" name="password_confirmation" id="inputPasswordConf" class="form-control"
-                                placeholder="Ulangi password" required>
+                                placeholder="Re-enter new password" required>
                             <button type="button" class="btn-toggle-pw" onclick="togglePw('inputPasswordConf','iconPw2')">
                                 <i class="bi bi-eye" id="iconPw2"></i>
                             </button>
@@ -93,11 +102,12 @@
 
                     {{-- Perusahaan --}}
                     <div class="form-group">
-                        <label class="form-label">Perusahaan <span class="req">*</span></label>
+                        <label class="form-label">Company <span class="req">*</span></label>
                         <select name="id_perusahaan" class="form-control @error('id_perusahaan') is-invalid @enderror">
-                            <option value="">— Pilih Perusahaan —</option>
+                            <option value="">— Select Company —</option>
                             @foreach ($perusahaan as $p)
-                                <option value="{{ $p->id }}" {{ old('id_perusahaan') == $p->id ? 'selected' : '' }}>
+                                <option value="{{ $p->id }}"
+                                    {{ old('id_perusahaan') == $p->id ? 'selected' : '' }}>
                                     {{ $p->nama }}
                                 </option>
                             @endforeach
@@ -109,9 +119,9 @@
 
                     {{-- Departemen --}}
                     <div class="form-group">
-                        <label class="form-label">Departemen <span class="req">*</span></label>
+                        <label class="form-label">Department <span class="req">*</span></label>
                         <select name="id_departemen" class="form-control @error('id_departemen') is-invalid @enderror">
-                            <option value="">— Pilih Departemen —</option>
+                            <option value="">— Select Department —</option>
                             @foreach ($departemen as $d)
                                 <option value="{{ $d->id }}"
                                     {{ old('id_departemen') == $d->id ? 'selected' : '' }}>
@@ -126,9 +136,9 @@
 
                     {{-- Jabatan --}}
                     <div class="form-group">
-                        <label class="form-label">Jabatan <span class="req">*</span></label>
+                        <label class="form-label">Position <span class="req">*</span></label>
                         <select name="jabatan" class="form-control @error('jabatan') is-invalid @enderror">
-                            <option value="">— Pilih Jabatan —</option>
+                            <option value="">— Select Position —</option>
                             @foreach ($jabatan as $j)
                                 <option value="{{ $j->nama }}" {{ old('jabatan') == $j->nama ? 'selected' : '' }}>
                                     {{ $j->nama }}
@@ -142,9 +152,9 @@
 
                     {{-- Wilayah Kerja --}}
                     <div class="form-group">
-                        <label class="form-label">Wilayah Kerja <span class="req">*</span></label>
+                        <label class="form-label">Work Area <span class="req">*</span></label>
                         <select name="wilker" class="form-control @error('wilker') is-invalid @enderror">
-                            <option value="">— Pilih Wilayah Kerja —</option>
+                            <option value="">— Select Work Area —</option>
                             @foreach ($wilayahKerja->unique('wilayah_kerja') as $w)
                                 <option value="{{ $w->wilayah_kerja }}"
                                     {{ old('wilker') == $w->wilayah_kerja ? 'selected' : '' }}>
@@ -164,13 +174,12 @@
                             <label class="toggle-switch">
                                 <input type="checkbox" name="is_admin" value="1"
                                     {{ old('is_admin') ? 'checked' : '' }}>
-                                <span class="toggle-track">
-                                    <span class="toggle-thumb"></span>
-                                </span>
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
                                 <span class="toggle-label">Administrator</span>
                             </label>
                             <p class="toggle-hint">
-                                Administrator memiliki akses penuh ke seluruh fitur tanpa pembatasan.
+
+                                Administrators have full access to all features without restrictions.
                             </p>
                         </div>
                     @endif
@@ -179,9 +188,9 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn-submit">
-                        <i class="bi bi-check-lg"></i> Simpan Pengguna
+                        <i class="bi bi-check-lg"></i> Save User
                     </button>
-                    <a href="{{ route('users.index') }}" class="btn-cancel">Batal</a>
+                    <a href="{{ route('users.index') }}" class="btn-cancel">Cancel</a>
                 </div>
 
             </form>

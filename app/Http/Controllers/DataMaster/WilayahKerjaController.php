@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\WilayahKerja;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class WilayahKerjaController extends Controller
 {
     private string $menu = 'master.wilker';
+
+    private array $logFields = ['kode', 'wilayah_kerja', 'skt_wilayah_kerja', 'area_kerja', 'skt_area_kerja'];
 
     public function index(Request $request): View
     {
@@ -22,8 +25,8 @@ class WilayahKerjaController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('wilayah_kerja', 'like', "%{$s}%")
-                  ->orWhere('area_kerja', 'like', "%{$s}%")
-                  ->orWhere('kode', 'like', "%{$s}%");
+                    ->orWhere('area_kerja', 'like', "%{$s}%")
+                    ->orWhere('kode', 'like', "%{$s}%");
             });
         }
 
@@ -58,7 +61,7 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => ['nullable', 'string', 'max:20'],
         ], $this->messages());
 
-        WilayahKerja::create([
+        $wilker = WilayahKerja::create([
             'kode'              => strtoupper($request->kode),
             'wilayah_kerja'     => $request->wilayah_kerja,
             'skt_wilayah_kerja' => $request->skt_wilayah_kerja ? strtoupper($request->skt_wilayah_kerja) : null,
@@ -66,8 +69,15 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => $request->skt_area_kerja ? strtoupper($request->skt_area_kerja) : null,
         ]);
 
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $wilker,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
+
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Wilayah kerja berhasil ditambahkan.');
+            ->with('success', 'Work region successfully added.');
     }
 
     public function edit(WilayahKerja $wilker): View
@@ -91,6 +101,8 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => ['nullable', 'string', 'max:20'],
         ], $this->messages());
 
+        $original = $wilker->toArray();
+
         $wilker->update([
             'kode'              => strtoupper($request->kode),
             'wilayah_kerja'     => $request->wilayah_kerja,
@@ -99,37 +111,55 @@ class WilayahKerjaController extends Controller
             'skt_area_kerja'    => $request->skt_area_kerja ? strtoupper($request->skt_area_kerja) : null,
         ]);
 
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $wilker,
+            $original,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
+
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Data wilayah kerja berhasil diperbarui.');
+            ->with('success', 'Work region data successfully updated.');
     }
 
     public function destroy(WilayahKerja $wilker): RedirectResponse
     {
         $this->authorizeAccess($this->menu, 'delete_access');
 
+        $userCount = \App\Models\User::where('wilker', $wilker->kode)->count();
+
+        if ($userCount > 0) {
+            return back()->with('error', "Work region \"{$wilker->wilayah_kerja}\" cannot be deleted because it is currently assigned to {$userCount} user(s).");
+        }
+
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $wilker,
+            "{$wilker->wilayah_kerja} – {$wilker->area_kerja} ({$wilker->kode})",
+            $this->logFields,
+        );
+
         $wilker->delete();
 
         return redirect()->route('master.wilker.index')
-            ->with('success', 'Wilayah kerja berhasil dihapus.');
+            ->with('success', 'Work region successfully deleted.');
     }
-
-    // ─── Helpers ─────────────────────────────────────────────
 
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
-        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
     }
 
     private function messages(): array
     {
         return [
-            'kode.required'          => 'Kode wajib diisi.',
-            'kode.unique'            => 'Kode sudah terdaftar.',
-            'wilayah_kerja.required' => 'Wilayah kerja wajib diisi.',
+            'kode.required'          => 'Code is required.',
+            'kode.unique'            => 'Code is already registered.',
+            'wilayah_kerja.required' => 'Work region is required.',
         ];
     }
 }

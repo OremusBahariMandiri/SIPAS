@@ -6,10 +6,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\DataMaster\Perusahaan;
 use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Tte;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Data\PengajuanSurat;
+use App\Models\Data\PengajuanTerusan;
+use App\Models\DataMaster\WilayahKerja;
 
 class User extends Authenticatable
 {
@@ -17,6 +20,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'nrk',
+        'email',
         'nama_karyawan',
         'password',
         'id_perusahaan',
@@ -35,41 +39,60 @@ class User extends Authenticatable
         'is_admin' => 'integer',
     ];
 
-    /**
-     * Relasi ke Perusahaan
-     */
+    // ── Relasi ───────────────────────────────────────────────
+
     public function perusahaan(): BelongsTo
     {
         return $this->belongsTo(Perusahaan::class, 'id_perusahaan');
     }
 
-    /**
-     * Relasi ke Departemen
-     */
     public function departemen(): BelongsTo
     {
         return $this->belongsTo(Departemen::class, 'id_departemen');
     }
 
-    /**
-     * Relasi ke UsersAccess
-     */
     public function akses(): HasMany
     {
         return $this->hasMany(UsersAccess::class, 'id_users');
     }
 
-    /**
-     * Cek apakah user adalah admin
-     */
+    public function tte(): HasOne
+    {
+        return $this->hasOne(Tte::class, 'id_user');
+    }
+
+    public function wilayahKerja(): BelongsTo
+    {
+        return $this->belongsTo(WilayahKerja::class, 'wilker', 'wilayah_kerja');
+    }
+
+    public function ttes(): HasMany
+    {
+        return $this->hasMany(Tte::class, 'id_user');
+    }
+
+    public function tteList(): HasMany
+    {
+        return $this->hasMany(Tte::class, 'id_user');
+    }
+
+    public function pengajuanSurats(): HasMany
+    {
+        return $this->hasMany(PengajuanSurat::class, 'id_user');
+    }
+
+    public function pengajuanTerusans(): HasMany
+    {
+        return $this->hasMany(PengajuanTerusan::class, 'id_user');
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+
     public function isAdmin(): bool
     {
         return $this->is_admin === 1;
     }
 
-    /**
-     * Cek apakah user punya akses tertentu pada menu tertentu
-     */
     public function hasAccess(string $menu, string $tipeAkses): bool
     {
         return $this->akses()
@@ -77,20 +100,8 @@ class User extends Authenticatable
             ->where($tipeAkses, 1)
             ->exists();
     }
-    public function tte(): HasOne
-    {
-        return $this->hasOne(Tte::class, 'id_user');
-    }
 
-    public function ttes(): HasMany
-    {
-        return $this->hasMany(\App\Models\DataMaster\Tte::class, 'id_user');
-    }
-
-    /**
-     * TTE aktif milik user untuk perusahaan tertentu
-     */
-    public function tteForPerusahaan(int $idPerusahaan): ?\App\Models\DataMaster\Tte
+    public function tteForPerusahaan(int $idPerusahaan): ?Tte
     {
         return $this->ttes()
             ->where('id_perusahaan', $idPerusahaan)

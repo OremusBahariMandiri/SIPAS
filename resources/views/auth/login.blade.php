@@ -50,7 +50,7 @@
         .panel-left-bg {
             position: absolute;
             inset: 0;
-            background-image: url('{{ asset('public/images/bg-login.png') }}');
+            background-image: url('{{ asset('/images/bg-login.png') }}');
             background-size: cover;
             background-position: center top;
             z-index: 0;
@@ -694,7 +694,7 @@
 
 
                 <div class="hero-caption">
-                    <h2>Sistem Informasi <em>Persetujuan Surat</em></h2>
+                    <h2>Submission Information and Processing <em> Approval System (SIPAS)</em></h2>
                     <p>An integrated correspondence approval management platform digital</p>
                 </div>
             </div>
@@ -706,7 +706,7 @@
     <div class="panel-right">
         <div class="form-card">
             <div class="form-header">
-                <span class="form-header-tag">Sistem Informasi Persetujuan Surat</span>
+                <span class="form-header-tag">Submission Information and Processing Approval System (SIPAS)</span>
                 <h2>WELCOME!</h2>
                 <p>Log in using your NRK and password to continue.</p>
             </div>
@@ -765,7 +765,7 @@
                 </button>
 
                 <div class="form-footer">
-                    <p>&copy; 2026 Sistem Informasi Persetujuan Surat. All rights reserved.</p>
+                    <p>&copy; 2026 Submission Information and Processing Approval System. All rights reserved.</p>
                 </div>
             </form>
         </div>

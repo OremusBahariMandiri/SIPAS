@@ -19,9 +19,13 @@ class PengajuanSurat extends Model
         'id_kepada',
         'nomor_surat',
         'id_jenis_dokumen',
+        'id_sifat_surat',
         'perihal',
         'file_original',
+        'file_current',
         'file_signed',
+        'require_tte_pengaju',
+        'require_tte_kepada',
         'status',
         'id_user',
     ];
@@ -37,6 +41,11 @@ class PengajuanSurat extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function sifatSurat(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\DataMaster\SifatSurat::class, 'id_sifat_surat');
     }
 
     public function perusahaan(): BelongsTo
@@ -73,13 +82,31 @@ class PengajuanSurat extends Model
     // Helpers
     // ------------------------------------------------
 
-    public function isDraft(): bool     { return $this->status === 'draft'; }
-    public function isWaiting(): bool   { return $this->status === 'waiting'; }
-    public function isInReview(): bool  { return $this->status === 'in_review'; }
-    public function isApproved(): bool  { return $this->status === 'approved'; }
-    public function isRejected(): bool  { return $this->status === 'rejected'; }
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+    public function isWaiting(): bool
+    {
+        return $this->status === 'waiting';
+    }
+    public function isInReview(): bool
+    {
+        return $this->status === 'in_review';
+    }
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
 
-    public function isEditable(): bool  { return $this->isDraft(); }
+    public function isEditable(): bool
+    {
+        return in_array($this->status, ['draft', 'rejected']);
+    }
 
     /**
      * Terusan yang sedang aktif (urutan berikutnya yang belum diproses)

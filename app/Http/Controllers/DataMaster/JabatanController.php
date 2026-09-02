@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Models\DataMaster\Jabatan;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -11,6 +12,8 @@ use Illuminate\View\View;
 class JabatanController extends Controller
 {
     private string $menu = 'master.jabatan';
+
+    private array $logFields = ['kode', 'nama', 'singkatan', 'status'];
 
     public function index(Request $request): View
     {
@@ -22,8 +25,8 @@ class JabatanController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('nama', 'like', "%{$s}%")
-                  ->orWhere('kode', 'like', "%{$s}%")
-                  ->orWhere('singkatan', 'like', "%{$s}%");
+                    ->orWhere('kode', 'like', "%{$s}%")
+                    ->orWhere('singkatan', 'like', "%{$s}%");
             });
         }
 
@@ -54,15 +57,22 @@ class JabatanController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
-        Jabatan::create([
+        $jabatan = Jabatan::create([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
             'singkatan' => $request->singkatan ? strtoupper($request->singkatan) : null,
             'status'    => $request->status,
         ]);
 
+        ActivityLogService::masterCreated(
+            $this->menu,
+            $jabatan,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
+
         return redirect()->route('master.jabatan.index')
-            ->with('success', 'Jabatan berhasil ditambahkan.');
+            ->with('success', 'Position successfully added.');
     }
 
     public function edit(Jabatan $jabatan): View
@@ -83,6 +93,8 @@ class JabatanController extends Controller
             'status'    => ['required', 'in:1,0'],
         ], $this->messages());
 
+        $original = $jabatan->toArray();
+
         $jabatan->update([
             'kode'      => strtoupper($request->kode),
             'nama'      => $request->nama,
@@ -90,38 +102,56 @@ class JabatanController extends Controller
             'status'    => $request->status,
         ]);
 
+        ActivityLogService::masterUpdated(
+            $this->menu,
+            $jabatan,
+            $original,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
+
         return redirect()->route('master.jabatan.index')
-            ->with('success', 'Data jabatan berhasil diperbarui.');
+            ->with('success', 'Position data successfully updated.');
     }
 
     public function destroy(Jabatan $jabatan): RedirectResponse
     {
         $this->authorizeAccess($this->menu, 'delete_access');
 
+        $userCount = \App\Models\User::where('jabatan', $jabatan->nama)->count();
+
+        if ($userCount > 0) {
+            return back()->with('error', "Position \"{$jabatan->nama}\" cannot be deleted because it is currently assigned to {$userCount} user(s).");
+        }
+
+        ActivityLogService::masterDeleted(
+            $this->menu,
+            $jabatan,
+            "{$jabatan->nama} ({$jabatan->kode})",
+            $this->logFields,
+        );
+
         $jabatan->delete();
 
         return redirect()->route('master.jabatan.index')
-            ->with('success', 'Jabatan berhasil dihapus.');
+            ->with('success', 'Position successfully deleted.');
     }
-
-    // ─── Helpers ─────────────────────────────────────────────
 
     private function authorizeAccess(string $menu, string $tipe): void
     {
         $user = auth()->user();
-
-        if (!$user) abort(403, 'Silakan login terlebih dahulu.');
+        if (!$user) abort(403, 'Please log in first.');
         if ($user->isAdmin()) return;
-        if (!$user->hasAccess($menu, $tipe)) abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+        if (!$user->hasAccess($menu, $tipe)) abort(403, 'You do not have permission to access this page.');
     }
 
     private function messages(): array
     {
         return [
-            'kode.required'   => 'Kode jabatan wajib diisi.',
-            'kode.unique'     => 'Kode jabatan sudah terdaftar.',
-            'nama.required'   => 'Nama jabatan wajib diisi.',
-            'status.required' => 'Status wajib dipilih.',
+            'kode.required'   => 'Position code is required.',
+            'kode.unique'     => 'Position code is already registered.',
+            'nama.required'   => 'Position name is required.',
+            'status.required' => 'Status is required.',
         ];
     }
 }

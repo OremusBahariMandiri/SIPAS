@@ -5,7 +5,6 @@ namespace App\Models\Data;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
-use App\Models\DataMaster\Departemen;
 
 class PengajuanTerusan extends Model
 {
@@ -13,9 +12,11 @@ class PengajuanTerusan extends Model
 
     protected $fillable = [
         'id_pengajuan',
-        'id_departemen',
+        'id_user',          // ← ganti dari id_departemen
         'urutan',
         'require_tte',
+        'is_monitoring',
+        'require_tte_count',
         'status',
         'approved_by',
         'approved_at',
@@ -24,6 +25,7 @@ class PengajuanTerusan extends Model
 
     protected $casts = [
         'require_tte' => 'boolean',
+        'is_monitoring' => 'boolean',
         'approved_at' => 'datetime',
     ];
 
@@ -32,17 +34,38 @@ class PengajuanTerusan extends Model
         return $this->belongsTo(PengajuanSurat::class, 'id_pengajuan');
     }
 
-    public function departemen(): BelongsTo
+    // Relasi ke user tujuan terusan
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Departemen::class, 'id_departemen');
+        return $this->belongsTo(User::class, 'id_user');
     }
 
+    // Relasi ke user yang menyetujui
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function isWaiting(): bool  { return $this->status === 'waiting'; }
-    public function isApproved(): bool { return $this->status === 'approved'; }
-    public function isRejected(): bool { return $this->status === 'rejected'; }
+    public function approvals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PengajuanApproval::class, 'id_ref')
+            ->where('tahap', 'terusan');
+    }
+
+    public function isWaiting(): bool
+    {
+        return $this->status === 'waiting';
+    }
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+    public function isMonitoring(): bool
+    {
+        return (bool) $this->is_monitoring;
+    }
 }

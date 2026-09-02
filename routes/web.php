@@ -10,6 +10,9 @@ use App\Http\Controllers\DataMaster\TteController;
 use App\Http\Controllers\DataMaster\WilayahKerjaController;
 use App\Http\Controllers\Data\SubmissionController;
 use App\Http\Controllers\Data\ApprovalController;
+use App\Http\Controllers\DataMaster\SifatSuratController;
+use App\Http\Controllers\Settings\SmtpSettingController;
+use App\Http\Controllers\ActivityLogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,8 +27,17 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/verify/tte/{token}', [App\Http\Controllers\VerifyTteController::class, 'show'])
+    ->name('verify.tte');
 
 Route::middleware(['auth'])->group(function () {
+
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('profile', [App\Http\Controllers\ProfileController::class, 'edit'])
+            ->name('profile.edit');
+        Route::put('profile', [App\Http\Controllers\ProfileController::class, 'update'])
+            ->name('profile.update');
+    });
 
     // ── Manajemen Pengguna ──────────────────────────────────────
     Route::prefix('users')->name('users.')->group(function () {
@@ -140,23 +152,27 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:master.wilker,delete_access')->name('wilker.destroy');
 
         // TTE
-        Route::get('tte',                   [TteController::class, 'index'])
+        Route::get('tte', [TteController::class, 'index'])
             ->middleware('akses:master.tte,index_access')->name('tte.index');
-        Route::get('tte/create',            [TteController::class, 'create'])
+        Route::get('tte/create', [TteController::class, 'create'])
             ->middleware('akses:master.tte,create_access')->name('tte.create');
-        Route::post('tte',                  [TteController::class, 'store'])
+        Route::post('tte', [TteController::class, 'store'])
             ->middleware('akses:master.tte,create_access')->name('tte.store');
-        Route::get('tte/{tte}',             [TteController::class, 'show'])
+
+        Route::get('tte/user/{user}', [TteController::class, 'showUser'])
+            ->middleware('akses:master.tte,index_access')->name('tte.user.show');
+
+        Route::get('tte/{tte}', [TteController::class, 'show'])
             ->middleware('akses:master.tte,index_access')->name('tte.show');
-        Route::get('tte/{tte}/edit',        [TteController::class, 'edit'])
+        Route::get('tte/{tte}/edit', [TteController::class, 'edit'])
             ->middleware('akses:master.tte,update_access')->name('tte.edit');
-        Route::put('tte/{tte}',             [TteController::class, 'update'])
+        Route::put('tte/{tte}', [TteController::class, 'update'])
             ->middleware('akses:master.tte,update_access')->name('tte.update');
-        Route::delete('tte/{tte}',          [TteController::class, 'destroy'])
+        Route::delete('tte/{tte}', [TteController::class, 'destroy'])
             ->middleware('akses:master.tte,delete_access')->name('tte.destroy');
         Route::post('tte/{tte}/regenerate', [TteController::class, 'regenerate'])
             ->middleware('akses:master.tte,update_access')->name('tte.regenerate');
-        Route::post('tte/{tte}/toggle',     [TteController::class, 'toggleActive'])
+        Route::post('tte/{tte}/toggle', [TteController::class, 'toggleActive'])
             ->middleware('akses:master.tte,update_access')->name('tte.toggle');
 
         // Jenis Dokumen
@@ -172,10 +188,27 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('akses:master.jenis-dokumen,update_access')->name('jenis-dokumen.update');
         Route::delete('jenis-dokumen/{jenisDokumen}',   [JenisDokumenController::class, 'destroy'])
             ->middleware('akses:master.jenis-dokumen,delete_access')->name('jenis-dokumen.destroy');
+
+        Route::get('sifat-surat',                   [SifatSuratController::class, 'index'])
+            ->middleware('akses:master.sifat-surat,index_access')->name('sifat-surat.index');
+        Route::get('sifat-surat/create',             [SifatSuratController::class, 'create'])
+            ->middleware('akses:master.sifat-surat,create_access')->name('sifat-surat.create');
+        Route::post('sifat-surat',                   [SifatSuratController::class, 'store'])
+            ->middleware('akses:master.sifat-surat,create_access')->name('sifat-surat.store');
+        Route::get('sifat-surat/{sifatSurat}/edit',  [SifatSuratController::class, 'edit'])
+            ->middleware('akses:master.sifat-surat,update_access')->name('sifat-surat.edit');
+        Route::put('sifat-surat/{sifatSurat}',       [SifatSuratController::class, 'update'])
+            ->middleware('akses:master.sifat-surat,update_access')->name('sifat-surat.update');
+        Route::delete('sifat-surat/{sifatSurat}',    [SifatSuratController::class, 'destroy'])
+            ->middleware('akses:master.sifat-surat,delete_access')->name('sifat-surat.destroy');
     });
 
     // ── Data Transaksi ──────────────────────────────────────────
     Route::prefix('data')->name('data.')->group(function () {
+        Route::post('submission/temp-upload',       [SubmissionController::class, 'tempUpload'])
+            ->middleware('akses:data.submission,create_access')->name('submission.tempUpload');
+        Route::get('submission/temp-preview/{key}', [SubmissionController::class, 'tempPreview'])
+            ->middleware('akses:data.submission,create_access')->name('submission.tempPreview');
 
         // Submission (Pengajuan Surat)
         Route::get('submission',                    [SubmissionController::class, 'index'])
@@ -193,20 +226,38 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('submission/{submission}',    [SubmissionController::class, 'destroy'])
             ->middleware('akses:data.submission,delete_access')->name('submission.destroy');
 
+        // Serve PDF — original (dokumen asli yang diupload)
+        Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
+            $path = storage_path('app/' . $submission->file_original);
+            abort_unless(file_exists($path), 404);
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.file');
+
+        // Serve PDF — progresif (file_current: sudah berisi QR semua tahap sebelumnya)
+        Route::get('submission/{submission}/current-file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
+            $path = storage_path('app/' . ($submission->file_current ?? $submission->file_original));
+            abort_unless(file_exists($path), 404);
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.currentFile');
+
+
         // Serve PDF file
-// Serve PDF file — hapus prefix 'data.' dari name
-Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
-    abort_unless(auth()->check(), 403);
+        // Serve PDF file — hapus prefix 'data.' dari name
+        Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSurat $submission) {
+            abort_unless(auth()->check(), 403);
 
-    $relativePath = $submission->file_signed ?? $submission->file_original;
-    $path = storage_path('app/' . $relativePath);
+            $relativePath = $submission->file_signed ?? $submission->file_original;
+            $path = storage_path('app/' . $relativePath);
 
-    abort_unless(file_exists($path), 404);
+            abort_unless(file_exists($path), 404);
 
-    return response()->file($path, ['Content-Type' => 'application/pdf']);
-})->name('submission.file'); // ← was 'data.submission.file', sekarang cukup 'submission.file'
+            return response()->file($path, ['Content-Type' => 'application/pdf']);
+        })->name('submission.file'); // ← was 'data.submission.file', sekarang cukup 'submission.file'
 
         // Approval
+
         Route::get('approval',                          [ApprovalController::class, 'index'])
             ->name('approval.index');
         Route::get('approval/{submission}/review',      [ApprovalController::class, 'review'])
@@ -215,5 +266,86 @@ Route::get('submission/{submission}/file', function (App\Models\Data\PengajuanSu
             ->name('approval.approve');
         Route::post('approval/{submission}/reject',     [ApprovalController::class, 'reject'])
             ->name('approval.reject');
+        Route::get('approval/{approval}/show', [ApprovalController::class, 'show'])
+            ->name('approval.show');
+        Route::get('approval/{approval}/file', [ApprovalController::class, 'showFile'])
+            ->name('approval.showFile');
+    });
+
+    Route::prefix('settings')->name('settings.')->group(function () {
+
+        // SMTP — index_access untuk melihat, create_access untuk simpan & tes
+        Route::get(
+            'smtp',
+            [SmtpSettingController::class, 'index']
+        )
+            ->middleware('akses:settings.smtp,index_access')
+            ->name('smtp.index');
+
+        Route::post(
+            'smtp/save',
+            [SmtpSettingController::class, 'save']
+        )
+            ->middleware('akses:settings.smtp,create_access')
+            ->name('smtp.save');
+
+        Route::post(
+            'smtp/test',
+            [SmtpSettingController::class, 'test']
+        )
+            ->middleware('akses:settings.smtp,index_access')
+            ->name('smtp.test');
+
+        Route::get(
+            'queue-monitor',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'index']
+        )
+            ->middleware('akses:settings.queue_monitor,index_access')
+            ->name('queue_monitor.index');
+
+        Route::post(
+            'queue-monitor/retry/{id}',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'retry']
+        )
+            ->middleware('akses:settings.queue_monitor,create_access')
+            ->name('queue_monitor.retry');
+
+        Route::post(
+            'queue-monitor/retry-all',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'retryAll']
+        )
+            ->middleware('akses:settings.queue_monitor,create_access')
+            ->name('queue_monitor.retry_all');
+
+        Route::delete(
+            'queue-monitor/failed/{id}',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'deleteFailed']
+        )
+            ->middleware('akses:settings.queue_monitor,delete_access')
+            ->name('queue_monitor.delete_failed');
+
+        Route::delete(
+            'queue-monitor/flush-failed',
+            [\App\Http\Controllers\Settings\QueueMonitorController::class, 'flushFailed']
+        )
+            ->middleware('akses:settings.queue_monitor,delete_access')
+            ->name('queue_monitor.flush_failed');
+    });
+
+    Route::prefix('activity-log')->name('activity_log.')->group(function () {
+
+        Route::get(
+            '/',
+            [ActivityLogController::class, 'index']
+        )
+            ->middleware('akses:activity_log,index_access')
+            ->name('index');
+
+        Route::get(
+            '/{activityLog}',
+            [ActivityLogController::class, 'show']
+        )
+            ->middleware('akses:activity_log,index_access')
+            ->name('show');
     });
 });

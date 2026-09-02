@@ -1,21 +1,21 @@
 @extends('layouts.app')
 
-@section('title', 'Master Jenis Dokumen')
-@section('page-title', 'Master Jenis Dokumen')
+@section('title', 'Document Type Master')
+@section('page-title', 'Document Type Master')
 
 @section('content')
 
 <div class="page-header">
-    <h1 class="page-title">Jenis Dokumen</h1>
-    <p class="page-subtitle">Kelola jenis dokumen yang dapat diajukan dalam sistem.</p>
+    <h1 class="page-title">Document Types</h1>
+    <p class="page-subtitle">Manage document types that can be submitted in the system.</p>
 </div>
 
 <div class="dt-card">
     <div class="dt-card-header">
-        <span class="dt-card-title">Daftar Jenis Dokumen</span>
+        <span class="dt-card-title">Document Type List</span>
         @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jenis-dokumen', 'create_access'))
         <a href="{{ route('master.jenis-dokumen.create') }}" class="btn-primary">
-            <i class="bi bi-plus-lg"></i> Tambah Jenis Dokumen
+            <i class="bi bi-plus-lg"></i> Add Document Type
         </a>
         @endif
     </div>
@@ -25,23 +25,23 @@
             <thead>
                 <tr>
                     <th class="no-sort" style="width:44px;">#</th>
-                    <th style="width:120px;">Kode</th>
-                    <th>Kategori</th>
-                    <th>Jenis Dokumen</th>
-                    <th>Departemen Pemilik</th>
-                    <th class="no-sort" style="width:90px; text-align:right;">Aksi</th>
+                    <th style="width:120px;">Code</th>
+                    <th>Category</th>
+                    <th>Document Type</th>
+                    <th>Owner Department</th>
+                    <th class="no-sort" style="width:90px; text-align:right;">Action</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($items as $item)
                 <tr>
                     <td class="dt-no">{{ $loop->iteration }}</td>
-                    <td data-label="Kode">
+                    <td data-label="Code">
                         <code style="font-size:0.82rem;">{{ $item->kode_dokumen }}</code>
                     </td>
-                    <td data-label="Kategori" class="td-muted">{{ $item->kategori_dokumen }}</td>
-                    <td data-label="Jenis Dokumen">{{ $item->jenis_dokumen }}</td>
-                    <td data-label="Departemen" class="td-muted">
+                    <td data-label="Category" class="td-muted">{{ $item->kategori_dokumen }}</td>
+                    <td data-label="Document Type">{{ $item->jenis_dokumen }}</td>
+                    <td data-label="Department" class="td-muted">
                         {{ $item->departemen->nama ?? '-' }}
                     </td>
                     <td class="td-actions">
@@ -53,7 +53,7 @@
                             </a>
                             @endif
                             @if(Auth::user()->isAdmin() || Auth::user()->hasAccess('master.jenis-dokumen', 'delete_access'))
-                            <button type="button" class="btn-action btn-delete" title="Hapus"
+                            <button type="button" class="btn-action btn-delete" title="Delete"
                                 onclick="confirmDelete('{{ $item->id }}', '{{ addslashes($item->jenis_dokumen) }}')">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -67,18 +67,18 @@
     </div>
 </div>
 
-{{-- Modal Hapus --}}
+{{-- Delete Modal --}}
 <div class="modal-backdrop-custom" id="modalHapus">
     <div class="modal-box">
         <div class="modal-icon"><i class="bi bi-trash"></i></div>
-        <div class="modal-title">Hapus Jenis Dokumen?</div>
-        <p class="modal-desc" id="modalDesc">Data ini akan dihapus secara permanen.</p>
+        <div class="modal-title">Delete Document Type?</div>
+        <p class="modal-desc" id="modalDesc">This data will be permanently deleted.</p>
         <div class="modal-actions">
-            <button type="button" class="btn-cancel" onclick="closeModal()">Batal</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
             <form id="formHapus" method="POST">
                 @csrf @method('DELETE')
                 <button type="submit" class="btn-danger">
-                    <i class="bi bi-trash"></i> Ya, Hapus
+                    <i class="bi bi-trash"></i> Yes, Delete
                 </button>
             </form>
         </div>
@@ -97,13 +97,13 @@ $(function () {
             '<"dt-footer"<"dt-footer-left"i><"dt-footer-right"p>>',
         language: {
             search: '',
-            searchPlaceholder: 'Cari…',
-            lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_–_END_ dari _TOTAL_ data',
-            infoEmpty: 'Tidak ada data',
-            infoFiltered: '(difilter dari _MAX_ total)',
-            zeroRecords: 'Data tidak ditemukan',
-            emptyTable: 'Belum ada data jenis dokumen',
+            searchPlaceholder: 'Search…',
+            lengthMenu: 'Show _MENU_ entries',
+            info: 'Showing _START_–_END_ of _TOTAL_ entries',
+            infoEmpty: 'No entries available',
+            infoFiltered: '(filtered from _MAX_ total entries)',
+            zeroRecords: 'No matching records found',
+            emptyTable: 'No document type data available',
             paginate: {
                 previous: '<i class="bi bi-chevron-left"></i>',
                 next:     '<i class="bi bi-chevron-right"></i>',
@@ -118,7 +118,7 @@ $(function () {
 
 function confirmDelete(id, nama) {
     document.getElementById('modalDesc').textContent =
-        `Jenis dokumen "${nama}" akan dihapus secara permanen.`;
+        `Document type "${nama}" will be permanently deleted and cannot be recovered.`;
     document.getElementById('formHapus').action = `/master/jenis-dokumen/${id}`;
     document.getElementById('modalHapus').classList.add('show');
 }

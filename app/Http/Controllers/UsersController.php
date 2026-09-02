@@ -8,6 +8,7 @@ use App\Models\DataMaster\Perusahaan;
 use App\Models\DataMaster\Departemen;
 use App\Models\DataMaster\Jabatan;
 use App\Models\DataMaster\WilayahKerja;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
@@ -16,30 +17,22 @@ use Illuminate\View\View;
 
 class UsersController extends Controller
 {
-    /**
-     * Daftar menu yang tersedia untuk hak akses.
-     * Tambahkan menu baru di sini agar muncul di form akses.
-     */
     public static array $menuList = [
-        // Master Data
-        'master.perusahaan'   => 'Master – Perusahaan',
-        'master.departemen'   => 'Master – Departemen',
-        'master.jabatan'      => 'Master – Jabatan',
-        'master.wilker'       => 'Master – Wilayah Kerja',
-        'master.jenis-dokumen'=> 'Master – Jenis Dokumen',
-        'master.tte'          => 'Master – TTE',
-
-        // Manajemen Pengguna
-        'users'               => 'Manajemen – Pengguna',
-        'users.akses'         => 'Manajemen – Hak Akses',
-
-        // Data Transaksi
-        'data.submission'     => 'Dokumen – Pengajuan Surat',
+        'master.perusahaan'    => 'Master – Perusahaan',
+        'master.departemen'    => 'Master – Departemen',
+        'master.jabatan'       => 'Master – Jabatan',
+        'master.wilker'        => 'Master – Wilayah Kerja',
+        'master.jenis-dokumen' => 'Master – Jenis Dokumen',
+        'master.tte'           => 'Master – TTE',
+        'master.sifat-surat'   => 'Master – Sifat Surat',
+        'users'                => 'Manajemen – Pengguna',
+        'users.akses'          => 'Manajemen – Hak Akses',
+        'data.submission'      => 'Dokumen – Pengajuan Surat',
+        'activity_log'         => 'Log Aktivitas',          // ← tambah menu baru
+        'settings.smtp'        => 'SMTP Konfigurasi',
+        'settings.queue_monitor' => 'Queue Monitor',
     ];
 
-    /**
-     * Tipe akses yang bisa dikonfigurasi per menu.
-     */
     public static array $accessTypes = [
         'index_access'        => 'Lihat',
         'create_access'       => 'Tambah',
@@ -56,33 +49,37 @@ class UsersController extends Controller
     //  CRUD PENGGUNA
     // ─────────────────────────────────────────
 
-    /**
-     * Daftar semua pengguna.
-     */
     public function index(Request $request): View
     {
         $this->authorize_access('users', 'index_access');
 
-        $query = User::with(['perusahaan', 'departemen'])
-            ->orderBy('nrk');
+        $perPage = in_array((int) $request->get('per_page'), [10, 15, 25, 50])
+            ? (int) $request->get('per_page') : 15;
+
+        $query = User::with(['perusahaan', 'departemen'])->orderBy('nrk');
 
         if ($request->filled('search')) {
-            $query->where('nrk', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('nrk', 'like', '%' . $request->search . '%')
+                    ->orWhere('nama_karyawan', 'like', '%' . $request->search . '%')
+                    ->orWhere('email', 'like', '%' . $request->search . '%');
+            });
         }
 
         if ($request->filled('perusahaan')) {
             $query->where('id_perusahaan', $request->perusahaan);
         }
 
-        $users      = $query->paginate(15)->withQueryString();
+        if ($request->filled('role')) {
+            $query->where('is_admin', $request->role === 'admin' ? 1 : 0);
+        }
+
+        $users      = $query->paginate($perPage)->withQueryString();
         $perusahaan = Perusahaan::aktif()->orderBy('nama')->get();
 
         return view('users.index', compact('users', 'perusahaan'));
     }
 
-    /**
-     * Form tambah pengguna.
-     */
     public function create(): View
     {
         $this->authorize_access('users', 'create_access');
@@ -90,15 +87,13 @@ class UsersController extends Controller
         return view('users.create', $this->formData());
     }
 
-    /**
-     * Simpan pengguna baru.
-     */
     public function store(Request $request): RedirectResponse
     {
         $this->authorize_access('users', 'create_access');
 
         $request->validate([
             'nrk'           => ['required', 'string', 'max:50', 'unique:users,nrk'],
+            'email'         => ['nullable', 'email', 'max:150', 'unique:users,email'],
             'nama_karyawan' => ['required', 'string', 'max:100'],
             'password'      => ['required', 'string', 'min:8', 'confirmed'],
             'id_perusahaan' => ['required', 'exists:a01_perusahaan,id'],
@@ -108,8 +103,9 @@ class UsersController extends Controller
             'is_admin'      => ['sometimes', 'boolean'],
         ], $this->messages());
 
-        User::create([
+        $user = User::create([
             'nrk'           => $request->nrk,
+            'email'         => $request->email ?: null,
             'nama_karyawan' => $request->nama_karyawan,
             'password'      => Hash::make($request->password),
             'id_perusahaan' => $request->id_perusahaan,
@@ -119,13 +115,13 @@ class UsersController extends Controller
             'is_admin'      => $request->boolean('is_admin') ? 1 : 0,
         ]);
 
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userCreated($user);
+
         return redirect()->route('users.index')
-            ->with('success', 'Pengguna berhasil ditambahkan.');
+            ->with('success', 'User has been added successfully.');
     }
 
-    /**
-     * Detail pengguna.
-     */
     public function show(User $user): View
     {
         $this->authorize_access('users', 'show_access');
@@ -137,9 +133,6 @@ class UsersController extends Controller
         return view('users.show', compact('user', 'menuList', 'accessTypes'));
     }
 
-    /**
-     * Form edit pengguna.
-     */
     public function edit(User $user): View
     {
         $this->authorize_access('users', 'update_access');
@@ -147,15 +140,13 @@ class UsersController extends Controller
         return view('users.edit', array_merge(['user' => $user], $this->formData()));
     }
 
-    /**
-     * Update data pengguna.
-     */
     public function update(Request $request, User $user): RedirectResponse
     {
         $this->authorize_access('users', 'update_access');
 
         $request->validate([
             'nrk'           => ['required', 'string', 'max:50', 'unique:users,nrk,' . $user->id],
+            'email'         => ['nullable', 'email', 'max:150', 'unique:users,email,' . $user->id],
             'nama_karyawan' => ['required', 'string', 'max:100'],
             'password'      => ['nullable', 'string', 'min:8', 'confirmed'],
             'id_perusahaan' => ['required', 'exists:a01_perusahaan,id'],
@@ -165,8 +156,12 @@ class UsersController extends Controller
             'is_admin'      => ['sometimes', 'boolean'],
         ], $this->messages());
 
+        // Simpan data lama sebelum diupdate
+        $original = $user->toArray();
+
         $data = [
             'nrk'           => $request->nrk,
+            'email'         => $request->email ?: null,
             'nama_karyawan' => $request->nama_karyawan,
             'id_perusahaan' => $request->id_perusahaan,
             'id_departemen' => $request->id_departemen,
@@ -181,42 +176,62 @@ class UsersController extends Controller
 
         $user->update($data);
 
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userUpdated($user, $original);
+
         return redirect()->route('users.index')
-            ->with('success', 'Data pengguna berhasil diperbarui.');
+            ->with('success', 'User data has been updated successfully.');
     }
 
-    /**
-     * Hapus pengguna.
-     */
     public function destroy(User $user): RedirectResponse
     {
         $this->authorize_access('users', 'delete_access');
 
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'Tidak dapat menghapus akun sendiri.');
+            return back()->with('error', 'You cannot delete your own account.');
         }
+
+        $related = [];
+
+        if ($user->pengajuanSurats()->exists()) {
+            $related[] = 'Letter submissions (' . $user->pengajuanSurats()->count() . ')';
+        }
+
+        if ($user->pengajuanTerusans()->exists()) {
+            $related[] = 'Forwarding approvals (' . $user->pengajuanTerusans()->count() . ')';
+        }
+
+        if ($user->tteList()->exists()) {
+            $related[] = 'Electronic signatures (' . $user->tteList()->count() . ')';
+        }
+
+        if (!empty($related)) {
+            return back()->with('error_related', [
+                'user'  => $user->nama_karyawan,
+                'items' => $related,
+            ]);
+        }
+
+        // ── Log sebelum dihapus ──────────────────────────────────
+        ActivityLogService::userDeleted($user);
 
         $user->akses()->delete();
         $user->delete();
 
         return redirect()->route('users.index')
-            ->with('success', 'Pengguna berhasil dihapus.');
+            ->with('success', 'User "' . $user->nama_karyawan . '" has been deleted successfully.');
     }
 
     // ─────────────────────────────────────────
     //  HAK AKSES
     // ─────────────────────────────────────────
 
-    /**
-     * Form hak akses seorang pengguna.
-     */
     public function editAkses(User $user): View
     {
         $this->authorize_access('users.akses', 'update_access');
 
         $user->load('akses');
 
-        // Map akses ke array [menu => [tipe => value]]
         $aksesMap = [];
         foreach ($user->akses as $akses) {
             $aksesMap[$akses->menu_access] = $akses->toArray();
@@ -228,18 +243,14 @@ class UsersController extends Controller
         return view('users.akses', compact('user', 'aksesMap', 'menuList', 'accessTypes'));
     }
 
-    /**
-     * Simpan / update hak akses pengguna.
-     */
     public function updateAkses(Request $request, User $user): RedirectResponse
     {
         $this->authorize_access('users.akses', 'update_access');
 
-        DB::transaction(function () use ($request, $user) {
-            // Hapus semua akses lama
-            $user->akses()->delete();
+        $aksesInput = $request->input('akses', []);
 
-            $aksesInput = $request->input('akses', []);
+        DB::transaction(function () use ($request, $user, $aksesInput) {
+            $user->akses()->delete();
 
             foreach (array_keys(self::$menuList) as $menu) {
                 $menuData = $aksesInput[$menu] ?? [];
@@ -254,13 +265,13 @@ class UsersController extends Controller
             }
         });
 
+        // ── Log ─────────────────────────────────────────────────
+        ActivityLogService::userAccessUpdated($user, $aksesInput);
+
         return redirect()->route('users.index')
-            ->with('success', 'Hak akses pengguna berhasil disimpan.');
+            ->with('success', 'Access rights for "' . $user->nama_karyawan . '" have been saved successfully.');
     }
 
-    /**
-     * Halaman daftar semua pengguna beserta ringkasan akses mereka.
-     */
     public function aksesIndex(): View
     {
         $this->authorize_access('users.akses', 'index_access');
@@ -276,31 +287,23 @@ class UsersController extends Controller
     //  HELPERS
     // ─────────────────────────────────────────
 
-    /**
-     * Cek akses pengguna yang sedang login.
-     * Admin selalu lolos. Non-admin dicek ke tabel users_access.
-     */
     private function authorize_access(string $menu, string $tipe): void
     {
         $user = auth()->user();
 
         if (!$user) {
-            abort(403, 'Silakan login terlebih dahulu.');
+            abort(403, 'Please log in to continue.');
         }
 
-        // Admin bypass semua akses
         if ($user->isAdmin()) {
             return;
         }
 
         if (!$user->hasAccess($menu, $tipe)) {
-            abort(403, 'Anda tidak memiliki hak akses untuk halaman ini.');
+            abort(403, 'You do not have permission to access this page.');
         }
     }
 
-    /**
-     * Data form (dropdown).
-     */
     private function formData(): array
     {
         return [
@@ -311,21 +314,20 @@ class UsersController extends Controller
         ];
     }
 
-    /**
-     * Pesan validasi.
-     */
     private function messages(): array
     {
         return [
-            'nrk.required'           => 'NRK wajib diisi.',
-            'nrk.unique'             => 'NRK sudah terdaftar.',
-            'nama_karyawan.required' => 'Nama karyawan wajib diisi.',
-            'password.min'           => 'Password minimal 8 karakter.',
-            'password.confirmed'     => 'Konfirmasi password tidak cocok.',
-            'id_perusahaan.required' => 'Perusahaan wajib dipilih.',
-            'id_departemen.required' => 'Departemen wajib dipilih.',
-            'jabatan.required'       => 'Jabatan wajib dipilih.',
-            'wilker.required'        => 'Wilayah kerja wajib dipilih.',
+            'nrk.required'           => 'NRK is required.',
+            'nrk.unique'             => 'This NRK is already registered.',
+            'email.email'            => 'Please enter a valid email address.',
+            'email.unique'           => 'This email is already used by another user.',
+            'nama_karyawan.required' => 'Employee name is required.',
+            'password.min'           => 'Password must be at least 8 characters.',
+            'password.confirmed'     => 'Password confirmation does not match.',
+            'id_perusahaan.required' => 'Please select a company.',
+            'id_departemen.required' => 'Please select a department.',
+            'jabatan.required'       => 'Please select a position.',
+            'wilker.required'        => 'Please select a work area.',
         ];
     }
 }
