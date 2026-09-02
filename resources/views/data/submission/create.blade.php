@@ -144,7 +144,7 @@
                             @foreach ($jenisDoks as $j)
                                 <option value="{{ $j->id }}"
                                     {{ old('id_jenis_dokumen') == $j->id ? 'selected' : '' }}>
-                                    {{ $j->kategori_dokumen }} - {{ $j->jenis_dokumen }}
+                                    {{ $j->jenis_dokumen }} - {{ $j->kategori_dokumen }}
                                 </option>
                             @endforeach
                         </select>

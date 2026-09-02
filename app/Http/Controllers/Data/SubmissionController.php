@@ -112,7 +112,7 @@ class SubmissionController extends Controller
             ->orderBy('jenis_dokumen')
             ->get();
 
-        $sifatSurats = SifatSurat::aktif()->orderBy('nama')->get();
+        $sifatSurats = SifatSurat::aktif()->orderBy('kode')->get();
         $tteMap      = $this->buildTteMap($user, $perusahaans);
 
         return view('data.submission.create', compact(
@@ -451,7 +451,7 @@ class SubmissionController extends Controller
             ->orderBy('jenis_dokumen')
             ->get();
 
-        $sifatSurats = SifatSurat::aktif()->orderBy('nama')->get();
+        $sifatSurats = SifatSurat::aktif()->orderBy('kode')->get();
         $tteMap      = $this->buildTteMap($user, $perusahaans);
 
         $submission->load('terusans.user');
